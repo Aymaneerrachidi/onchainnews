@@ -1,0 +1,24 @@
+# Only the static site is deployed. Everything below is local pipeline state or
+# the Python service that generates the snapshot.
+# Paths are anchored with a leading slash: an unanchored "data/" would also
+# match web/data/, which is the snapshot the site renders.
+/data/
+/output/
+/.venv/
+/.pytest_cache/
+/.ruff_cache/
+/.playwright-mcp/
+/brief/
+/scripts/
+/tests/
+__pycache__/
+*.db
+*.db-wal
+*.db-shm
+*.log
+*.png
+/uv.lock
+/pyproject.toml
+/config.toml
+/.env
+/.env.example

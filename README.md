@@ -161,3 +161,18 @@ Every decision threshold is in `config.toml`: hard filters, novelty, retirement,
 `[thresholds].chains` controls which chains are screened and defaults to `["solana"]`. The Dexscreener discovery and pair endpoints are chain-agnostic, so adding a chain is a configuration change—but RugCheck authority/LP checks and every Helius holder, cluster and creator analysis are Solana-only. Names on another chain would therefore ship with the safety layer marked unavailable, which is why the default stays as it is.
 
 No automated execution, wallet connection, paid data source, sentiment scraping, or generated hype narrative is included.
+
+## Hosted demo
+
+The site lives in `web/` and is deployed on Vercel. It is a dependency-free static page that renders `web/data/latest.json`, which every run writes alongside the HTML report — so the site and the report can never disagree.
+
+The pipeline itself is not serverless: a run takes several minutes, spends Helius credits and depends on the local SQLite ledger. The deploy model is therefore snapshot-based:
+
+```powershell
+uv run solana-brief run          # writes web/data/latest.json
+git add web/data/latest.json
+git commit -m "Snapshot"
+git push                         # Vercel redeploys automatically
+```
+
+`.vercelignore` anchors its paths with a leading slash. An unanchored `data/` would also match `web/data/`, which is the snapshot the site needs.
