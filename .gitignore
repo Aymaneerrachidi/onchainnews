@@ -1,17 +1,18 @@
-
-!output/.gitkeep
-# Environments and caches
-# Local state: ledger, run logs, generated reports
 # Secrets
-*.py[cod]
 .env
-.playwright-mcp/
-.pytest_cache/
-.ruff_cache/
+
+# Environments and caches
 .venv/
 __pycache__/
-data/
-output/*.html
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.playwright-mcp/
 web/.playwright-mcp/
 
-.vercel
+# Local pipeline state. Anchored with a leading slash on purpose: an
+# unanchored "data/" also matches web/data/, which is the snapshot the
+# deployed site renders and therefore must stay tracked.
+/data/
+/output/*.html
+!/output/.gitkeep
