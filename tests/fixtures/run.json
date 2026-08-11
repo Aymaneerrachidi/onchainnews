@@ -1,0 +1,97 @@
+{
+  "/metas/trending/v1": [
+    {
+      "slug": "dogs",
+      "name": "Dog",
+      "marketCap": 900000000,
+      "liquidity": 30000000,
+      "volume": 65000000,
+      "tokenCount": 60,
+      "marketCapChange": {"h6": 6, "h24": 24}
+    }
+  ],
+  "/metas/meta/v1/dogs": {
+    "pairs": [
+      {
+        "chainId": "solana",
+        "pairAddress": "PAIRA",
+        "url": "https://dexscreener.com/solana/PAIRA",
+        "baseToken": {"address": "MINTA", "symbol": "ALPHA", "name": "Alpha"},
+        "priceUsd": "0.004",
+        "marketCap": 400000,
+        "liquidity": {"usd": 80000},
+        "volume": {"h6": 150000, "h24": 800000},
+        "priceChange": {"h6": 31, "h24": 40},
+        "pairCreatedAt": 1785978000000,
+        "txns": {"h1": {"buys": 68, "sells": 32}, "h6": {"buys": 340, "sells": 160}},
+        "info": {"socials": [{"type": "twitter", "url": "https://example.test/a"}]},
+        "boosts": {"active": 0}
+      }
+    ]
+  },
+  "/community-takeovers/latest/v1": [
+    {"chainId": "solana", "tokenAddress": "MINTC", "claimDate": "2026-08-05T06:45:00Z"}
+  ],
+  "/token-profiles/latest/v1": [
+    {"chainId": "solana", "tokenAddress": "MINTA"},
+    {"chainId": "solana", "tokenAddress": "MINTB"}
+  ],
+  "/token-boosts/top/v1": [
+    {"chainId": "solana", "tokenAddress": "MINTB", "amount": 100}
+  ],
+  "/tokens/v1/solana/MINTA,MINTB,MINTC": [
+    {
+      "chainId": "solana",
+      "pairAddress": "PAIRA",
+      "baseToken": {"address": "MINTA", "symbol": "ALPHA", "name": "Alpha"},
+      "marketCap": 400000,
+      "liquidity": {"usd": 80000},
+      "volume": {"h6": 150000, "h24": 800000},
+      "priceChange": {"h6": 31, "h24": 40},
+      "pairCreatedAt": 1785978000000,
+      "txns": {"h1": {"buys": 68, "sells": 32}, "h6": {"buys": 340, "sells": 160}}
+    },
+    {
+      "chainId": "solana",
+      "pairAddress": "PAIRB",
+      "baseToken": {"address": "MINTB", "symbol": "DUST", "name": "Dust"},
+      "marketCap": 100000,
+      "liquidity": {"usd": 50000},
+      "volume": {"h6": 20000, "h24": 50000},
+      "priceChange": {"h6": 5, "h24": 10},
+      "pairCreatedAt": 1785978000000,
+      "txns": {"h1": {"buys": 8, "sells": 4}, "h6": {"buys": 20, "sells": 10}}
+    },
+    {
+      "chainId": "solana",
+      "pairAddress": "PAIRC",
+      "baseToken": {"address": "MINTC", "symbol": "CONTROL", "name": "Control"},
+      "marketCap": 500000,
+      "liquidity": {"usd": 100000},
+      "volume": {"h6": 100000, "h24": 300000},
+      "priceChange": {"h6": 12, "h24": 20},
+      "pairCreatedAt": 1785800000000,
+      "txns": {"h1": {"buys": 20, "sells": 20}, "h6": {"buys": 100, "sells": 80}}
+    }
+  ],
+  "/v1/tokens/MINTA/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [{"lp": {"lpLockedPct": 100}}],
+    "topHolders": [
+      {"pct": 0.02}, {"pct": 0.02}, {"pct": 0.02}, {"pct": 0.02}, {"pct": 0.02},
+      {"pct": 0.01}, {"pct": 0.01}, {"pct": 0.01}, {"pct": 0.01}, {"pct": 0.01}
+    ],
+    "risks": []
+  },
+  "/v1/tokens/MINTC/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [{"lp": {"lpLockedPct": 80}}],
+    "topHolders": [
+      {"pct": 0.10}, {"pct": 0.08}, {"pct": 0.07}, {"pct": 0.06}, {"pct": 0.05},
+      {"pct": 0.04}, {"pct": 0.03}, {"pct": 0.02}, {"pct": 0.01}, {"pct": 0.01}
+    ],
+    "risks": [{"name": "Concentrated holders"}]
+  }
+}

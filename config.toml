@@ -1,0 +1,277 @@
+[run]
+timezone = "Europe/Paris"
+top_tokens = 10
+database_path = "data/brief.db"
+html_path = "output/latest.html"
+request_timeout_seconds = 15.0
+log_level = "INFO"
+# Raw HTTP bodies are compressed on write and kept only long enough to replay
+# recent dates. Older rows are deleted on every committed run; run
+# `solana-brief prune --vacuum` to compress old rows and reclaim the file.
+archive_retention_days = 7
+archive_compress = true
+# fixture_path = "tests/fixtures/run.json" # Uncomment for deterministic offline runs.
+
+[thresholds]
+# Safety verification (RugCheck authority/LP, Helius holders) is Solana-only.
+# Adding a chain here widens discovery but those names ship without that layer.
+chains = ["solana"]
+min_market_cap = 150000.0
+min_liquidity = 20000.0
+# Strength has to show up in the tape. Without these two floors a thin float
+# prices a handful of buys into a large notional cap and reaches the shortlist
+# on no real trading at all.
+min_volume_24h = 25000.0
+min_turnover_24h = 0.15
+# Wash-trading proxy for pairs under 24h old.
+max_volume_liquidity_ratio = 25.0
+# The same ratio on an established name; a violent day legitimately turns a
+# pool over many times, and the launch limit rejected the strongest movers.
+max_volume_liquidity_ratio_established = 75.0
+max_top10_pct = 30.0
+novelty_days = 7
+follow_up_multiple = 3.0
+retire_after_features = 3
+max_pair_idle_hours = 6
+
+[ranking]
+cto_bonus = 1.0
+profile_bonus = 0.25
+boost_without_growth_penalty = 1.0
+
+[editorial]
+min_strength_signals = 3
+min_interest_signals = 2
+max_shortlist = 5
+recycled_symbol_lookback_days = 30
+
+# The movers track answers "strongest coins of the day" for names that already
+# exist. It is deliberately independent of the 24h launch window; a token that
+# launched last week and is running this morning belongs in the brief.
+[movers]
+enabled = true
+max_movers = 5
+min_strength_signals = 2
+min_price_change_24h = 25.0
+min_turnover = 0.5
+min_volume_24h = 100000.0
+max_age_days = 120
+
+# Community takeovers are old tokens by definition, so this track is also
+# evaluated outside the launch window and is gated on post-claim vitality.
+[cto]
+enabled = true
+max_ctos = 3
+max_claim_age_days = 7
+min_strength_signals = 2
+
+# Ranked discovery across the whole Solana universe. Dexscreener's public feeds
+# only surface trending metas, takeovers, profiles and boosts — about four
+# hundred tokens — which is too narrow to answer "what is strongest today".
+# Requires BIRDEYE_API_KEY; without it discovery falls back to Dexscreener.
+[birdeye]
+enabled = true
+max_tokens = 600
+page_size = 50
+requests_per_minute = 50
+# The free tier allows roughly one request per second, and the per-minute
+# limiter would otherwise let a burst through and earn a run of 429s.
+request_interval_seconds = 1.1
+
+# Superseded by Birdeye ranked discovery for finding runners. Leaving this on
+# spends most of the Helius credit budget enriching mints that never traded.
+[launch_index]
+enabled = false
+max_mints_enriched_per_run = 12000
+pump_program = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+
+[cache]
+pairs_ttl_seconds = 60
+discovery_ttl_seconds = 600
+safety_ttl_seconds = 3600
+keyed_ttl_seconds = 900
+
+# Deep holder forensics for the editorial tracks. Expensive in Helius credits
+# and not used by the daily journal, so it runs on a small watchlist.
+[holders]
+enabled = true
+watchlist_limit = 2
+snapshot_cache_seconds = 60
+holder_page_limit = 1000
+max_holder_pages = 25
+helius_requests_per_minute = 100
+cluster_top_holders = 100
+history_concurrency = 4
+max_wallet_history_calls_per_run = 1000
+wallet_trace_cache_days = 30
+acquisition_cache_days = 90
+sniper_window_minutes = 10
+fresh_wallet_hours = 24
+daily_snapshot_min_age_hours = 20
+weekly_snapshot_min_age_hours = 164
+funding_cluster_window_minutes = 15
+min_holder_change_pct = 2.0
+flat_price_pct = 5.0
+rising_price_pct = 15.0
+min_concentration_change_pp = 1.0
+cluster_alert_pp = 5.0
+min_whale_delta_supply_pct = 0.5
+min_retention_change_pct = 2.0
+fresh_wallet_alert_pct = 50.0
+excluded_accounts = []
+excluded_owners = []
+known_cex_wallets = []
+
+[intelligence]
+lp_removal_alert_pct = 10.0
+lp_add_report_pct = 10.0
+creator_outflow_alert_pp = 0.25
+creator_sustained_days = 2
+anomaly_zscore = 3.0
+anomaly_trailing_days = 30
+anomaly_min_samples = 7
+min_social_account_age_days = 3.0
+smart_money_winner_return_pct = 100.0
+smart_money_min_prior_wins = 2
+smart_money_alert_wallets = 3
+early_holder_hours = 3.0
+holder_overlap_alert_pct = 20.0
+dex_dominance_pct = 80.0
+jupiter_price_impact_pct = 5.0
+jupiter_binary_search_steps = 14
+retired_reappearance_multiple = 1.5
+watcher_interval_seconds = 300
+watcher_pair_ttl_seconds = 30
+watcher_rug_ttl_seconds = 900
+watcher_holder_cache_seconds = 30
+watcher_cluster_sell_pct = 5.0
+watcher_creator_outflow_pp = 0.1
+
+[sources]
+dexscreener_base_url = "https://api.dexscreener.com"
+birdeye_base_url = "https://public-api.birdeye.so"
+rugcheck_base_url = "https://api.rugcheck.xyz/v1"
+helius_base_url = "https://mainnet.helius-rpc.com"
+jupiter_quote_url = "https://lite-api.jup.ag/swap/v1/quote"
+jupiter_price_url = "https://lite-api.jup.ag/price/v3"
+x_public_metadata_url = "https://cdn.syndication.twimg.com/widgets/followbutton/info.json"
+
+[delivery]
+# Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env.
+# A missing credential warns and skips; it never fails the run.
+telegram_enabled = true
+html_enabled = true
+# Morning message: the picks and one line each, not the full report.
+telegram_digest = true
+# Optional link appended to the digest so the full report is one tap away.
+report_url = ""
+
+# The daily journal: what ran today. Deliberately wider than the editorial
+# tracks. A coin enters through one of two doors -- created inside the fresh
+# window and up by min_fresh_change_pct, or any age doing old_coin_multiple.
+# Safety problems become labels on the row; only the rug/bundle conditions
+# below remove a coin from the record entirely.
+[journal]
+enabled = true
+max_runners = 40
+min_volume_24h = 50000.0
+fresh_window_hours = 24
+min_fresh_change_pct = 30.0
+old_coin_multiple = 5.0
+# 0 disables the age ceiling, so a 5x is reported at any age.
+max_age_days = 0
+# Disqualifying: a top 10 this large means the supply was never distributed.
+bundle_top10_pct = 50.0
+# Not disqualifying, shown on the row.
+caution_top10_pct = 25.0
+thin_liquidity_ratio = 60.0
+min_lore_group = 2
+
+# Tracked wallets. `min_buyers_to_flag` independent buyers on one coin is the
+# crowd-forming signal; realised SOL per mint is reconstructed from each
+# wallet's own balance deltas.
+[kol]
+enabled = true
+window_hours = 24
+min_buyers_to_flag = 3
+# Helius free tier answers a burst of heavy wallet-history calls with 429s, so
+# this work is paced and budgeted separately from the holder snapshots.
+max_transactions_per_wallet = 40
+concurrency = 2
+request_interval_seconds = 1.0
+requests_per_minute = 30
+# 0 scans every wallet. Lower it if the Helius budget is tight; the list is
+# ordered by reported PnL, so a partial scan keeps the strongest wallets.
+max_wallets_per_run = 0
+# Kolscan leaderboard, deduplicated across the daily, weekly and monthly
+# boards (111 listed entries -> 66 unique wallets). `tiers` records which
+# boards the wallet appeared on and `pnl_sol` its best reported figure;
+# both are provenance for the list, not inputs to any calculation.
+wallets = [
+  { address = "xyzfhxfy8NhfeNG3Um3WaUvFXzNuHkrhrZMD8dsStB6", name = "Gasp", tiers = "monthly", pnl_sol = 6843.43 },
+  { address = "J6TDXvarvpBdPXTaTU8eJbtso1PUCYKGkVtMKUUY8iEa", name = "Pain", tiers = "weekly/monthly", pnl_sol = 2936.83 },
+  { address = "Bi4rd5FH5bYEN8scZ7wevxNZyNmKHdaBcvewdPFxYdLt", name = "theo", tiers = "daily/weekly/monthly", pnl_sol = 2748.71 },
+  { address = "UxuuMeyX2pZPHmGZ2w3Q8MysvExCAquMtvEfqp2etvm", name = "Pandora", tiers = "monthly", pnl_sol = 2136.8 },
+  { address = "CyaE1VxvBrahnPWkqm5VsdCvyS2QmNht2UFrKJHga54o", name = "Cented", tiers = "weekly/monthly", pnl_sol = 1596.24 },
+  { address = "5ZuV8eqkvzYFVEKbLvGBdexL2tFv7E5BCd2HZpjqbdg", name = "Doji", tiers = "daily/weekly/monthly", pnl_sol = 1551.01 },
+  { address = "862TYSvRYoiHAK3F3WwTRYAfuGiQaGdxedN9AGvRGWo2", name = "Wugi", tiers = "daily/weekly/monthly", pnl_sol = 1172.58 },
+  { address = "BTf4A2exGK9BCVDNzy65b9dUzXgMqB4weVkvTMFQsadd", name = "Kev", tiers = "daily/weekly/monthly", pnl_sol = 1015.48 },
+  { address = "4vw54BmAogeRV3vPKWyFet5yf8DTLcREzdSzx4rw9Ud9", name = "decu", tiers = "weekly/monthly", pnl_sol = 859.2 },
+  { address = "4BdKaxN8G6ka4GYtQQWk4G4dZRUTX2vQH9GcXdBREFUk", name = "Jijo", tiers = "daily/weekly/monthly", pnl_sol = 783.67 },
+  { address = "DAEdBmTPEKM6xkwfzC3d411QUe6coKpkND6UURa4CvHC", name = "Fox", tiers = "weekly/monthly", pnl_sol = 734.23 },
+  { address = "8nqtxpFpuXwfXG4pBLsDkkuMMPK9FjSkBMCn542HiM3v", name = "dov 7", tiers = "weekly/monthly", pnl_sol = 684.71 },
+  { address = "JDd3hy3gQn2V982mi1zqhNqUw1GfV2UL6g76STojCJPN", name = "West", tiers = "daily/weekly/monthly", pnl_sol = 581.76 },
+  { address = "2fg5QD1eD7rzNNCsvnhmXFm5hqNgwTTG8p7kQ6f3rx6f", name = "Cupsey", tiers = "weekly/monthly", pnl_sol = 560.06 },
+  { address = "6S8GezkxYUfZy9JPtYnanbcZTMB87Wjt1qx3c6ELajKC", name = "Nyhrox", tiers = "daily/weekly/monthly", pnl_sol = 559.2 },
+  { address = "215nhcAHjQQGgwpQSJQ7zR26etbjjtVdW74NLzwEgQjP", name = "OGAntD", tiers = "monthly", pnl_sol = 550.27 },
+  { address = "HYSq1KBAvqWpEv1pCbV31muKM1za5A1WSHGdiVLUoNhb", name = "Apex", tiers = "monthly", pnl_sol = 541.41 },
+  { address = "9jyqFiLnruggwNn4EQwBNFXwpbLM9hrA4hV59ytyAVVz", name = "Nach", tiers = "monthly", pnl_sol = 485.55 },
+  { address = "CAPn1yH4oSywsxGU456jfgTrSSUidf9jgeAnHceNUJdw", name = "cap", tiers = "monthly", pnl_sol = 484.18 },
+  { address = "DjM7Tu7whh6P3pGVBfDzwXAx2zaw51GJWrJE3PwtuN7s", name = "LUKEY", tiers = "daily/weekly/monthly", pnl_sol = 384.69 },
+  { address = "CEUA7zVoDRqRYoeHTP58UHU6TR8yvtVbeLrX1dppqoXJ", name = "Tom", tiers = "weekly/monthly", pnl_sol = 349.2 },
+  { address = "iPUp3qkm39ycMGbywWFMUyvaDhiiPGXeWXaDtmHNe6C", name = "Nikolas", tiers = "monthly", pnl_sol = 341.6 },
+  { address = "23Ltopfensg1rSsCdoc1M8rcp5cB5bkqbmogMGmH63yW", name = "Snatcher", tiers = "monthly", pnl_sol = 337.05 },
+  { address = "5hAgYC8TJCcEZV7LTXAzkTrm7YL29YXyQQJPCNrG84zM", name = "Schoen", tiers = "weekly/monthly", pnl_sol = 315.61 },
+  { address = "GfXQesPe3Zuwg8JhAt6Cg8euJDTVx751enp9EQQmhzPH", name = "Spuno", tiers = "daily/weekly/monthly", pnl_sol = 305.86 },
+  { address = "922VvmmYDHV9KMTJJ71Y5Yd3Vn7cfJuFasLNSsZPygrG", name = "Zuki", tiers = "monthly", pnl_sol = 290.31 },
+  { address = "DYAn4XpAkN5mhiXkRB7dGq4Jadnx6XYgu8L5b3WGhbrt", name = "The Doc", tiers = "weekly/monthly", pnl_sol = 273.31 },
+  { address = "4TCMpxeevymUtCemwcVozhBLWq8Fikc1pVpfcW9zp66B", name = "Yugi", tiers = "monthly", pnl_sol = 258.64 },
+  { address = "J9TYAsWWidbrcZybmLSfrLzryANf4CgJBLdvwdGuC8MB", name = "Johnson", tiers = "daily/monthly", pnl_sol = 254.82 },
+  { address = "DNfuF1L62WWyW3pNakVkyGGFzVVhj4Yr52jSmdTyeBHm", name = "Gake", tiers = "monthly", pnl_sol = 247.99 },
+  { address = "3bzaJd5yZG73EVDz8xosQb7gfZm2LN5auFGh6wnP1n1f", name = "Matt", tiers = "weekly/monthly", pnl_sol = 245.08 },
+  { address = "BQVz7fQ1WsQmSTMY3umdPEPPTm1sdcBcX9sP7o6kPRmB", name = "Limfork.eth", tiers = "daily/monthly", pnl_sol = 232.18 },
+  { address = "4fZFcK8ms3bFMpo1ACzEUz8bH741fQW4zhAMGd5yZMHu", name = "Rilsio", tiers = "daily/weekly/monthly", pnl_sol = 231.68 },
+  { address = "B32QbbdDAyhvUQzjcaM5j6ZVKwjCxAwGH5Xgvb9SJqnC", name = "Kadenox", tiers = "weekly/monthly", pnl_sol = 231.41 },
+  { address = "3uz65G8e463MA5FxcSu1rTUyWRtrRLRZYskKtEHHj7qn", name = "Felix", tiers = "monthly", pnl_sol = 222.09 },
+  { address = "EeXvxkcGqMDZeTaVeawzxm9mbzZwqDUMmfG3bF7uzumH", name = "milito", tiers = "monthly", pnl_sol = 218.91 },
+  { address = "6KR7SorsUQtNH6CB6JpAnWCAKeTysa95iyXeWihdNeGT", name = "KOREAN", tiers = "monthly", pnl_sol = 206.09 },
+  { address = "ardinRsN1mNYVeoJWTBsWeYeXvuR9UUDGMsCDKpb6AT", name = "trunoest", tiers = "weekly/monthly", pnl_sol = 195.41 },
+  { address = "8MaVa9kdt3NW4Q5HyNAm1X5LbR8PQRVDc1W8NMVK88D5", name = "Daumen", tiers = "weekly/monthly", pnl_sol = 192.15 },
+  { address = "Be24Gbf5KisDk1LcWWZsBn8dvB816By7YzYF5zWZnRR6", name = "Chairman", tiers = "weekly", pnl_sol = 177.78 },
+  { address = "DEdEW3SMPU2dCfXEcgj2YppmX9H3bnMDJaU4ctn2BQDQ", name = "King Solomon", tiers = "monthly", pnl_sol = 177.48 },
+  { address = "G6fUXjMKPJzCY1rveAE6Qm7wy5U3vZgKDJmN1VPAdiZC", name = "clukz", tiers = "weekly/monthly", pnl_sol = 162.53 },
+  { address = "hahaA2GjzZbwgAwwryjmTb8VkmLt68hdZVHhtcpknpT", name = "Aspect", tiers = "monthly", pnl_sol = 155.41 },
+  { address = "8oQoMhfBQnRspn7QtNAq2aPThRE4q94kLSTwaaFQvRgs", name = "big bags bobby", tiers = "weekly/monthly", pnl_sol = 150.5 },
+  { address = "5S9qzJhSooakBaA9qZT6vWtoSy8FvyfxJ4t1vXvEK9G7", name = "Thesis", tiers = "daily/weekly/monthly", pnl_sol = 150.36 },
+  { address = "4yo9CUuTBbds9NFhZd4MzPiZZkUvveXdTnAH8qMsE8ku", name = "Gfree", tiers = "weekly/monthly", pnl_sol = 146.71 },
+  { address = "89HbgWduLwoxcofWpmn1EiF9wEdpgkNDEyPjzZ72mkDi", name = "AlxCooks", tiers = "monthly", pnl_sol = 145.3 },
+  { address = "36A6mEN5rYJdVTb6fMqVvG6ez8g2mTYdr1omWcQ1kDKG", name = "Mel", tiers = "monthly", pnl_sol = 144.02 },
+  { address = "71PCu3E4JP5RDBoY6wJteqzxkKNXLyE1byg5BTAL9UtQ", name = "Ramset", tiers = "weekly", pnl_sol = 140.14 },
+  { address = "9THzoX5yGNSgPBAjCF4Lgqc1wLXoFkMQit4XWbhhRnqE", name = "Dedmeow5", tiers = "daily/monthly", pnl_sol = 140.01 },
+  { address = "78N177fzNJpp8pG49xDv1efYcTMSzo9tPTKEA9mAVkh2", name = "Sheep", tiers = "monthly", pnl_sol = 136.67 },
+  { address = "H1TLERBQyQzSd5gbvbWwP97GjeL9txzWoN5BK4UG7xYm", name = "alex", tiers = "weekly/monthly", pnl_sol = 134.33 },
+  { address = "9yYya3F5EJoLnBNKW6z4bZvyQytMXzDcpU5D6yYr4jqL", name = "Loopierr", tiers = "daily/weekly", pnl_sol = 129.9 },
+  { address = "2X4H5Y9C4Fy6Pf3wpq8Q4gMvLcWvfrrwDv2bdR8AAwQv", name = "Orange", tiers = "weekly", pnl_sol = 123.47 },
+  { address = "sAdNbe1cKNMDqDsa4npB3TfL62T14uAo2MsUQfLvzLT", name = "Ethan Prosper", tiers = "daily/weekly", pnl_sol = 119.76 },
+  { address = "ztRg1PdZbBQzMGbaz5UXqzaKX4frC82USoWiaVfohSv", name = "ItsVine", tiers = "daily/weekly", pnl_sol = 119.06 },
+  { address = "3h65MmPZksoKKyEpEjnWU2Yk2iYT5oZDNitGy5cTaxoE", name = "Jidn", tiers = "weekly", pnl_sol = 114.13 },
+  { address = "AAMnoNo3TpezKcT7ah9puLFZ4D59muEhQHJJqpX16ccg", name = "sarah milady", tiers = "weekly", pnl_sol = 94.81 },
+  { address = "BY58Z7N5Adarkx5ed78AzKvR7Kxrq795aa1boZsYyVBT", name = "JB", tiers = "weekly", pnl_sol = 60.55 },
+  { address = "AstaWuJuQiAS3AfqmM3xZxrJhkkZNXtW4VyaGQfqV6JL", name = "asta", tiers = "weekly", pnl_sol = 53.67 },
+  { address = "7mHqL9GzGnbsYLoHLDzB7FiHAZbND2CZCJYFvU9PU1d3", name = "Kimba", tiers = "daily", pnl_sol = 45.54 },
+  { address = "Ez2jp3rwXUbaTx7XwiHGaWVgTPFdzJoSg8TopqbxfaJN", name = "Keano", tiers = "daily", pnl_sol = 43.95 },
+  { address = "C4Svaa7djC8d3CVxaohrsedccaKqimNoJrWe9iNPdix5", name = "edward", tiers = "daily", pnl_sol = 38.87 },
+  { address = "GJA1HEbxGnqBhBifH9uQauzXSB53to5rhDrzmKxhSU65", name = "Latuche", tiers = "daily", pnl_sol = 38.25 },
+  { address = "A8i6J8B1DgVdQaoeyrCmc18473EzYocEtZGavHT4sXzw", name = "Mike", tiers = "daily", pnl_sol = 34.55 },
+  { address = "5YRgrP3mjGzrzirYYN5HAQH19cTYREYwGxW6XRJQUzij", name = "slingoor", tiers = "daily", pnl_sol = 29.33 },
+]

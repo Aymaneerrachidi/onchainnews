@@ -1,0 +1,917 @@
+{
+  "/metas/trending/v1": [
+    {
+      "slug": "dogs",
+      "name": "Dog",
+      "marketCap": 900000000,
+      "liquidity": 30000000,
+      "volume": 65000000,
+      "tokenCount": 60,
+      "marketCapChange": {
+        "h6": 6,
+        "h24": 24
+      }
+    }
+  ],
+  "/metas/meta/v1/dogs": {
+    "pairs": [
+      {
+        "chainId": "solana",
+        "pairAddress": "PAIRM",
+        "url": "https://dexscreener.com/solana/PAIRM",
+        "baseToken": {
+          "address": "MINTM",
+          "symbol": "MOVER",
+          "name": "Mover"
+        },
+        "priceUsd": "0.009",
+        "marketCap": 900000,
+        "liquidity": {
+          "usd": 180000
+        },
+        "volume": {
+          "h6": 700000,
+          "h24": 2400000
+        },
+        "priceChange": {
+          "h6": 22,
+          "h24": 64
+        },
+        "pairCreatedAt": 1785559500000,
+        "txns": {
+          "h1": {
+            "buys": 90,
+            "sells": 45
+          },
+          "h6": {
+            "buys": 520,
+            "sells": 260
+          }
+        },
+        "info": {
+          "socials": [
+            {
+              "type": "twitter",
+              "url": "https://example.test/m"
+            }
+          ]
+        },
+        "boosts": {
+          "active": 0
+        }
+      },
+      {
+        "chainId": "solana",
+        "pairAddress": "PAIRS",
+        "url": "https://dexscreener.com/solana/PAIRS",
+        "baseToken": {
+          "address": "MINTS",
+          "symbol": "SLEEPY",
+          "name": "Sleepy"
+        },
+        "priceUsd": "0.002",
+        "marketCap": 600000,
+        "liquidity": {
+          "usd": 90000
+        },
+        "volume": {
+          "h6": 20000,
+          "h24": 60000
+        },
+        "priceChange": {
+          "h6": 1,
+          "h24": 3
+        },
+        "pairCreatedAt": 1785559500000,
+        "txns": {
+          "h1": {
+            "buys": 10,
+            "sells": 9
+          },
+          "h6": {
+            "buys": 60,
+            "sells": 55
+          }
+        },
+        "info": {
+          "socials": []
+        },
+        "boosts": {
+          "active": 0
+        }
+      },
+      {
+        "chainId": "base",
+        "pairAddress": "PAIRB",
+        "url": "https://dexscreener.com/base/PAIRB",
+        "baseToken": {
+          "address": "MINTBASE",
+          "symbol": "OFFCHAIN",
+          "name": "Off Chain"
+        },
+        "priceUsd": "0.05",
+        "marketCap": 5000000,
+        "liquidity": {
+          "usd": 900000
+        },
+        "volume": {
+          "h6": 900000,
+          "h24": 4000000
+        },
+        "priceChange": {
+          "h6": 30,
+          "h24": 80
+        },
+        "pairCreatedAt": 1785559500000,
+        "txns": {
+          "h1": {
+            "buys": 200,
+            "sells": 100
+          },
+          "h6": {
+            "buys": 900,
+            "sells": 400
+          }
+        },
+        "info": {
+          "socials": []
+        },
+        "boosts": {
+          "active": 0
+        }
+      },
+      {
+        "chainId": "solana",
+        "pairAddress": "PMINTR",
+        "url": "https://dexscreener.com/solana/PMINTR",
+        "baseToken": {
+          "address": "MINTR",
+          "symbol": "RUNNER",
+          "name": "Runner Dog"
+        },
+        "priceUsd": "0.01",
+        "marketCap": 800000,
+        "liquidity": {
+          "usd": 150000
+        },
+        "volume": {
+          "h6": 666666.6666666666,
+          "h24": 2000000
+        },
+        "priceChange": {
+          "h24": 700,
+          "h6": 233.33333333333334,
+          "h1": 12,
+          "m5": 0
+        },
+        "pairCreatedAt": 1785732300000,
+        "txns": {
+          "h1": {
+            "buys": 120,
+            "sells": 60
+          },
+          "h6": {
+            "buys": 600,
+            "sells": 300
+          }
+        },
+        "info": {
+          "socials": [
+            {
+              "type": "twitter",
+              "url": "https://example.test/x"
+            }
+          ]
+        },
+        "boosts": {
+          "active": 0
+        }
+      },
+      {
+        "chainId": "solana",
+        "pairAddress": "PMINTF",
+        "url": "https://dexscreener.com/solana/PMINTF",
+        "baseToken": {
+          "address": "MINTF",
+          "symbol": "FRESHRUN",
+          "name": "Fresh Dog"
+        },
+        "priceUsd": "0.01",
+        "marketCap": 400000,
+        "liquidity": {
+          "usd": 90000
+        },
+        "volume": {
+          "h6": 100000.0,
+          "h24": 300000
+        },
+        "priceChange": {
+          "h24": 60,
+          "h6": 20.0,
+          "h1": 8,
+          "m5": 0
+        },
+        "pairCreatedAt": 1785973500000,
+        "txns": {
+          "h1": {
+            "buys": 80,
+            "sells": 40
+          },
+          "h6": {
+            "buys": 400,
+            "sells": 200
+          }
+        },
+        "info": {
+          "socials": [
+            {
+              "type": "twitter",
+              "url": "https://example.test/x"
+            }
+          ]
+        },
+        "boosts": {
+          "active": 0
+        }
+      },
+      {
+        "chainId": "solana",
+        "pairAddress": "PMINTFADE",
+        "url": "https://dexscreener.com/solana/PMINTFADE",
+        "baseToken": {
+          "address": "MINTFADE",
+          "symbol": "FADED",
+          "name": "Faded Dog"
+        },
+        "priceUsd": "0.01",
+        "marketCap": 300000,
+        "liquidity": {
+          "usd": 70000
+        },
+        "volume": {
+          "h6": 300000.0,
+          "h24": 900000
+        },
+        "priceChange": {
+          "h24": 300,
+          "h6": 100.0,
+          "h1": -35,
+          "m5": 0
+        },
+        "pairCreatedAt": 1785959100000,
+        "txns": {
+          "h1": {
+            "buys": 100,
+            "sells": 96
+          },
+          "h6": {
+            "buys": 500,
+            "sells": 480
+          }
+        },
+        "info": {
+          "socials": [
+            {
+              "type": "twitter",
+              "url": "https://example.test/x"
+            }
+          ]
+        },
+        "boosts": {
+          "active": 0
+        }
+      },
+      {
+        "chainId": "solana",
+        "pairAddress": "PMINTBUND",
+        "url": "https://dexscreener.com/solana/PMINTBUND",
+        "baseToken": {
+          "address": "MINTBUND",
+          "symbol": "BUNDLED",
+          "name": "Bundled Thing"
+        },
+        "priceUsd": "0.01",
+        "marketCap": 900000,
+        "liquidity": {
+          "usd": 120000
+        },
+        "volume": {
+          "h6": 500000.0,
+          "h24": 1500000
+        },
+        "priceChange": {
+          "h24": 900,
+          "h6": 300.0,
+          "h1": 5,
+          "m5": 0
+        },
+        "pairCreatedAt": 1785818700000,
+        "txns": {
+          "h1": {
+            "buys": 60,
+            "sells": 30
+          },
+          "h6": {
+            "buys": 300,
+            "sells": 150
+          }
+        },
+        "info": {
+          "socials": [
+            {
+              "type": "twitter",
+              "url": "https://example.test/x"
+            }
+          ]
+        },
+        "boosts": {
+          "active": 0
+        }
+      }
+    ]
+  },
+  "/community-takeovers/latest/v1": [
+    {
+      "chainId": "solana",
+      "tokenAddress": "MINTK",
+      "claimDate": "2026-08-04T06:45:00Z"
+    }
+  ],
+  "/token-profiles/latest/v1": [],
+  "/token-boosts/top/v1": [],
+  "/tokens/v1/solana/MINTK": [
+    {
+      "chainId": "solana",
+      "pairAddress": "PAIRK",
+      "url": "https://dexscreener.com/solana/PAIRK",
+      "baseToken": {
+        "address": "MINTK",
+        "symbol": "TAKEN",
+        "name": "Taken Over"
+      },
+      "priceUsd": "0.003",
+      "marketCap": 320000,
+      "liquidity": {
+        "usd": 70000
+      },
+      "volume": {
+        "h6": 90000,
+        "h24": 260000
+      },
+      "priceChange": {
+        "h6": 14,
+        "h24": 30
+      },
+      "pairCreatedAt": 1783399500000,
+      "txns": {
+        "h1": {
+          "buys": 40,
+          "sells": 25
+        },
+        "h6": {
+          "buys": 260,
+          "sells": 140
+        }
+      },
+      "info": {
+        "socials": [
+          {
+            "type": "twitter",
+            "url": "https://example.test/k"
+          }
+        ]
+      },
+      "boosts": {
+        "active": 0
+      }
+    }
+  ],
+  "/v1/tokens/MINTM/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 100
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      }
+    ],
+    "risks": []
+  },
+  "/v1/tokens/MINTS/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 100
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      }
+    ],
+    "risks": []
+  },
+  "/v1/tokens/MINTK/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 95
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      }
+    ],
+    "risks": []
+  },
+  "/v1/tokens/MINTBASE/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 100
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 0.02
+      }
+    ],
+    "risks": []
+  },
+  "/defi/tokenlist": {
+    "data": {
+      "total": 2,
+      "tokens": [
+        {
+          "address": "MINTV",
+          "symbol": "VOLUME",
+          "name": "Volume",
+          "mc": 1200000,
+          "liquidity": 200000,
+          "v24hUSD": 3000000,
+          "v24hChangePercent": 40
+        },
+        {
+          "address": "So11111111111111111111111111111111111111112",
+          "symbol": "SOL",
+          "name": "Wrapped SOL",
+          "mc": 44000000000,
+          "liquidity": 4500000000,
+          "v24hUSD": 5700000000
+        },
+        {
+          "address": "MINTTINY",
+          "symbol": "TINY",
+          "name": "Tiny",
+          "mc": 9000,
+          "liquidity": 21000,
+          "v24hUSD": 120000
+        }
+      ]
+    }
+  },
+  "/tokens/v1/solana/MINTV": [
+    {
+      "chainId": "solana",
+      "pairAddress": "PAIRV",
+      "url": "https://dexscreener.com/solana/PAIRV",
+      "baseToken": {
+        "address": "MINTV",
+        "symbol": "VOLUME",
+        "name": "Volume"
+      },
+      "priceUsd": "0.012",
+      "marketCap": 1200000,
+      "liquidity": {
+        "usd": 200000
+      },
+      "volume": {
+        "h6": 900000,
+        "h24": 3000000
+      },
+      "priceChange": {
+        "h6": 25,
+        "h24": 120
+      },
+      "pairCreatedAt": 1784954700000,
+      "txns": {
+        "h1": {
+          "buys": 120,
+          "sells": 60
+        },
+        "h6": {
+          "buys": 700,
+          "sells": 350
+        }
+      },
+      "info": {
+        "socials": [
+          {
+            "type": "twitter",
+            "url": "https://example.test/v"
+          }
+        ]
+      },
+      "boosts": {
+        "active": 0
+      }
+    }
+  ],
+  "/v1/tokens/MINTV/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 100
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.02
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      },
+      {
+        "pct": 0.01
+      }
+    ],
+    "risks": []
+  },
+  "/v1/tokens/MINTR/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 100
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 1.4,
+        "address": "H0",
+        "owner": "O0"
+      },
+      {
+        "pct": 1.4,
+        "address": "H1",
+        "owner": "O1"
+      },
+      {
+        "pct": 1.4,
+        "address": "H2",
+        "owner": "O2"
+      },
+      {
+        "pct": 1.4,
+        "address": "H3",
+        "owner": "O3"
+      },
+      {
+        "pct": 1.4,
+        "address": "H4",
+        "owner": "O4"
+      },
+      {
+        "pct": 1.4,
+        "address": "H5",
+        "owner": "O5"
+      },
+      {
+        "pct": 1.4,
+        "address": "H6",
+        "owner": "O6"
+      },
+      {
+        "pct": 1.4,
+        "address": "H7",
+        "owner": "O7"
+      },
+      {
+        "pct": 1.4,
+        "address": "H8",
+        "owner": "O8"
+      },
+      {
+        "pct": 1.4,
+        "address": "H9",
+        "owner": "O9"
+      }
+    ],
+    "risks": []
+  },
+  "/v1/tokens/MINTF/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 100
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 1.8,
+        "address": "H0",
+        "owner": "O0"
+      },
+      {
+        "pct": 1.8,
+        "address": "H1",
+        "owner": "O1"
+      },
+      {
+        "pct": 1.8,
+        "address": "H2",
+        "owner": "O2"
+      },
+      {
+        "pct": 1.8,
+        "address": "H3",
+        "owner": "O3"
+      },
+      {
+        "pct": 1.8,
+        "address": "H4",
+        "owner": "O4"
+      },
+      {
+        "pct": 1.8,
+        "address": "H5",
+        "owner": "O5"
+      },
+      {
+        "pct": 1.8,
+        "address": "H6",
+        "owner": "O6"
+      },
+      {
+        "pct": 1.8,
+        "address": "H7",
+        "owner": "O7"
+      },
+      {
+        "pct": 1.8,
+        "address": "H8",
+        "owner": "O8"
+      },
+      {
+        "pct": 1.8,
+        "address": "H9",
+        "owner": "O9"
+      }
+    ],
+    "risks": []
+  },
+  "/v1/tokens/MINTFADE/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 100
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 2.0,
+        "address": "H0",
+        "owner": "O0"
+      },
+      {
+        "pct": 2.0,
+        "address": "H1",
+        "owner": "O1"
+      },
+      {
+        "pct": 2.0,
+        "address": "H2",
+        "owner": "O2"
+      },
+      {
+        "pct": 2.0,
+        "address": "H3",
+        "owner": "O3"
+      },
+      {
+        "pct": 2.0,
+        "address": "H4",
+        "owner": "O4"
+      },
+      {
+        "pct": 2.0,
+        "address": "H5",
+        "owner": "O5"
+      },
+      {
+        "pct": 2.0,
+        "address": "H6",
+        "owner": "O6"
+      },
+      {
+        "pct": 2.0,
+        "address": "H7",
+        "owner": "O7"
+      },
+      {
+        "pct": 2.0,
+        "address": "H8",
+        "owner": "O8"
+      },
+      {
+        "pct": 2.0,
+        "address": "H9",
+        "owner": "O9"
+      }
+    ],
+    "risks": []
+  },
+  "/v1/tokens/MINTBUND/report": {
+    "mintAuthority": "",
+    "freezeAuthority": "",
+    "markets": [
+      {
+        "lp": {
+          "lpLockedPct": 100
+        }
+      }
+    ],
+    "topHolders": [
+      {
+        "pct": 7.0,
+        "address": "H0",
+        "owner": "O0"
+      },
+      {
+        "pct": 7.0,
+        "address": "H1",
+        "owner": "O1"
+      },
+      {
+        "pct": 7.0,
+        "address": "H2",
+        "owner": "O2"
+      },
+      {
+        "pct": 7.0,
+        "address": "H3",
+        "owner": "O3"
+      },
+      {
+        "pct": 7.0,
+        "address": "H4",
+        "owner": "O4"
+      },
+      {
+        "pct": 7.0,
+        "address": "H5",
+        "owner": "O5"
+      },
+      {
+        "pct": 7.0,
+        "address": "H6",
+        "owner": "O6"
+      },
+      {
+        "pct": 7.0,
+        "address": "H7",
+        "owner": "O7"
+      },
+      {
+        "pct": 7.0,
+        "address": "H8",
+        "owner": "O8"
+      },
+      {
+        "pct": 7.0,
+        "address": "H9",
+        "owner": "O9"
+      }
+    ],
+    "risks": []
+  }
+}
