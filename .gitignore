@@ -16,3 +16,6 @@ web/.playwright-mcp/
 /data/
 /output/*.html
 !/output/.gitkeep
+
+# Vercel local project link
+.vercel/
