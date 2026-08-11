@@ -1,15 +1,15 @@
-# Secrets
-.env
 
+!output/.gitkeep
 # Environments and caches
-.venv/
-__pycache__/
+# Local state: ledger, run logs, generated reports
+# Secrets
 *.py[cod]
+.env
+.playwright-mcp/
 .pytest_cache/
 .ruff_cache/
-
-# Local state: ledger, run logs, generated reports
+.venv/
+__pycache__/
 data/
 output/*.html
-!output/.gitkeep
 web/.playwright-mcp/
