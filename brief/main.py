@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -17,6 +18,7 @@ from brief.interface import serve_interface
 from brief.ledger import open_ledger
 from brief.launch_collector import run_launch_collector
 from brief.render.html import render_html
+from brief.render.payload import build_payload
 from brief.render.telegram import render_telegram
 from brief.render.terminal import render_terminal
 from brief.watcher import run_watcher
@@ -84,6 +86,10 @@ async def run(args: argparse.Namespace) -> int:
             html_path = settings.path("run", "html_path")
             write_html(html_path, render_html(brief))
             console.print(f"[dim]HTML written to {html_path}[/dim]")
+        if settings.get("run", "json_path"):
+            json_path = settings.path("run", "json_path")
+            write_html(json_path, json.dumps(build_payload(brief), indent=1))
+            console.print(f"[dim]Site snapshot written to {json_path}[/dim]")
         if telegram_enabled and not (os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_CHAT_ID")):
             # A missing credential must not lose the morning report that already rendered.
             console.print("[yellow]Telegram enabled but TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID are unset; skipping delivery.[/yellow]")

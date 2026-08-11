@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ONCHAIN NEWS — What Ran Today</title>
+<meta name="description" content="A daily on-chain record of every Solana coin that ran today, with tracked-wallet flow and risk written on the row.">
+<meta name="theme-color" content="#0b0b0b">
+<meta property="og:title" content="ONCHAIN NEWS — What Ran Today">
+<meta property="og:description" content="Every Solana coin that ran today, ranked, with tracked-wallet flow.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23e61919'/><path d='M5 8h22v4H5zm0 12h22v4H5z' fill='%230b0b0b'/></svg>">
+<style>
+:root{
+  --paper:#e9e7df; --paper-2:#f3f1ea; --paper-3:#dedbd1;
+  --ink:#0b0b0b; --muted:#6b6961; --line:#24231f;
+  --red:#d51f1f; --green:#1f6b42; --amber:#9a6b12;
+  --display:"Archivo Black",Impact,"Franklin Gothic Heavy",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Code","Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--mono);font-size:clamp(.84rem,1.02vw,.95rem);
+  font-variant-numeric:tabular-nums;line-height:1.45;overflow-x:hidden;
+}
+/* Paper grain: the whole identity rests on this feeling like newsprint. */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+a{color:inherit;text-underline-offset:.22em}
+a:hover{color:var(--red)}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.wrap{max-width:88rem;margin:0 auto;border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--paper)}
+.skip{position:fixed;left:1rem;top:-6rem;background:var(--red);color:#fff;padding:.8rem;z-index:20}
+.skip:focus{top:1rem}
+
+/* ---------- masthead ---------- */
+.masthead{border-bottom:3px solid var(--ink);padding:1.6rem 1.4rem .9rem}
+.dateline{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+  font-size:.63rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--line);padding-bottom:.7rem;margin-bottom:.9rem}
+.wordmark{font-family:var(--display);line-height:.82;letter-spacing:-.035em;
+  font-size:clamp(2.6rem,10.5vw,8.6rem);text-transform:uppercase;margin:0}
+.wordmark em{font-style:normal;color:var(--red)}
+.subhead{display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;
+  flex-wrap:wrap;margin-top:.7rem;border-top:1px solid var(--line);padding-top:.7rem}
+.subhead p{margin:0;max-width:52ch;color:var(--muted);font-size:.78rem}
+.stamp-live{font-family:var(--display);font-size:.7rem;letter-spacing:.1em;
+  border:2px solid var(--red);color:var(--red);padding:.3rem .55rem;text-transform:uppercase;white-space:nowrap}
+.stamp-live::before{content:"";display:inline-block;width:.42rem;height:.42rem;border-radius:50%;
+  background:var(--red);margin-right:.4rem;vertical-align:middle;animation:pulse 1.9s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ---------- ticker ---------- */
+.ticker{background:var(--ink);color:var(--paper);border-bottom:1px solid var(--line);
+  overflow:hidden;position:relative;padding:.55rem 0}
+.ticker-track{display:flex;gap:2.4rem;width:max-content;animation:slide 46s linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker b{font-weight:700}
+.ticker .up{color:#7fd39b}.ticker .dn{color:#ff8080}
+.ticker span{font-size:.74rem;white-space:nowrap;letter-spacing:.02em}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);background:var(--line);gap:1px;border-bottom:1px solid var(--line)}
+.stat{background:var(--paper-2);padding:1rem .9rem}
+.stat span{display:block;font-size:.58rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+.stat b{font-family:var(--display);font-size:clamp(1.4rem,3vw,2.5rem);line-height:1;display:block}
+.stat.hot b{color:var(--red)}
+
+/* ---------- sections ---------- */
+section{border-bottom:1px solid var(--line);scroll-margin-top:1rem}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+  background:var(--ink);color:var(--paper);padding:.75rem 1.3rem}
+.head h2{font-family:var(--display);font-size:clamp(1.1rem,2.6vw,2rem);letter-spacing:-.02em;
+  margin:0;text-transform:uppercase;font-weight:400}
+.head .count{font-family:var(--display);color:var(--red);font-size:1.3rem}
+.note{margin:0;padding:.85rem 1.3rem;font-size:.72rem;color:var(--muted);border-bottom:1px solid var(--line);background:var(--paper-2)}
+
+/* ---------- controls ---------- */
+.controls{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;padding:.7rem 1.3rem;border-bottom:1px solid var(--line)}
+.controls input{flex:1;min-width:11rem;border:1px solid var(--line);background:var(--paper-2);
+  color:var(--ink);font:inherit;font-size:.78rem;padding:.45rem .6rem}
+.controls input::placeholder{color:var(--muted)}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;
+  font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:.42rem .7rem;cursor:pointer}
+.chip:hover{background:var(--paper-3)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
+/* ---------- runner rows ---------- */
+.row{border-bottom:1px solid var(--line);background:var(--paper-2);position:relative}
+.row:last-child{border-bottom:0}
+.row[hidden]{display:none}
+.row>summary{display:grid;gap:.5rem;align-items:center;cursor:pointer;list-style:none;
+  grid-template-columns:2.4rem minmax(8rem,1.6fr) 5.4rem 4.4rem repeat(3,minmax(4.4rem,.8fr)) 3.4rem minmax(5.4rem,auto) 1.8rem;
+  padding:.7rem 1.3rem;min-height:3.9rem}
+.row>summary::-webkit-details-marker{display:none}
+.row>summary:hover{background:var(--paper-3)}
+.rank{font-family:var(--display);color:var(--red);font-size:1rem}
+.tk b{display:block;font-size:1.02rem;font-weight:700;letter-spacing:-.01em}
+.tk i{display:block;font-style:normal;font-size:.62rem;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:22ch}
+.num{display:flex;flex-direction:column;gap:.15rem}
+.num u{text-decoration:none;font-weight:700;font-size:.9rem}
+.num i{font-style:normal;font-size:.55rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.big{font-family:var(--display);font-size:1.15rem;color:var(--green)}
+.up{color:var(--green)}.dn{color:var(--red)}
+.tags{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.tag{font-size:.55rem;letter-spacing:.06em;text-transform:uppercase;padding:.18rem .34rem;
+  border:1px solid var(--line);white-space:nowrap}
+.tag.kol{background:var(--red);color:#fff;border-color:var(--red)}
+.tag.lore{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.caret{text-align:center;font-size:1.1rem;color:var(--muted)}
+.row[open] .caret{color:var(--red);transform:rotate(45deg)}
+/* The memorable detail: a rubber stamp slapped on the paper. */
+.marks{display:flex;flex-direction:column;align-items:flex-end;gap:.22rem}
+.stamp{transform:rotate(-6deg);font-family:var(--display);font-size:.55rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--red);border:2px solid var(--red);padding:.1rem .35rem;
+  opacity:.8;white-space:nowrap}
+.detail{border-top:1px solid var(--line);background:var(--paper);
+  display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:0}
+.detail>div{padding:1rem 1.3rem;border-right:1px solid var(--line)}
+.detail>div:last-child{border-right:0}
+.detail h4{margin:0 0 .6rem;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem;margin:0;font-size:.78rem}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:700;text-align:right}
+.flags{margin:0;padding:0;list-style:none;font-size:.76rem}
+.flags li{color:var(--red);margin-bottom:.35rem;padding-left:.85rem;position:relative}
+.flags li::before{content:"!";position:absolute;left:0;font-weight:700}
+.clean{color:var(--green);font-size:.78rem;margin:0}
+.who{margin:0;padding:0;list-style:none;font-size:.76rem;columns:2;column-gap:1rem}
+.who li{margin-bottom:.2rem;break-inside:avoid}
+.who .hold{color:var(--green)}
+.detail a.chart{display:inline-block;margin-top:.8rem;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.read{grid-column:1/-1;border-top:1px solid var(--line);padding:.85rem 1.3rem;
+  font-size:.8rem;background:var(--paper-2);margin:0}
+
+/* ---------- lists ---------- */
+.two{display:grid;grid-template-columns:1fr 1fr}
+.two>div:first-child{border-right:1px solid var(--line)}
+.sub{margin:0;padding:.7rem 1.3rem;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--line);background:var(--paper-2)}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:grid;grid-template-columns:7.5rem 6.5rem 1fr;gap:.7rem;align-items:baseline;
+  padding:.68rem 1.3rem;border-bottom:1px solid rgba(36,35,31,.18);font-size:.76rem}
+.list li:last-child{border-bottom:0}
+.list b{font-size:.92rem;font-weight:700}
+.list .val{font-weight:700}
+.list small{display:block;grid-column:1/-1;color:var(--muted);font-size:.66rem;margin-top:.2rem}
+.lore-item{display:grid;grid-template-columns:11rem 1fr;gap:1rem;padding:.9rem 1.3rem;border-bottom:1px solid rgba(36,35,31,.18)}
+.lore-item b{font-family:var(--display);font-size:1rem;text-transform:uppercase}
+.lore-item p{margin:0;color:var(--muted)}
+.empty{padding:1.8rem 1.3rem;color:var(--muted);font-size:.8rem}
+
+/* ---------- footer ---------- */
+.method{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.method>div{padding:1.1rem 1.3rem;border-right:1px solid var(--line)}
+.method>div:last-child{border-right:0}
+.method h4{margin:0 0 .5rem;font-family:var(--display);font-size:.8rem;text-transform:uppercase}
+.method p{margin:0;font-size:.74rem;color:var(--muted)}
+.sources{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:1px;background:var(--line)}
+.src{background:var(--paper-2);padding:.6rem .9rem;font-size:.68rem;display:flex;gap:.5rem;align-items:baseline}
+.src b{width:.5rem;height:.5rem;border-radius:50%;flex:none;background:var(--green);transform:translateY(-1px)}
+.src.down b{background:var(--red)}
+.src span{color:var(--muted)}
+footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
+  display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.66rem;letter-spacing:.07em;text-transform:uppercase}
+
+/* ---------- reveal ---------- */
+.rv{opacity:0;transform:translateY(10px);animation:rise .5s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+
+@media(max-width:960px){
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .detail,.method{grid-template-columns:1fr}
+  .detail>div{border-right:0;border-bottom:1px solid var(--line)}
+  .method>div{border-right:0;border-bottom:1px solid var(--line)}
+  .two{grid-template-columns:1fr}
+  .two>div:first-child{border-right:0;border-bottom:1px solid var(--line)}
+  .row>summary{grid-template-columns:2rem 1fr 4.6rem 4rem 1.6rem;row-gap:.4rem}
+  .marks{grid-column:2/5}
+  .row>summary .hide-sm{display:none}
+  .marks{flex-direction:row;flex-wrap:wrap;justify-content:flex-end}
+  .list li{grid-template-columns:6.5rem 1fr}
+}
+@media(max-width:560px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .lore-item{grid-template-columns:1fr}
+  .who{columns:1}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#runners">Skip to the runners</a>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="dateline">
+      <span id="dateline">Loading edition…</span>
+      <span>Solana · On-chain · Daily</span>
+    </div>
+    <h1 class="wordmark">Onchain <em>News</em></h1>
+    <div class="subhead">
+      <p>A daily record of every coin that ran — ranked by the size of the move, with the risks printed on the row instead of hidden behind a filter.</p>
+      <span class="stamp-live" id="freshness">Live snapshot</span>
+    </div>
+  </header>
+
+  <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
+
+  <div class="stats" id="stats"></div>
+
+  <section id="runners">
+    <div class="head"><h2>Runners of the day</h2><span class="count" id="runner-count">—</span></div>
+    <p class="note" id="rule">Two doors: created inside the last 24 hours and running, or any age doing a large multiple.</p>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Filter by ticker, name, flag or lore…" autocomplete="off" aria-label="Filter runners">
+      <button class="chip" id="f-new" aria-pressed="false">Launched today</button>
+      <button class="chip" id="f-kol" aria-pressed="false">KOL bought</button>
+      <button class="chip" id="f-clean" aria-pressed="false">No flags</button>
+      <button class="chip" id="f-sort">Sort: run size</button>
+    </div>
+    <div id="rows"></div>
+  </section>
+
+  <section id="wallets">
+    <div class="head"><h2>Tracked wallets</h2><span class="count" id="wallet-count">—</span></div>
+    <div class="two">
+      <div>
+        <p class="sub">Conviction — bought by several wallets</p>
+        <ul class="list" id="conviction"></ul>
+      </div>
+      <div>
+        <p class="sub">Where they made money — realised, this window</p>
+        <ul class="list" id="profit"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="lore">
+    <div class="head"><h2>Shared lore</h2><span class="count" id="lore-count">—</span></div>
+    <div id="lore-list"></div>
+  </section>
+
+  <section id="blocked">
+    <div class="head"><h2>Ran, but disqualified</h2><span class="count" id="blocked-count">—</span></div>
+    <p class="note">These moved today and are recorded for completeness. Each one can be taken from its holders or was never distributed, so it is kept out of the runner list.</p>
+    <ul class="list" id="blocked-list"></ul>
+  </section>
+
+  <section id="method">
+    <div class="head"><h2>How a coin gets in</h2></div>
+    <div class="method">
+      <div><h4>Two doors</h4><p>Created inside the last 24 hours and up at least 30%, or any age doing a 5x or better. Floors of $150k market cap and $50k daily volume apply to both.</p></div>
+      <div><h4>Risk is shown, not hidden</h4><p>Failing one check does not remove a coin. Concentration, thin pools, paid boosts, recycled tickers and fades are printed on the row so the judgement stays yours.</p></div>
+      <div><h4>Only rugs are removed</h4><p>A live mint or freeze authority, unlocked liquidity, bundled supply or a manufactured tape. Those are listed separately rather than silently dropped.</p></div>
+    </div>
+    <div class="sources" id="sources"></div>
+  </section>
+
+  <footer>
+    <span>Data, not advice — everything here can go to zero</span>
+    <span id="stamp">—</span>
+  </footer>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const money = (n) => {
+  if (n === null || n === undefined) return "—";
+  const a = Math.abs(n);
+  if (a >= 1e9) return "$" + (n / 1e9).toFixed(1) + "B";
+  if (a >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
+  if (a >= 1e3) return "$" + Math.round(n / 1e3) + "k";
+  return "$" + Math.round(n);
+};
+const pct = (n) => (n === null || n === undefined) ? "—" : (n >= 0 ? "+" : "") + Math.round(n) + "%";
+const sized = (m, c) => m >= 2 ? m.toFixed(1) + "x" : pct(c);
+const age = (h) => h === null || h === undefined ? "—" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let DATA = null, SORT = "run", FILTERS = { new: false, kol: false, clean: false };
+
+function stamp(r) {
+  if (r.faded !== null && r.faded !== undefined) return "Fading";
+  if (r.kolBuyers.length >= 3) return "KOL crowd";
+  if (r.ageHours !== null && r.ageHours <= 6) return "Fresh";
+  return "";
+}
+
+function rowHTML(r, i) {
+  const flags = r.riskLabels.length
+    ? `<ul class="flags">${r.riskLabels.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>`
+    : `<p class="clean">No flags raised.</p>`;
+  const who = r.kolBuyers.length
+    ? `<ul class="who">${r.kolBuyers.map((n) => `<li class="${r.kolHolders.includes(n) ? "hold" : ""}">${esc(n)}${r.kolHolders.includes(n) ? " ◆" : ""}</li>`).join("")}</ul>
+       <p class="clean" style="margin-top:.6rem;color:${r.kolRealisedSol >= 0 ? "var(--green)" : "var(--red)"}">
+         Realised ${r.kolRealisedSol >= 0 ? "+" : ""}${r.kolRealisedSol.toFixed(1)} SOL</p>`
+    : `<p class="clean" style="color:var(--muted)">None of the 66 tracked wallets bought this.</p>`;
+  const st = stamp(r);
+  const tags = [
+    r.kolBuyers.length ? `<span class="tag kol">${r.kolBuyers.length} KOL</span>` : "",
+    r.lore ? `<span class="tag lore">${esc(r.lore)}</span>` : "",
+  ].join("");
+  return `
+<details class="row rv" style="animation-delay:${Math.min(i * 45, 600)}ms"
+  data-q="${esc((r.symbol + " " + r.name + " " + r.mint + " " + r.lore + " " + r.riskLabels.join(" ")).toLowerCase())}"
+  data-new="${r.ageHours !== null && r.ageHours <= 24}" data-kol="${r.kolBuyers.length > 0}" data-clean="${r.riskLabels.length === 0}">
+  <summary>
+    <span class="rank">${String(i + 1).padStart(2, "0")}</span>
+    <span class="tk"><b>$${esc(r.symbol)}</b><i>${esc(r.name)}</i></span>
+    <span class="num"><u class="big">${sized(r.runMultiple, r.change24h)}</u><i>24h</i></span>
+    <span class="num"><u class="${r.change1h >= 0 ? "up" : "dn"}">${pct(r.change1h)}</u><i>1h</i></span>
+    <span class="num hide-sm"><u>${money(r.marketCap)}</u><i>mcap</i></span>
+    <span class="num hide-sm"><u>${money(r.volume24h)}</u><i>vol</i></span>
+    <span class="num hide-sm"><u>${money(r.liquidity)}</u><i>liq</i></span>
+    <span class="num hide-sm"><u>${age(r.ageHours)}</u><i>age</i></span>
+    <span class="marks">${st ? `<span class="stamp">${st}</span>` : ""}${tags}</span>
+    <span class="caret">+</span>
+  </summary>
+  <div class="detail">
+    <div>
+      <h4>The tape</h4>
+      <dl class="kv">
+        <dt>Turnover</dt><dd>${r.turnover.toFixed(2)}x</dd>
+        <dt>6h change</dt><dd class="${r.change6h >= 0 ? "up" : "dn"}">${pct(r.change6h)}</dd>
+        <dt>6h buys</dt><dd>${r.buyRatio6h === null ? "—" : Math.round(r.buyRatio6h * 100) + "%"}</dd>
+        <dt>6h trades</dt><dd>${r.trades6h.toLocaleString()}</dd>
+        <dt>Top 10 hold</dt><dd>${r.top10Pct === null ? "—" : Math.round(r.top10Pct) + "%"}</dd>
+        <dt>LP locked</dt><dd>${r.lpLockedPct === null ? "—" : Math.round(r.lpLockedPct) + "%"}</dd>
+        <dt>Venue</dt><dd>${esc(r.dex)}</dd>
+      </dl>
+      <a class="chart" href="${esc(r.url)}" target="_blank" rel="noreferrer">Open chart ↗</a>
+    </div>
+    <div><h4>Flags</h4>${flags}</div>
+    <div><h4>Tracked wallets ◆ = still holding</h4>${who}</div>
+    <p class="read">${esc(r.read)}</p>
+  </div>
+</details>`;
+}
+
+function paint() {
+  const rows = [...DATA.runners];
+  if (SORT === "kol") rows.sort((a, b) => b.kolBuyers.length - a.kolBuyers.length || b.runMultiple - a.runMultiple);
+  else if (SORT === "fresh") rows.sort((a, b) => (a.ageHours ?? 1e9) - (b.ageHours ?? 1e9));
+  else rows.sort((a, b) => b.runMultiple - a.runMultiple);
+  $("#rows").innerHTML = rows.length ? rows.map(rowHTML).join("")
+    : `<p class="empty">Nothing ran today that cleared the floors. An empty page is a result, not an outage.</p>`;
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = $("#q").value.trim().toLowerCase();
+  let shown = 0;
+  document.querySelectorAll(".row").forEach((el) => {
+    const ok =
+      (!q || el.dataset.q.includes(q)) &&
+      (!FILTERS.new || el.dataset.new === "true") &&
+      (!FILTERS.kol || el.dataset.kol === "true") &&
+      (!FILTERS.clean || el.dataset.clean === "true");
+    el.hidden = !ok;
+    if (ok) shown++;
+  });
+  $("#runner-count").textContent = String(shown).padStart(2, "0");
+}
+
+function render(d) {
+  DATA = d;
+  const when = new Date(d.generatedAt);
+  const fmt = when.toLocaleString([], { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  $("#dateline").textContent = `${fmt} · ${d.timezone}`;
+  $("#stamp").textContent = `Generated ${fmt}`;
+  const hours = (Date.now() - when.getTime()) / 36e5;
+  $("#freshness").textContent = hours < 1 ? "Updated just now" : hours < 24 ? `Updated ${Math.round(hours)}h ago` : `Snapshot ${Math.round(hours / 24)}d old`;
+  $("#rule").textContent = d.journalRule || $("#rule").textContent;
+
+  const s = d.summary;
+  $("#stats").innerHTML = [
+    ["Runners today", s.runners, false],
+    ["Launched today", s.launchedToday, false],
+    ["5x or better", s.bigMultiples, false],
+    ["KOL flagged", s.walletsTracked ? s.kolFlagged : "—", false],
+    ["Shared lores", s.loreGroups, false],
+    ["Disqualified", s.disqualified, true],
+  ].map(([l, v, hot], i) => `<div class="stat ${hot ? "hot" : ""} rv" style="animation-delay:${i * 50}ms"><span>${l}</span><b>${v}</b></div>`).join("");
+
+  const t = d.runners.slice(0, 14).map((r) =>
+    `<span><b>$${esc(r.symbol)}</b> <em class="${r.change24h >= 0 ? "up" : "dn"}">${sized(r.runMultiple, r.change24h)}</em> ${money(r.marketCap)}</span>`).join("");
+  $("#ticker").innerHTML = t ? t + t : "<span>No runners in this window</span>";
+
+  paint();
+
+  $("#wallet-count").textContent = String(s.walletsTracked).padStart(2, "0");
+  $("#conviction").innerHTML = d.kolConviction.length ? d.kolConviction.map((c) => `
+    <li><b>$${esc(c.symbol)}</b><span class="val">${c.buyers.length} buyers</span>
+      <span>${esc(c.buyers.slice(0, 8).join(", "))}${c.buyers.length > 8 ? "…" : ""}</span>
+      <small>${c.holders.length ? "Still holding: " + esc(c.holders.join(", ")) : "All positions closed"}</small></li>`).join("")
+    : `<li class="empty">No coin was bought by enough tracked wallets today.</li>`;
+  $("#profit").innerHTML = d.kolProfit.length ? d.kolProfit.map((p) => `
+    <li><b>$${esc(p.symbol)}</b>
+      <span class="val ${p.realisedSol >= 0 ? "up" : "dn"}">${p.realisedSol >= 0 ? "+" : ""}${p.realisedSol.toFixed(1)} SOL</span>
+      <span>${p.traders} wallet${p.traders === 1 ? "" : "s"} traded it</span></li>`).join("")
+    : `<li class="empty">No realised profit measured in this window.</li>`;
+
+  $("#lore-count").textContent = String(d.loreGroups.length).padStart(2, "0");
+  $("#lore-list").innerHTML = d.loreGroups.length ? d.loreGroups.map((g) => `
+    <div class="lore-item"><b>${esc(g.name)}</b>
+      <p>${g.members.map((m) => "$" + esc(m)).join(" · ")} <span style="color:var(--muted)">(${g.members.length})</span></p></div>`).join("")
+    : `<p class="empty">No two runners shared a narrative today.</p>`;
+
+  $("#blocked-count").textContent = String(d.disqualified.length).padStart(2, "0");
+  $("#blocked-list").innerHTML = d.disqualified.length ? d.disqualified.map((b) => `
+    <li><b>$${esc(b.symbol)}</b><span class="val up">${sized(b.runMultiple, b.change24h)}</span>
+      <span style="color:var(--red)">${esc(b.reasons.join(" · "))}</span></li>`).join("")
+    : `<li class="empty">No runner was disqualified today.</li>`;
+
+  $("#sources").innerHTML = d.sources.map((x) =>
+    `<div class="src ${x.ok ? "" : "down"}"><b></b><div>${esc(x.name)}<br><span>${esc(x.detail)}</span></div></div>`).join("");
+}
+
+$("#q").addEventListener("input", applyFilters);
+for (const [key, id] of [["new", "#f-new"], ["kol", "#f-kol"], ["clean", "#f-clean"]]) {
+  $(id).addEventListener("click", (e) => {
+    FILTERS[key] = !FILTERS[key];
+    e.currentTarget.setAttribute("aria-pressed", String(FILTERS[key]));
+    applyFilters();
+  });
+}
+$("#f-sort").addEventListener("click", (e) => {
+  SORT = SORT === "run" ? "kol" : SORT === "kol" ? "fresh" : "run";
+  e.currentTarget.textContent = "Sort: " + (SORT === "run" ? "run size" : SORT === "kol" ? "KOL buyers" : "newest");
+  paint();
+});
+
+fetch("data/latest.json", { cache: "no-store" })
+  .then((r) => { if (!r.ok) throw new Error("no snapshot"); return r.json(); })
+  .then(render)
+  .catch(() => {
+    $("#rows").innerHTML = `<p class="empty">Could not load today's snapshot.</p>`;
+    $("#dateline").textContent = "Snapshot unavailable";
+  });
+</script>
+</body>
+</html>

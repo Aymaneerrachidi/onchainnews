@@ -1,0 +1,561 @@
+- generic [active] [ref=f1e1]:
+  - link "Skip to the runners" [ref=f1e2] [cursor=pointer]:
+    - /url: "#runners"
+  - generic [ref=f1e3]:
+    - banner [ref=f1e4]:
+      - generic [ref=f1e5]:
+        - generic [ref=f1e6]: mardi 11 août à 22:46 · CEST
+        - generic [ref=f1e7]: Solana · On-chain · Daily
+      - heading [level=1] [ref=f1e8]:
+        - text: Onchain
+        - emphasis [ref=f1e9]: News
+      - generic [ref=f1e10]:
+        - paragraph [ref=f1e11]: A daily record of every coin that ran — ranked by the size of the move, with the risks printed on the row instead of hidden behind a filter.
+        - generic [ref=f1e12]: Updated just now
+    - generic [ref=f1e14]:
+      - generic [ref=f1e15]:
+        - text: $MIM
+        - emphasis [ref=f1e16]: 196.9x
+        - text: $1.1M
+      - generic [ref=f1e17]:
+        - text: $BOT
+        - emphasis [ref=f1e18]: 31.3x
+        - text: $972k
+      - generic [ref=f1e19]:
+        - text: $MARIO64
+        - emphasis [ref=f1e20]: 58.1x
+        - text: $1.8M
+      - generic [ref=f1e21]:
+        - text: $KYOKO
+        - emphasis [ref=f1e22]: 12.4x
+        - text: $383k
+      - generic [ref=f1e23]:
+        - text: $PLUMBER
+        - emphasis [ref=f1e24]: 8.8x
+        - text: $262k
+      - generic [ref=f1e25]:
+        - text: $CASHCAT
+        - emphasis [ref=f1e26]: 15.3x
+        - text: $899k
+      - generic [ref=f1e27]:
+        - text: $NOSIS
+        - emphasis [ref=f1e28]: 14.7x
+        - text: $678k
+      - generic [ref=f1e29]:
+        - text: $MOB
+        - emphasis [ref=f1e30]: 14.6x
+        - text: $457k
+      - generic [ref=f1e31]:
+        - text: $ORANGE
+        - emphasis [ref=f1e32]: 12.4x
+        - text: $938k
+      - generic [ref=f1e33]:
+        - text: $USDUF
+        - emphasis [ref=f1e34]: 6.4x
+        - text: $198k
+      - generic [ref=f1e35]:
+        - text: $ALON
+        - emphasis [ref=f1e36]: 5.7x
+        - text: $7.9M
+      - generic [ref=f1e37]:
+        - text: $MIM
+        - emphasis [ref=f1e38]: 196.9x
+        - text: $1.1M
+      - generic [ref=f1e39]:
+        - text: $BOT
+        - emphasis [ref=f1e40]: 31.3x
+        - text: $972k
+      - generic [ref=f1e41]:
+        - text: $MARIO64
+        - emphasis [ref=f1e42]: 58.1x
+        - text: $1.8M
+      - generic [ref=f1e43]:
+        - text: $KYOKO
+        - emphasis [ref=f1e44]: 12.4x
+        - text: $383k
+      - generic [ref=f1e45]:
+        - text: $PLUMBER
+        - emphasis [ref=f1e46]: 8.8x
+        - text: $262k
+      - generic [ref=f1e47]:
+        - text: $CASHCAT
+        - emphasis [ref=f1e48]: 15.3x
+        - text: $899k
+      - generic [ref=f1e49]:
+        - text: $NOSIS
+        - emphasis [ref=f1e50]: 14.7x
+        - text: $678k
+      - generic [ref=f1e51]:
+        - text: $MOB
+        - emphasis [ref=f1e52]: 14.6x
+        - text: $457k
+      - generic [ref=f1e53]:
+        - text: $ORANGE
+        - emphasis [ref=f1e54]: 12.4x
+        - text: $938k
+      - generic [ref=f1e55]:
+        - text: $USDUF
+        - emphasis [ref=f1e56]: 6.4x
+        - text: $198k
+      - generic [ref=f1e57]:
+        - text: $ALON
+        - emphasis [ref=f1e58]: 5.7x
+        - text: $7.9M
+    - generic [ref=f1e59]:
+      - generic [ref=f1e60]:
+        - generic [ref=f1e61]: Runners today
+        - generic [ref=f1e62]: "11"
+      - generic [ref=f1e63]:
+        - generic [ref=f1e64]: Launched today
+        - generic [ref=f1e65]: "8"
+      - generic [ref=f1e66]:
+        - generic [ref=f1e67]: 5x or better
+        - generic [ref=f1e68]: "11"
+      - generic [ref=f1e69]:
+        - generic [ref=f1e70]: KOL flagged
+        - generic [ref=f1e71]: "2"
+      - generic [ref=f1e72]:
+        - generic [ref=f1e73]: Shared lores
+        - generic [ref=f1e74]: "1"
+      - generic [ref=f1e75]:
+        - generic [ref=f1e76]: Disqualified
+        - generic [ref=f1e77]: "2"
+    - generic [ref=f1e78]:
+      - generic [ref=f1e79]:
+        - heading "Runners of the day" [level=2] [ref=f1e80]
+        - generic [ref=f1e81]: "11"
+      - paragraph [ref=f1e82]: "Every track requires market cap at least $150,000, liquidity at least $20,000, a passed safety gate, and an unreused ticker. NEW: created inside 24h with at least 3 strength and 2 interest signals, maximum 5 names. MOVER: any age up to 120d, at least 25% in 24h on $100,000 volume and 0.50x turnover, maximum 5 names. CTO: takeover claimed within 7d with measurable post-claim activity, maximum 3 names."
+      - generic [ref=f1e83]:
+        - searchbox "Filter runners" [ref=f1e84]
+        - button "Launched today" [ref=f1e85] [cursor=pointer]
+        - button "KOL bought" [ref=f1e86] [cursor=pointer]
+        - button "No flags" [ref=f1e87] [cursor=pointer]
+        - 'button "Sort: run size" [ref=f1e88] [cursor=pointer]'
+      - generic [ref=f1e89]:
+        - group [ref=f1e90]:
+          - generic "01 $MIM Memes Into Money 196.9x 24h +12715% 1h $1.1M mcap $4.5M vol $87k liq 25d age KOL crowd 7 KOL money +" [ref=f1e91] [cursor=pointer]:
+            - generic [ref=f1e92]: "01"
+            - generic [ref=f1e93]:
+              - generic [ref=f1e94]: $MIM
+              - generic [ref=f1e95]: Memes Into Money
+            - generic [ref=f1e96]:
+              - generic [ref=f1e97]: 196.9x
+              - generic [ref=f1e98]: 24h
+            - generic [ref=f1e99]:
+              - generic [ref=f1e100]: +12715%
+              - generic [ref=f1e101]: 1h
+            - generic [ref=f1e102]:
+              - generic [ref=f1e103]: $1.1M
+              - generic [ref=f1e104]: mcap
+            - generic [ref=f1e105]:
+              - generic [ref=f1e106]: $4.5M
+              - generic [ref=f1e107]: vol
+            - generic [ref=f1e108]:
+              - generic [ref=f1e109]: $87k
+              - generic [ref=f1e110]: liq
+            - generic [ref=f1e111]:
+              - generic [ref=f1e112]: 25d
+              - generic [ref=f1e113]: age
+            - generic [ref=f1e114]:
+              - generic [ref=f1e115]: KOL crowd
+              - generic [ref=f1e116]: 7 KOL
+              - generic [ref=f1e117]: money
+            - generic [ref=f1e118]: +
+          - text: "! !"
+        - group [ref=f1e119]:
+          - generic "02 $MARIO64 Mario64 58.1x 24h +35% 1h $1.8M mcap $5.8M vol $119k liq 11h age 1 KOL +" [ref=f1e120] [cursor=pointer]:
+            - generic [ref=f1e121]: "02"
+            - generic [ref=f1e122]:
+              - generic [ref=f1e123]: $MARIO64
+              - generic [ref=f1e124]: Mario64
+            - generic [ref=f1e125]:
+              - generic [ref=f1e126]: 58.1x
+              - generic [ref=f1e127]: 24h
+            - generic [ref=f1e128]:
+              - generic [ref=f1e129]: +35%
+              - generic [ref=f1e130]: 1h
+            - generic [ref=f1e131]:
+              - generic [ref=f1e132]: $1.8M
+              - generic [ref=f1e133]: mcap
+            - generic [ref=f1e134]:
+              - generic [ref=f1e135]: $5.8M
+              - generic [ref=f1e136]: vol
+            - generic [ref=f1e137]:
+              - generic [ref=f1e138]: $119k
+              - generic [ref=f1e139]: liq
+            - generic [ref=f1e140]:
+              - generic [ref=f1e141]: 11h
+              - generic [ref=f1e142]: age
+            - generic [ref=f1e143]: 1 KOL
+            - generic [ref=f1e145]: +
+          - text: "!"
+        - group [ref=f1e146]:
+          - generic "03 $BOT Grok Bot 31.3x 24h -58% 1h $972k mcap $22.4M vol $105k liq 4h age Fading 4 KOL +" [ref=f1e147] [cursor=pointer]:
+            - generic [ref=f1e148]: "03"
+            - generic [ref=f1e149]:
+              - generic [ref=f1e150]: $BOT
+              - generic [ref=f1e151]: Grok Bot
+            - generic [ref=f1e152]:
+              - generic [ref=f1e153]: 31.3x
+              - generic [ref=f1e154]: 24h
+            - generic [ref=f1e155]:
+              - generic [ref=f1e156]: "-58%"
+              - generic [ref=f1e157]: 1h
+            - generic [ref=f1e158]:
+              - generic [ref=f1e159]: $972k
+              - generic [ref=f1e160]: mcap
+            - generic [ref=f1e161]:
+              - generic [ref=f1e162]: $22.4M
+              - generic [ref=f1e163]: vol
+            - generic [ref=f1e164]:
+              - generic [ref=f1e165]: $105k
+              - generic [ref=f1e166]: liq
+            - generic [ref=f1e167]:
+              - generic [ref=f1e168]: 4h
+              - generic [ref=f1e169]: age
+            - generic [ref=f1e170]:
+              - generic [ref=f1e171]: Fading
+              - generic [ref=f1e172]: 4 KOL
+            - generic [ref=f1e173]: +
+          - text: "! ! !"
+        - group [ref=f1e174]:
+          - generic "04 $CASHCAT Cash Cat 15.3x 24h +2% 1h $899k mcap $316k vol $93k liq 10h age +" [ref=f1e175] [cursor=pointer]:
+            - generic [ref=f1e176]: "04"
+            - generic [ref=f1e177]:
+              - generic [ref=f1e178]: $CASHCAT
+              - generic [ref=f1e179]: Cash Cat
+            - generic [ref=f1e180]:
+              - generic [ref=f1e181]: 15.3x
+              - generic [ref=f1e182]: 24h
+            - generic [ref=f1e183]:
+              - generic [ref=f1e184]: +2%
+              - generic [ref=f1e185]: 1h
+            - generic [ref=f1e186]:
+              - generic [ref=f1e187]: $899k
+              - generic [ref=f1e188]: mcap
+            - generic [ref=f1e189]:
+              - generic [ref=f1e190]: $316k
+              - generic [ref=f1e191]: vol
+            - generic [ref=f1e192]:
+              - generic [ref=f1e193]: $93k
+              - generic [ref=f1e194]: liq
+            - generic [ref=f1e195]:
+              - generic [ref=f1e196]: 10h
+              - generic [ref=f1e197]: age
+            - generic [ref=f1e198]: +
+          - text: "! !"
+        - group [ref=f1e199]:
+          - generic "05 $NOSIS 9gnosis 14.7x 24h -18% 1h $678k mcap $3.3M vol $74k liq 3d age Fading +" [ref=f1e200] [cursor=pointer]:
+            - generic [ref=f1e201]: "05"
+            - generic [ref=f1e202]:
+              - generic [ref=f1e203]: $NOSIS
+              - generic [ref=f1e204]: 9gnosis
+            - generic [ref=f1e205]:
+              - generic [ref=f1e206]: 14.7x
+              - generic [ref=f1e207]: 24h
+            - generic [ref=f1e208]:
+              - generic [ref=f1e209]: "-18%"
+              - generic [ref=f1e210]: 1h
+            - generic [ref=f1e211]:
+              - generic [ref=f1e212]: $678k
+              - generic [ref=f1e213]: mcap
+            - generic [ref=f1e214]:
+              - generic [ref=f1e215]: $3.3M
+              - generic [ref=f1e216]: vol
+            - generic [ref=f1e217]:
+              - generic [ref=f1e218]: $74k
+              - generic [ref=f1e219]: liq
+            - generic [ref=f1e220]:
+              - generic [ref=f1e221]: 3d
+              - generic [ref=f1e222]: age
+            - generic [ref=f1e223]: Fading
+            - generic [ref=f1e225]: +
+          - text: "!"
+        - group [ref=f1e226]:
+          - generic "06 $MOB Money Over Bitches 14.6x 24h +9% 1h $457k mcap $493k vol $50k liq 15h age money +" [ref=f1e227] [cursor=pointer]:
+            - generic [ref=f1e228]: "06"
+            - generic [ref=f1e229]:
+              - generic [ref=f1e230]: $MOB
+              - generic [ref=f1e231]: Money Over Bitches
+            - generic [ref=f1e232]:
+              - generic [ref=f1e233]: 14.6x
+              - generic [ref=f1e234]: 24h
+            - generic [ref=f1e235]:
+              - generic [ref=f1e236]: +9%
+              - generic [ref=f1e237]: 1h
+            - generic [ref=f1e238]:
+              - generic [ref=f1e239]: $457k
+              - generic [ref=f1e240]: mcap
+            - generic [ref=f1e241]:
+              - generic [ref=f1e242]: $493k
+              - generic [ref=f1e243]: vol
+            - generic [ref=f1e244]:
+              - generic [ref=f1e245]: $50k
+              - generic [ref=f1e246]: liq
+            - generic [ref=f1e247]:
+              - generic [ref=f1e248]: 15h
+              - generic [ref=f1e249]: age
+            - generic [ref=f1e250]: money
+            - generic [ref=f1e252]: +
+        - group [ref=f1e253]:
+          - generic "07 $ORANGE Orange Coin 12.4x 24h -5% 1h $938k mcap $2.4M vol $77k liq 13h age +" [ref=f1e254] [cursor=pointer]:
+            - generic [ref=f1e255]: "07"
+            - generic [ref=f1e256]:
+              - generic [ref=f1e257]: $ORANGE
+              - generic [ref=f1e258]: Orange Coin
+            - generic [ref=f1e259]:
+              - generic [ref=f1e260]: 12.4x
+              - generic [ref=f1e261]: 24h
+            - generic [ref=f1e262]:
+              - generic [ref=f1e263]: "-5%"
+              - generic [ref=f1e264]: 1h
+            - generic [ref=f1e265]:
+              - generic [ref=f1e266]: $938k
+              - generic [ref=f1e267]: mcap
+            - generic [ref=f1e268]:
+              - generic [ref=f1e269]: $2.4M
+              - generic [ref=f1e270]: vol
+            - generic [ref=f1e271]:
+              - generic [ref=f1e272]: $77k
+              - generic [ref=f1e273]: liq
+            - generic [ref=f1e274]:
+              - generic [ref=f1e275]: 13h
+              - generic [ref=f1e276]: age
+            - generic [ref=f1e277]: +
+          - text: "! !"
+        - group [ref=f1e278]:
+          - generic "08 $KYOKO KYOKO 12.4x 24h +430% 1h $383k mcap $681k vol $46k liq 3h age Fresh 1 KOL +" [ref=f1e279] [cursor=pointer]:
+            - generic [ref=f1e280]: "08"
+            - generic [ref=f1e281]:
+              - generic [ref=f1e282]: $KYOKO
+              - generic [ref=f1e283]: KYOKO
+            - generic [ref=f1e284]:
+              - generic [ref=f1e285]: 12.4x
+              - generic [ref=f1e286]: 24h
+            - generic [ref=f1e287]:
+              - generic [ref=f1e288]: +430%
+              - generic [ref=f1e289]: 1h
+            - generic [ref=f1e290]:
+              - generic [ref=f1e291]: $383k
+              - generic [ref=f1e292]: mcap
+            - generic [ref=f1e293]:
+              - generic [ref=f1e294]: $681k
+              - generic [ref=f1e295]: vol
+            - generic [ref=f1e296]:
+              - generic [ref=f1e297]: $46k
+              - generic [ref=f1e298]: liq
+            - generic [ref=f1e299]:
+              - generic [ref=f1e300]: 3h
+              - generic [ref=f1e301]: age
+            - generic [ref=f1e302]:
+              - generic [ref=f1e303]: Fresh
+              - generic [ref=f1e304]: 1 KOL
+            - generic [ref=f1e305]: +
+          - text: "! !"
+        - group [ref=f1e306]:
+          - generic "09 $PLUMBER Plumber 8.8x 24h +24% 1h $262k mcap $1.5M vol $41k liq 15h age 1 KOL +" [ref=f1e307] [cursor=pointer]:
+            - generic [ref=f1e308]: "09"
+            - generic [ref=f1e309]:
+              - generic [ref=f1e310]: $PLUMBER
+              - generic [ref=f1e311]: Plumber
+            - generic [ref=f1e312]:
+              - generic [ref=f1e313]: 8.8x
+              - generic [ref=f1e314]: 24h
+            - generic [ref=f1e315]:
+              - generic [ref=f1e316]: +24%
+              - generic [ref=f1e317]: 1h
+            - generic [ref=f1e318]:
+              - generic [ref=f1e319]: $262k
+              - generic [ref=f1e320]: mcap
+            - generic [ref=f1e321]:
+              - generic [ref=f1e322]: $1.5M
+              - generic [ref=f1e323]: vol
+            - generic [ref=f1e324]:
+              - generic [ref=f1e325]: $41k
+              - generic [ref=f1e326]: liq
+            - generic [ref=f1e327]:
+              - generic [ref=f1e328]: 15h
+              - generic [ref=f1e329]: age
+            - generic [ref=f1e330]: 1 KOL
+            - generic [ref=f1e332]: +
+          - text: "! !"
+        - group [ref=f1e333]:
+          - generic "10 $USDUF Unstable FOMO 6.4x 24h -7% 1h $198k mcap $605k vol $33k liq 11h age +" [ref=f1e334] [cursor=pointer]:
+            - generic [ref=f1e335]: "10"
+            - generic [ref=f1e336]:
+              - generic [ref=f1e337]: $USDUF
+              - generic [ref=f1e338]: Unstable FOMO
+            - generic [ref=f1e339]:
+              - generic [ref=f1e340]: 6.4x
+              - generic [ref=f1e341]: 24h
+            - generic [ref=f1e342]:
+              - generic [ref=f1e343]: "-7%"
+              - generic [ref=f1e344]: 1h
+            - generic [ref=f1e345]:
+              - generic [ref=f1e346]: $198k
+              - generic [ref=f1e347]: mcap
+            - generic [ref=f1e348]:
+              - generic [ref=f1e349]: $605k
+              - generic [ref=f1e350]: vol
+            - generic [ref=f1e351]:
+              - generic [ref=f1e352]: $33k
+              - generic [ref=f1e353]: liq
+            - generic [ref=f1e354]:
+              - generic [ref=f1e355]: 11h
+              - generic [ref=f1e356]: age
+            - generic [ref=f1e357]: +
+          - text: "!"
+        - group [ref=f1e358]:
+          - generic "11 $ALON alon 5.7x 24h +7% 1h $7.9M mcap $12.7M vol $811k liq 869d age +" [ref=f1e359] [cursor=pointer]:
+            - generic [ref=f1e360]: "11"
+            - generic [ref=f1e361]:
+              - generic [ref=f1e362]: $ALON
+              - generic [ref=f1e363]: alon
+            - generic [ref=f1e364]:
+              - generic [ref=f1e365]: 5.7x
+              - generic [ref=f1e366]: 24h
+            - generic [ref=f1e367]:
+              - generic [ref=f1e368]: +7%
+              - generic [ref=f1e369]: 1h
+            - generic [ref=f1e370]:
+              - generic [ref=f1e371]: $7.9M
+              - generic [ref=f1e372]: mcap
+            - generic [ref=f1e373]:
+              - generic [ref=f1e374]: $12.7M
+              - generic [ref=f1e375]: vol
+            - generic [ref=f1e376]:
+              - generic [ref=f1e377]: $811k
+              - generic [ref=f1e378]: liq
+            - generic [ref=f1e379]:
+              - generic [ref=f1e380]: 869d
+              - generic [ref=f1e381]: age
+            - generic [ref=f1e382]: +
+    - generic [ref=f1e383]:
+      - generic [ref=f1e384]:
+        - heading "Tracked wallets" [level=2] [ref=f1e385]
+        - generic [ref=f1e386]: "66"
+      - generic [ref=f1e387]:
+        - generic [ref=f1e388]:
+          - paragraph [ref=f1e389]: Conviction — bought by several wallets
+          - list [ref=f1e390]:
+            - listitem [ref=f1e391]:
+              - generic [ref=f1e392]: $MIM
+              - generic [ref=f1e393]: 7 buyers
+              - generic [ref=f1e394]: Ethan Prosper, Johnson, Nach, OGAntD, Spuno, big bags bobby, clukz
+              - generic [ref=f1e395]: "Still holding: Johnson, Nach, OGAntD"
+            - listitem [ref=f1e396]:
+              - generic [ref=f1e397]: $BOT
+              - generic [ref=f1e398]: 4 buyers
+              - generic [ref=f1e399]: Keano, Loopierr, Matt, big bags bobby
+              - generic [ref=f1e400]: All positions closed
+        - generic [ref=f1e401]:
+          - paragraph [ref=f1e402]: Where they made money — realised, this window
+          - list [ref=f1e403]:
+            - listitem [ref=f1e404]:
+              - generic [ref=f1e405]: $BOT
+              - generic [ref=f1e406]: +356.6 SOL
+              - generic [ref=f1e407]: 6 wallets traded it
+            - listitem [ref=f1e408]:
+              - generic [ref=f1e409]: $STONK
+              - generic [ref=f1e410]: +153.9 SOL
+              - generic [ref=f1e411]: 1 wallet traded it
+            - listitem [ref=f1e412]:
+              - generic [ref=f1e413]: $NOSIS
+              - generic [ref=f1e414]: +86.2 SOL
+              - generic [ref=f1e415]: 1 wallet traded it
+            - listitem [ref=f1e416]:
+              - generic [ref=f1e417]: $GENTLE
+              - generic [ref=f1e418]: +79.2 SOL
+              - generic [ref=f1e419]: 2 wallets traded it
+            - listitem [ref=f1e420]:
+              - generic [ref=f1e421]: $MIM
+              - generic [ref=f1e422]: +71.9 SOL
+              - generic [ref=f1e423]: 7 wallets traded it
+            - listitem [ref=f1e424]:
+              - generic [ref=f1e425]: $LUCIFER
+              - generic [ref=f1e426]: +59.9 SOL
+              - generic [ref=f1e427]: 2 wallets traded it
+            - listitem [ref=f1e428]:
+              - generic [ref=f1e429]: $MIM
+              - generic [ref=f1e430]: +45.2 SOL
+              - generic [ref=f1e431]: 5 wallets traded it
+            - listitem [ref=f1e432]:
+              - generic [ref=f1e433]: $MARIO64
+              - generic [ref=f1e434]: +38.6 SOL
+              - generic [ref=f1e435]: 1 wallet traded it
+            - listitem [ref=f1e436]:
+              - generic [ref=f1e437]: $JEF
+              - generic [ref=f1e438]: +36.5 SOL
+              - generic [ref=f1e439]: 1 wallet traded it
+            - listitem [ref=f1e440]:
+              - generic [ref=f1e441]: $REGULARDUDE
+              - generic [ref=f1e442]: +29.0 SOL
+              - generic [ref=f1e443]: 1 wallet traded it
+            - listitem [ref=f1e444]:
+              - generic [ref=f1e445]: $PANDA
+              - generic [ref=f1e446]: +26.3 SOL
+              - generic [ref=f1e447]: 2 wallets traded it
+            - listitem [ref=f1e448]:
+              - generic [ref=f1e449]: $LOBO
+              - generic [ref=f1e450]: +24.7 SOL
+              - generic [ref=f1e451]: 1 wallet traded it
+            - listitem [ref=f1e452]:
+              - generic [ref=f1e453]: $BMW
+              - generic [ref=f1e454]: +20.4 SOL
+              - generic [ref=f1e455]: 2 wallets traded it
+            - listitem [ref=f1e456]:
+              - generic [ref=f1e457]: $MERIO
+              - generic [ref=f1e458]: +19.8 SOL
+              - generic [ref=f1e459]: 3 wallets traded it
+            - listitem [ref=f1e460]:
+              - generic [ref=f1e461]: $MANLET
+              - generic [ref=f1e462]: +17.5 SOL
+              - generic [ref=f1e463]: 3 wallets traded it
+    - generic [ref=f1e464]:
+      - generic [ref=f1e465]:
+        - heading "Shared lore" [level=2] [ref=f1e466]
+        - generic [ref=f1e467]: "01"
+      - generic [ref=f1e469]:
+        - generic [ref=f1e470]: money
+        - paragraph [ref=f1e471]: $MIM · $MOB (2)
+    - generic [ref=f1e472]:
+      - generic [ref=f1e473]:
+        - heading "Ran, but disqualified" [level=2] [ref=f1e474]
+        - generic [ref=f1e475]: "02"
+      - paragraph [ref=f1e476]: These moved today and are recorded for completeness. Each one can be taken from its holders or was never distributed, so it is kept out of the runner list.
+      - list [ref=f1e477]:
+        - listitem [ref=f1e478]:
+          - generic [ref=f1e479]: $SE
+          - generic [ref=f1e480]: 8.2x
+          - generic [ref=f1e481]: bundled supply, top 10 circulating wallets hold 77%
+        - listitem [ref=f1e482]:
+          - generic [ref=f1e483]: $CALLOUT
+          - generic [ref=f1e484]: 58.4x
+          - generic [ref=f1e485]: bundled supply, top 10 circulating wallets hold 84%
+    - generic [ref=f1e486]:
+      - heading "How a coin gets in" [level=2] [ref=f1e488]
+      - generic [ref=f1e489]:
+        - generic [ref=f1e490]:
+          - heading "Two doors" [level=4] [ref=f1e491]
+          - paragraph [ref=f1e492]: Created inside the last 24 hours and up at least 30%, or any age doing a 5x or better. Floors of $150k market cap and $50k daily volume apply to both.
+        - generic [ref=f1e493]:
+          - heading "Risk is shown, not hidden" [level=4] [ref=f1e494]
+          - paragraph [ref=f1e495]: Failing one check does not remove a coin. Concentration, thin pools, paid boosts, recycled tickers and fades are printed on the row so the judgement stays yours.
+        - generic [ref=f1e496]:
+          - heading "Only rugs are removed" [level=4] [ref=f1e497]
+          - paragraph [ref=f1e498]: A live mint or freeze authority, unlocked liquidity, bundled supply or a manufactured tape. Those are listed separately rather than silently dropped.
+      - generic [ref=f1e499]:
+        - generic [ref=f1e500]: Dexscreenerall discovery feeds available
+        - generic [ref=f1e503]: Birdeye ranked discovery489 tokens ranked by 24h volume; 106 cleared the motion gate
+        - generic [ref=f1e506]: On-chain launch collector12,803 Pump.fun creates stored since 10 Aug 22:46 CEST; full 24h window
+        - generic [ref=f1e509]: RugCheckopen safety reports available
+        - generic [ref=f1e512]: Heliusbatched authority cross-check available
+        - generic [ref=f1e515]: Social verification0/126 linked X accounts resolved; 112 unavailable
+        - generic [ref=f1e518]: Holder snapshots1/2 watchlist tokens captured; wallet-history calls 2
+        - generic [ref=f1e521]: KOL wallet flow66/66 wallets scanned; activity in 364 mints
+        - generic [ref=f1e524]: 24h market-indexed launches108 launches resolved to market data; 12,803 raw Pump.fun creates stored
+        - generic [ref=f1e527]: Jupiter exit liquidity3/3 featured tokens quoted below 5% impact
+        - generic [ref=f1e530]: SOL market contextSOL reference price captured
+    - contentinfo [ref=f1e533]:
+      - generic [ref=f1e534]: Data, not advice — everything here can go to zero
+      - generic [ref=f1e535]: Generated mardi 11 août à 22:46

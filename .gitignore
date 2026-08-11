@@ -12,3 +12,4 @@ __pycache__/
 data/
 output/*.html
 !output/.gitkeep
+web/.playwright-mcp/

@@ -3,6 +3,8 @@ timezone = "Europe/Paris"
 top_tokens = 10
 database_path = "data/brief.db"
 html_path = "output/latest.html"
+# Structured snapshot the hosted site renders.
+json_path = "web/data/latest.json"
 request_timeout_seconds = 15.0
 log_level = "INFO"
 # Raw HTTP bodies are compressed on write and kept only long enough to replay
