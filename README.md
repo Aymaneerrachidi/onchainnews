@@ -1,6 +1,6 @@
 # Daily Solana Memecoin Brief
 
-A local, novelty-first Solana intelligence brief. It reports measurable changes, never recommendations, and uses only free sources: Dexscreener, RugCheck, Helius free tier, Jupiter's no-key lite quote API, X public account metadata, and Telegram Bot API. Bubblemaps is linked for inspection but is not queried.
+A local, novelty-first Solana intelligence brief. It reports measurable changes, never recommendations, and uses Dexscreener, RugCheck, Helius free tier, Jupiter's no-key lite quote API, Telegram Bot API, plus an optional operator-supplied X API account. Bubblemaps is linked for inspection but is not queried.
 
 Every morning report opens with **the read**: the day's picks, one descriptive sentence each, above the fold. Below that sit the full evidence dossiers, the rolling 24-hour launch tape, and the screening funnel. This is deliberately described as discovery-feed coverage—not a claim to index every mint created on Solana, most of which never form a tracked market.
 
@@ -36,6 +36,14 @@ Buys and sells are read from balance deltas rather than by classifying swap inst
 
 The list is ordered by reported PnL and scanned newest-first with its own paced request budget, so a partial scan still carries the strongest wallets. Helius answers a burst of heavy wallet-history calls with `429 max usage reached` when the plan's credits are spent; the scan degrades to a warning and the rest of the report still ships.
 
+## Monitored X accounts
+
+Set `X_BEARER_TOKEN` in `.env` to enable the social evidence layer. `[x].accounts` in `config.toml` is the bounded desk list. The daily run searches only public posts from those handles during the report window and records posts, replies, quotes and reposts. Likes are not presented as observable KOL actions.
+
+Every match retains the author, timestamp, interaction type, engagement metrics and original post URL. Matching a contract address or unique cashtag is labelled confirmed; a linked project account is probable; a name-only match is possible. The report never converts timing into a claim of causation. If no source-linked match exists, the card says so explicitly.
+
+The summary is extractive and deterministic: it shortens the original post without inventing a narrative. The X source is optional and degrades independently, so a missing key or exhausted quota never blocks Dexscreener, Helius, Telegram or web delivery.
+
 ## The editorial tracks
 
 Alongside the journal, three narrower tracks answer "which few names are worth a close look". Each requires the market-cap and liquidity floors, a passed safety gate, and an unreused ticker.
@@ -57,7 +65,7 @@ Dexscreener's public feeds surface only trending metas, takeovers, profiles and 
 ```powershell
 uv sync --dev
 Copy-Item .env.example .env
-# Put your free Helius key in .env before this command.
+# Put your Helius key in .env. Add X_BEARER_TOKEN if social evidence is wanted.
 uv run solana-brief run --no-telegram
 ```
 
@@ -162,7 +170,7 @@ Every decision threshold is in `config.toml`: hard filters, novelty, retirement,
 
 `[thresholds].chains` controls which chains are screened and defaults to `["solana"]`. The Dexscreener discovery and pair endpoints are chain-agnostic, so adding a chain is a configuration change—but RugCheck authority/LP checks and every Helius holder, cluster and creator analysis are Solana-only. Names on another chain would therefore ship with the safety layer marked unavailable, which is why the default stays as it is.
 
-No automated execution, wallet connection, paid data source, sentiment scraping, or generated hype narrative is included.
+No automated execution, wallet connection, sentiment scoring, or generated hype narrative is included. X API usage is optional and uses the operator's own API plan.
 
 ## Hosted demo
 

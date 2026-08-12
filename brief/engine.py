@@ -38,7 +38,13 @@ from brief.sources.helius import HeliusSource
 from brief.sources.http import CachedHttpClient
 from brief.sources.jupiter import JupiterSource
 from brief.sources.rugcheck import RugCheckSource
-from brief.sources.social import SocialVerifier, x_handle
+from brief.sources.social import (
+    SocialVerifier,
+    build_dex_evidence,
+    match_x_interactions,
+    x_handle,
+)
+from brief.sources.x import XSource
 
 
 log = logging.getLogger("brief.engine")
@@ -691,6 +697,75 @@ async def build_brief(
 
         # Every featured name is scored, whichever track surfaced it.
         selected = new_and_moving + cto_candidates + movers
+
+        # Turn the quantitative journal into a source-linked desk rundown. X is
+        # optional and never blocks delivery. The pair evidence is available on
+        # every run; social associations are labelled by match confidence.
+        evidence_candidates: list[Candidate] = []
+        seen_evidence: set[str] = set()
+        for candidate in [*runners, *selected]:
+            if candidate.token.mint not in seen_evidence:
+                evidence_candidates.append(candidate)
+                seen_evidence.add(candidate.token.mint)
+            candidate.dex_evidence = build_dex_evidence(candidate)
+
+        x_settings = settings.section("x")
+        x_source = XSource(
+            http,
+            str(urls.get("x_recent_search_url", "https://api.x.com/2/tweets/search/recent")),
+            os.getenv("X_BEARER_TOKEN"),
+            [str(handle) for handle in x_settings.get("accounts", [])],
+            ttl=int(cache.get("x_ttl_seconds", 300)),
+            requests_per_minute=int(x_settings.get("requests_per_minute", 60)),
+            accounts_per_query=int(x_settings.get("accounts_per_query", 20)),
+            max_pages_per_query=int(x_settings.get("max_pages_per_query", 5)),
+        )
+        if bool(x_settings.get("enabled", True)) and x_source.configured:
+            try:
+                x_posts = await x_source.posts(window_start)
+                match_x_interactions(
+                    evidence_candidates,
+                    x_posts,
+                    max_per_token=int(x_settings.get("max_matches_per_token", 6)),
+                )
+                matched_posts = len({item.url for c in evidence_candidates for item in c.x_interactions})
+                matched_tokens = sum(bool(candidate.x_interactions) for candidate in evidence_candidates)
+                statuses.append(SourceStatus(
+                    "X monitored accounts",
+                    True,
+                    f"{len(x_posts)} posts from {len(x_source.accounts)} accounts; "
+                    f"{matched_posts} source posts matched {matched_tokens} highlighted tokens",
+                ))
+            except Exception as exc:
+                log.warning("x_monitoring_failed error=%s", exc)
+                match_x_interactions(evidence_candidates, [])
+                statuses.append(SourceStatus("X monitored accounts", False, str(exc)))
+        else:
+            match_x_interactions(evidence_candidates, [])
+            detail = (
+                "X_BEARER_TOKEN is unset; Dexscreener and on-chain evidence remain available"
+                if x_source.accounts
+                else "no monitored accounts configured"
+            )
+            statuses.append(SourceStatus("X monitored accounts", False, detail))
+
+        def rundown_rank(candidate: Candidate) -> tuple[float, ...]:
+            confidence = {"confirmed": 3.0, "probable": 2.0, "possible": 1.0}
+            social = max(
+                (confidence.get(item.confidence, 0.0) for item in candidate.x_interactions),
+                default=0.0,
+            )
+            return (
+                social,
+                float(len(candidate.x_interactions)),
+                float(len(candidate.kol_buyers)),
+                candidate.token.price_change_24h,
+                candidate.signals.turnover,
+                candidate.token.volume_24h,
+            )
+
+        runners.sort(key=rundown_rank, reverse=True)
+        kol_flagged.sort(key=rundown_rank, reverse=True)
 
         exclusion_by_mint = {item.token.mint: item for item in exclusions}
         candidate_by_mint = {candidate.token.mint: candidate for candidate in candidates}

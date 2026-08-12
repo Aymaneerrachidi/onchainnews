@@ -43,6 +43,33 @@ def _candidate(candidate: Candidate) -> dict[str, Any]:
         "kolRealisedSol": candidate.kol_realised_sol,
         "read": candidate.read,
         "track": candidate.track,
+        "dexEvidence": candidate.dex_evidence,
+        "catalyst": candidate.catalyst,
+        "xInteractions": [
+            {
+                "author": item.author_name,
+                "handle": item.author_handle,
+                "interaction": item.interaction,
+                "summary": item.summary,
+                "url": item.url,
+                "createdAt": item.created_at.isoformat(),
+                "confidence": item.confidence,
+                "matchedOn": item.matched_on,
+                "likes": item.like_count,
+                "reposts": item.repost_count,
+                "replies": item.reply_count,
+                "quotes": item.quote_count,
+            }
+            for item in candidate.x_interactions
+        ],
+        "sources": [
+            {"label": "Dexscreener", "url": token.url},
+            {"label": "Bubblemaps", "url": f"https://app.bubblemaps.io/sol/token/{token.mint}"},
+            *[
+                {"label": f"@{item.author_handle} on X", "url": item.url}
+                for item in candidate.x_interactions
+            ],
+        ],
     }
 
 
@@ -71,6 +98,7 @@ def build_payload(brief: Brief) -> dict[str, Any]:
             "launchedToday": fresh,
             "bigMultiples": sum(1 for c in brief.runners if c.run_multiple >= 5),
             "kolFlagged": len(brief.kol_flagged),
+            "xMatched": sum(bool(candidate.x_interactions) for candidate in brief.runners),
             "loreGroups": len(brief.lore_groups),
             "disqualified": len(brief.blocked_runners),
             "walletsTracked": brief.kol_wallet_count,

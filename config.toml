@@ -157,6 +157,27 @@ helius_base_url = "https://mainnet.helius-rpc.com"
 jupiter_quote_url = "https://lite-api.jup.ag/swap/v1/quote"
 jupiter_price_url = "https://lite-api.jup.ag/price/v3"
 x_public_metadata_url = "https://cdn.syndication.twimg.com/widgets/followbutton/info.json"
+x_recent_search_url = "https://api.x.com/2/tweets/search/recent"
+
+# Public X posts from this bounded desk list become source-linked catalyst
+# evidence. Likes are not treated as observable interactions; posts, replies,
+# quotes and reposts are. Replace or extend this starter list for the client.
+[x]
+enabled = true
+accounts_per_query = 20
+max_pages_per_query = 5
+requests_per_minute = 60
+max_matches_per_token = 6
+accounts = [
+  "cobie",
+  "blknoiz06",
+  "elonmusk",
+  "solana",
+  "pumpdotfun",
+  "aeyakovenko",
+  "weremeow",
+  "JupiterExchange",
+]
 
 [delivery]
 # Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env.

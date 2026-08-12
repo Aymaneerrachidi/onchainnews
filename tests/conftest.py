@@ -11,6 +11,7 @@ from brief.config import load_settings
 def clear_api_keys(monkeypatch):
     monkeypatch.delenv("HELIUS_API_KEY", raising=False)
     monkeypatch.delenv("BIRDEYE_API_KEY", raising=False)
+    monkeypatch.delenv("X_BEARER_TOKEN", raising=False)
 
 
 def build_settings(tmp_path: Path, fixture_name: str = "run.json", extra: str = ""):

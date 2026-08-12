@@ -11,15 +11,28 @@ def _runner_line(candidate: Candidate) -> str:
     token = candidate.token
     size = f"{candidate.run_multiple:.1f}x" if candidate.run_multiple >= 2 else pct(token.price_change_24h, 0)
     head = f"${token.symbol} {size} | {money(token.market_cap)} mc | {money(token.volume_24h)} vol"
+    if candidate.x_interactions:
+        head += f" | {len(candidate.x_interactions)} X match"
     if candidate.kol_buyers:
-        head += f" | {len(candidate.kol_buyers)} KOL"
+        head += f" | {len(candidate.kol_buyers)} wallets"
     extra = []
     if candidate.faded_from_peak is not None:
         extra.append(f"fading {pct(candidate.faded_from_peak, 0)} in the last hour")
     if candidate.risk_labels:
         extra.append(candidate.risk_labels[0])
-    tail = f"\n  {'; '.join(extra)}" if extra else ""
-    return head + tail
+    lines = [head, f"  CA {token.mint}"]
+    if candidate.dex_evidence:
+        lines.append(f"  WHY: {candidate.dex_evidence[0]}")
+    if candidate.x_interactions:
+        lead = candidate.x_interactions[0]
+        lines.append(
+            f"  X: @{lead.author_handle} {lead.interaction} ({lead.confidence}) - {lead.summary} {lead.url}"
+        )
+    elif candidate.catalyst:
+        lines.append(f"  X: {candidate.catalyst}")
+    if extra:
+        lines.append(f"  RISK: {'; '.join(extra)}")
+    return "\n".join(lines)
 
 
 def render_digest(brief: Brief, report_url: str = "") -> str:
@@ -34,7 +47,7 @@ def render_digest(brief: Brief, report_url: str = "") -> str:
         "",
     ]
     if runners:
-        limit = 12
+        limit = 8
         body.extend(_runner_line(candidate) for candidate in runners[:limit])
         if len(runners) > limit:
             body.append(f"...and {len(runners) - limit} more in the full report.")

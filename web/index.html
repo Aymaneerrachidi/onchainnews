@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ONCHAIN NEWS — What Ran Today</title>
-<meta name="description" content="A daily on-chain record of every Solana coin that ran today, with tracked-wallet flow and risk written on the row.">
+<title>ONCHAIN NEWS | Coins That Ran and Why</title>
+<meta name="description" content="A daily Solana rundown showing the contract, the tape, monitored X activity and the evidence behind every highlighted coin.">
 <meta name="theme-color" content="#0b0b0b">
-<meta property="og:title" content="ONCHAIN NEWS — What Ran Today">
-<meta property="og:description" content="Every Solana coin that ran today, ranked, with tracked-wallet flow.">
+<meta property="og:title" content="ONCHAIN NEWS | Coins That Ran and Why">
+<meta property="og:description" content="Every highlighted Solana coin with its CA, market evidence, monitored X activity and risks.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -142,6 +142,45 @@ section{border-bottom:1px solid var(--line);scroll-margin-top:1rem}
 .read{grid-column:1/-1;border-top:1px solid var(--line);padding:.85rem 1.3rem;
   font-size:.8rem;background:var(--paper-2);margin:0}
 
+/* ---------- editorial coin rundown ---------- */
+#rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line)}
+.coin-card{background:var(--paper-2);border:0;border-bottom:0;display:flex;flex-direction:column;min-width:0}
+.coin-card[hidden]{display:none}
+.coin-top{display:grid;grid-template-columns:2.5rem minmax(0,1fr) auto;gap:.75rem;align-items:start;
+  padding:1rem 1.1rem .85rem;border-bottom:1px solid var(--line)}
+.coin-rank{font-family:var(--display);font-size:1.35rem;color:var(--red);line-height:1}
+.coin-name b{display:block;font-size:1.15rem;letter-spacing:-.02em}
+.coin-name span{display:block;color:var(--muted);font-size:.65rem;margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.coin-move{text-align:right}.coin-move b{display:block;font-family:var(--display);font-size:1.3rem;color:var(--green);line-height:1}
+.coin-move span{display:block;color:var(--muted);font-size:.62rem;margin-top:.25rem}
+.coin-tags{display:flex;gap:.3rem;flex-wrap:wrap;padding:.55rem 1.1rem 0}
+.coin-tag{border:1px solid var(--line);font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;padding:.18rem .35rem}
+.coin-tag.x{background:var(--red);border-color:var(--red);color:#fff}
+.coin-tag.wallet{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.ca{display:flex;align-items:center;gap:.55rem;margin:.65rem 1.1rem 0;padding:.5rem .6rem;background:var(--paper-3);border:1px solid rgba(36,35,31,.28)}
+.ca b{font-size:.56rem;letter-spacing:.1em;color:var(--muted)}
+.ca code{font:600 .67rem var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.copy{border:1px solid var(--line);background:var(--ink);color:var(--paper);font:700 .58rem var(--mono);padding:.3rem .45rem;cursor:pointer;text-transform:uppercase}
+.copy:active{transform:translateY(1px)}
+.evidence{padding:.9rem 1.1rem;border-bottom:1px solid rgba(36,35,31,.28)}
+.evidence h3{margin:0 0 .5rem;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.why-list{margin:0;padding-left:1rem;font-size:.75rem;line-height:1.48}
+.why-list li{margin-bottom:.35rem}.why-list li:last-child{margin-bottom:0}
+.x-lead{margin:0 0 .55rem;font-size:.72rem;font-weight:700}
+.x-list{list-style:none;margin:0;padding:0}.x-item{padding:.55rem 0;border-top:1px solid rgba(36,35,31,.2)}
+.x-meta{display:flex;justify-content:space-between;gap:.5rem;align-items:baseline;font-size:.64rem}
+.x-meta b{font-size:.74rem}.x-meta span{color:var(--muted)}
+.confidence{font-size:.52rem;text-transform:uppercase;letter-spacing:.08em;border:1px solid currentColor;padding:.12rem .28rem;color:var(--amber)}
+.confidence.confirmed{color:var(--green)}.confidence.possible{color:var(--red)}
+.x-copy{margin:.3rem 0 0;font-size:.72rem;line-height:1.42}.x-engagement{display:block;margin-top:.25rem;color:var(--muted);font-size:.6rem}
+.no-x{margin:0;color:var(--muted);font-size:.72rem}
+.coin-bottom{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.coin-bottom>div{padding:.75rem 1.1rem}.coin-bottom>div:first-child{border-right:1px solid var(--line)}
+.mini-title{display:block;margin-bottom:.4rem;color:var(--muted);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase}
+.wallet-names,.risk-copy{margin:0;font-size:.68rem;line-height:1.45}.risk-copy{color:var(--red)}
+.sources-row{display:flex;gap:.8rem;flex-wrap:wrap;padding:.65rem 1.1rem;background:var(--ink);color:var(--paper);font-size:.6rem;text-transform:uppercase;letter-spacing:.07em}
+.sources-row a{font-weight:700}.sources-row a:hover{color:#ff7b6f}
+
 /* ---------- lists ---------- */
 .two{display:grid;grid-template-columns:1fr 1fr}
 .two>div:first-child{border-right:1px solid var(--line)}
@@ -189,11 +228,21 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
   .row>summary .hide-sm{display:none}
   .marks{flex-direction:row;flex-wrap:wrap;justify-content:flex-end}
   .list li{grid-template-columns:6.5rem 1fr}
+  #rows{grid-template-columns:1fr}
 }
 @media(max-width:560px){
   .stats{grid-template-columns:repeat(2,1fr)}
   .lore-item{grid-template-columns:1fr}
   .who{columns:1}
+  .wrap{width:100%;max-width:100vw}.note{overflow-wrap:anywhere}
+  .masthead{padding-left:1rem;padding-right:1rem}.wordmark{font-size:2.25rem;letter-spacing:-.045em}
+  .controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .controls input{grid-column:1/-1;width:100%;min-width:0}.controls .chip{width:100%;min-width:0;white-space:nowrap;padding-left:.25rem;padding-right:.25rem}
+  #rows{grid-template-columns:minmax(0,1fr);min-width:0}
+  .coin-top{grid-template-columns:2rem minmax(0,1fr) auto;padding:.9rem .85rem}
+  .ca,.coin-tags{margin-left:.85rem;margin-right:.85rem}
+  .evidence,.coin-bottom>div,.sources-row{padding-left:.85rem;padding-right:.85rem}
+  .coin-bottom{grid-template-columns:1fr}.coin-bottom>div:first-child{border-right:0;border-bottom:1px solid var(--line)}
 }
 @media(prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
@@ -208,11 +257,11 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
   <header class="masthead">
     <div class="dateline">
       <span id="dateline">Loading edition…</span>
-      <span>Solana · On-chain · Daily</span>
+      <span>Solana · On-chain · X signals · Daily</span>
     </div>
     <h1 class="wordmark">Onchain <em>News</em></h1>
     <div class="subhead">
-      <p>A daily record of every coin that ran — ranked by the size of the move, with the risks printed on the row instead of hidden behind a filter.</p>
+      <p>Coins that ran and why. Every call includes its contract, the Dexscreener tape, monitored X activity, tracked-wallet flow and visible risks.</p>
       <span class="stamp-live" id="freshness">Live snapshot</span>
     </div>
   </header>
@@ -222,39 +271,39 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
   <div class="stats" id="stats"></div>
 
   <section id="runners">
-    <div class="head"><h2>Runners of the day</h2><span class="count" id="runner-count">—</span></div>
-    <p class="note" id="rule">Two doors: created inside the last 24 hours and running, or any age doing a large multiple.</p>
+    <div class="head"><h2>Highlight coins</h2><span class="count" id="runner-count">n/a</span></div>
+    <p class="note" id="rule">Every highlighted coin states why it cleared the tape, what monitored accounts did on X, and which facts remain unverified.</p>
     <div class="controls">
       <input id="q" type="search" placeholder="Filter by ticker, name, flag or lore…" autocomplete="off" aria-label="Filter runners">
       <button class="chip" id="f-new" aria-pressed="false">Launched today</button>
-      <button class="chip" id="f-kol" aria-pressed="false">KOL bought</button>
+      <button class="chip" id="f-kol" aria-pressed="false">X matched</button>
       <button class="chip" id="f-clean" aria-pressed="false">No flags</button>
-      <button class="chip" id="f-sort">Sort: run size</button>
+      <button class="chip" id="f-sort">Sort: editorial</button>
     </div>
     <div id="rows"></div>
   </section>
 
   <section id="wallets">
-    <div class="head"><h2>Tracked wallets</h2><span class="count" id="wallet-count">—</span></div>
+    <div class="head"><h2>Tracked wallets</h2><span class="count" id="wallet-count">n/a</span></div>
     <div class="two">
       <div>
-        <p class="sub">Conviction — bought by several wallets</p>
+        <p class="sub">Conviction: bought by several wallets</p>
         <ul class="list" id="conviction"></ul>
       </div>
       <div>
-        <p class="sub">Where they made money — realised, this window</p>
+        <p class="sub">Where they made money: realised this window</p>
         <ul class="list" id="profit"></ul>
       </div>
     </div>
   </section>
 
   <section id="lore">
-    <div class="head"><h2>Shared lore</h2><span class="count" id="lore-count">—</span></div>
+    <div class="head"><h2>Shared lore</h2><span class="count" id="lore-count">n/a</span></div>
     <div id="lore-list"></div>
   </section>
 
   <section id="blocked">
-    <div class="head"><h2>Ran, but disqualified</h2><span class="count" id="blocked-count">—</span></div>
+    <div class="head"><h2>Ran, but disqualified</h2><span class="count" id="blocked-count">n/a</span></div>
     <p class="note">These moved today and are recorded for completeness. Each one can be taken from its holders or was never distributed, so it is kept out of the runner list.</p>
     <ul class="list" id="blocked-list"></ul>
   </section>
@@ -270,27 +319,27 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
   </section>
 
   <footer>
-    <span>Data, not advice — everything here can go to zero</span>
-    <span id="stamp">—</span>
+    <span>Data, not advice. Everything here can go to zero</span>
+    <span id="stamp">n/a</span>
   </footer>
 </div>
 
 <script>
 const $ = (s) => document.querySelector(s);
 const money = (n) => {
-  if (n === null || n === undefined) return "—";
+  if (n === null || n === undefined) return "n/a";
   const a = Math.abs(n);
   if (a >= 1e9) return "$" + (n / 1e9).toFixed(1) + "B";
   if (a >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
   if (a >= 1e3) return "$" + Math.round(n / 1e3) + "k";
   return "$" + Math.round(n);
 };
-const pct = (n) => (n === null || n === undefined) ? "—" : (n >= 0 ? "+" : "") + Math.round(n) + "%";
+const pct = (n) => (n === null || n === undefined) ? "n/a" : (n >= 0 ? "+" : "") + Math.round(n) + "%";
 const sized = (m, c) => m >= 2 ? m.toFixed(1) + "x" : pct(c);
-const age = (h) => h === null || h === undefined ? "—" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d";
+const age = (h) => h === null || h === undefined ? "n/a" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-let DATA = null, SORT = "run", FILTERS = { new: false, kol: false, clean: false };
+let DATA = null, SORT = "editorial", FILTERS = { new: false, kol: false, clean: false };
 
 function stamp(r) {
   if (r.faded !== null && r.faded !== undefined) return "Fading";
@@ -299,62 +348,89 @@ function stamp(r) {
   return "";
 }
 
+function fallbackDexEvidence(r) {
+  const old = r.ageHours === null || r.ageHours === undefined ? "age unavailable" : r.ageHours < 48 ? `${Math.round(r.ageHours)} hours old` : `${Math.round(r.ageHours / 24)} days old`;
+  const lines = [
+    `The pair was ${old} at the cutoff and moved ${pct(r.change24h)} in 24 hours to a ${money(r.marketCap)} market cap.`,
+    `Dexscreener recorded ${money(r.volume24h)} of 24-hour volume, equal to ${r.turnover.toFixed(1)}x market cap, with ${money(r.liquidity)} liquidity.`,
+  ];
+  if (r.buyRatio6h !== null && r.buyRatio6h !== undefined && r.trades6h) {
+    lines.push(`Six-hour flow was ${Math.round(r.buyRatio6h * 100)}% buys across ${r.trades6h.toLocaleString()} trades while the pair moved ${pct(r.change6h)}.`);
+  }
+  if (r.kolBuyers?.length) {
+    lines.push(`${r.kolBuyers.length} tracked on-chain wallets bought during the window; ${r.kolHolders.length} still held at the snapshot.`);
+  }
+  const structure = [];
+  if (r.lpLockedPct !== null && r.lpLockedPct !== undefined) structure.push(`LP ${Math.round(r.lpLockedPct)}% locked or burned`);
+  if (r.top10Pct !== null && r.top10Pct !== undefined) structure.push(`nominal top 10 held ${Math.round(r.top10Pct)}%`);
+  if (structure.length) lines.push(`Supply structure at the snapshot: ${structure.join("; ")}.`);
+  return lines;
+}
+
 function rowHTML(r, i) {
-  const flags = r.riskLabels.length
-    ? `<ul class="flags">${r.riskLabels.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>`
-    : `<p class="clean">No flags raised.</p>`;
-  const who = r.kolBuyers.length
-    ? `<ul class="who">${r.kolBuyers.map((n) => `<li class="${r.kolHolders.includes(n) ? "hold" : ""}">${esc(n)}${r.kolHolders.includes(n) ? " ◆" : ""}</li>`).join("")}</ul>
-       <p class="clean" style="margin-top:.6rem;color:${r.kolRealisedSol >= 0 ? "var(--green)" : "var(--red)"}">
-         Realised ${r.kolRealisedSol >= 0 ? "+" : ""}${r.kolRealisedSol.toFixed(1)} SOL</p>`
-    : `<p class="clean" style="color:var(--muted)">None of the 66 tracked wallets bought this.</p>`;
-  const st = stamp(r);
-  const tags = [
-    r.kolBuyers.length ? `<span class="tag kol">${r.kolBuyers.length} KOL</span>` : "",
-    r.lore ? `<span class="tag lore">${esc(r.lore)}</span>` : "",
-  ].join("");
+  const risks = r.riskLabels || [];
+  const x = r.xInteractions || [];
+  const dex = r.dexEvidence?.length ? r.dexEvidence : fallbackDexEvidence(r);
+  const sources = r.sources?.length ? r.sources : [
+    { label: "Dexscreener", url: r.url },
+    { label: "Bubblemaps", url: `https://app.bubblemaps.io/sol/token/${r.mint}` },
+  ];
+  const xRows = x.length ? `<ul class="x-list">${x.map((item) => {
+    const engagement = [
+      item.likes ? `${item.likes.toLocaleString()} likes` : "",
+      item.reposts ? `${item.reposts.toLocaleString()} reposts` : "",
+      item.replies ? `${item.replies.toLocaleString()} replies` : "",
+    ].filter(Boolean).join(" · ");
+    const posted = new Date(item.createdAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    return `<li class="x-item">
+      <div class="x-meta"><a href="${esc(item.url)}" target="_blank" rel="noreferrer"><b>@${esc(item.handle)}</b> ${esc(item.interaction)}</a>
+        <span>${esc(posted)} · <i class="confidence ${esc(item.confidence)}">${esc(item.confidence)}</i></span></div>
+      <p class="x-copy">${esc(item.summary)}</p>
+      <small class="x-engagement">Matched on ${esc(item.matchedOn)}${engagement ? " · " + esc(engagement) : ""}</small>
+    </li>`;
+  }).join("")}</ul>` : `<p class="no-x">No verified monitored-account match was found in this 24-hour window.</p>`;
+  const wallets = r.kolBuyers?.length
+    ? `${r.kolBuyers.map((name) => `${esc(name)}${r.kolHolders.includes(name) ? " ◆" : ""}`).join(", ")}<br><span class="${r.kolRealisedSol >= 0 ? "up" : "dn"}">Realised ${r.kolRealisedSol >= 0 ? "+" : ""}${r.kolRealisedSol.toFixed(1)} SOL</span>`
+    : "No tracked on-chain wallet bought this token.";
+  const search = [r.symbol, r.name, r.mint, r.lore, ...risks, ...x.map((item) => `${item.handle} ${item.summary}`)].join(" ").toLowerCase();
   return `
-<details class="row rv" style="animation-delay:${Math.min(i * 45, 600)}ms"
-  data-q="${esc((r.symbol + " " + r.name + " " + r.mint + " " + r.lore + " " + r.riskLabels.join(" ")).toLowerCase())}"
-  data-new="${r.ageHours !== null && r.ageHours <= 24}" data-kol="${r.kolBuyers.length > 0}" data-clean="${r.riskLabels.length === 0}">
-  <summary>
-    <span class="rank">${String(i + 1).padStart(2, "0")}</span>
-    <span class="tk"><b>$${esc(r.symbol)}</b><i>${esc(r.name)}</i></span>
-    <span class="num"><u class="big">${sized(r.runMultiple, r.change24h)}</u><i>24h</i></span>
-    <span class="num"><u class="${r.change1h >= 0 ? "up" : "dn"}">${pct(r.change1h)}</u><i>1h</i></span>
-    <span class="num hide-sm"><u>${money(r.marketCap)}</u><i>mcap</i></span>
-    <span class="num hide-sm"><u>${money(r.volume24h)}</u><i>vol</i></span>
-    <span class="num hide-sm"><u>${money(r.liquidity)}</u><i>liq</i></span>
-    <span class="num hide-sm"><u>${age(r.ageHours)}</u><i>age</i></span>
-    <span class="marks">${st ? `<span class="stamp">${st}</span>` : ""}${tags}</span>
-    <span class="caret">+</span>
-  </summary>
-  <div class="detail">
-    <div>
-      <h4>The tape</h4>
-      <dl class="kv">
-        <dt>Turnover</dt><dd>${r.turnover.toFixed(2)}x</dd>
-        <dt>6h change</dt><dd class="${r.change6h >= 0 ? "up" : "dn"}">${pct(r.change6h)}</dd>
-        <dt>6h buys</dt><dd>${r.buyRatio6h === null ? "—" : Math.round(r.buyRatio6h * 100) + "%"}</dd>
-        <dt>6h trades</dt><dd>${r.trades6h.toLocaleString()}</dd>
-        <dt>Top 10 hold</dt><dd>${r.top10Pct === null ? "—" : Math.round(r.top10Pct) + "%"}</dd>
-        <dt>LP locked</dt><dd>${r.lpLockedPct === null ? "—" : Math.round(r.lpLockedPct) + "%"}</dd>
-        <dt>Venue</dt><dd>${esc(r.dex)}</dd>
-      </dl>
-      <a class="chart" href="${esc(r.url)}" target="_blank" rel="noreferrer">Open chart ↗</a>
-    </div>
-    <div><h4>Flags</h4>${flags}</div>
-    <div><h4>Tracked wallets ◆ = still holding</h4>${who}</div>
-    <p class="read">${esc(r.read)}</p>
+<article class="coin-card row rv" style="animation-delay:${Math.min(i * 45, 600)}ms"
+  data-q="${esc(search)}" data-new="${r.ageHours !== null && r.ageHours <= 24}"
+  data-kol="${x.length > 0}" data-clean="${risks.length === 0}">
+  <header class="coin-top">
+    <span class="coin-rank">${String(i + 1).padStart(2, "0")}</span>
+    <div class="coin-name"><b>$${esc(r.symbol)}</b><span>${esc(r.name)} · ${age(r.ageHours)} old · ${esc(r.dex)}</span></div>
+    <div class="coin-move"><b>${sized(r.runMultiple, r.change24h)}</b><span>${money(r.marketCap)} mcap</span></div>
+  </header>
+  <div class="coin-tags">
+    <span class="coin-tag">${money(r.volume24h)} volume</span>
+    <span class="coin-tag">${r.turnover.toFixed(1)}x turnover</span>
+    ${x.length ? `<span class="coin-tag x">${x.length} X match${x.length === 1 ? "" : "es"}</span>` : ""}
+    ${r.kolBuyers?.length ? `<span class="coin-tag wallet">${r.kolBuyers.length} wallets</span>` : ""}
+    ${r.lore ? `<span class="coin-tag">${esc(r.lore)}</span>` : ""}
   </div>
-</details>`;
+  <div class="ca"><b>CA</b><code title="${esc(r.mint)}">${esc(r.mint)}</code><button class="copy" type="button" data-ca="${esc(r.mint)}">Copy</button></div>
+  <section class="evidence">
+    <h3>Why it made the rundown</h3>
+    <ul class="why-list">${dex.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
+  </section>
+  <section class="evidence">
+    <h3>What happened on X</h3>
+    <p class="x-lead">${esc(r.catalyst || "No social catalyst has been verified.")}</p>
+    ${xRows}
+  </section>
+  <div class="coin-bottom">
+    <div><span class="mini-title">Tracked wallets · ◆ still holding</span><p class="wallet-names">${wallets}</p></div>
+    <div><span class="mini-title">Risks and caveats</span><p class="risk-copy">${risks.length ? risks.map(esc).join(" · ") : "No automated flags raised."}</p></div>
+  </div>
+  <nav class="sources-row" aria-label="Sources for ${esc(r.symbol)}">${sources.map((source) => `<a href="${esc(source.url)}" target="_blank" rel="noreferrer">${esc(source.label)} ↗</a>`).join("")}</nav>
+</article>`;
 }
 
 function paint() {
   const rows = [...DATA.runners];
-  if (SORT === "kol") rows.sort((a, b) => b.kolBuyers.length - a.kolBuyers.length || b.runMultiple - a.runMultiple);
+  if (SORT === "x") rows.sort((a, b) => (b.xInteractions?.length || 0) - (a.xInteractions?.length || 0) || b.runMultiple - a.runMultiple);
   else if (SORT === "fresh") rows.sort((a, b) => (a.ageHours ?? 1e9) - (b.ageHours ?? 1e9));
-  else rows.sort((a, b) => b.runMultiple - a.runMultiple);
   $("#rows").innerHTML = rows.length ? rows.map(rowHTML).join("")
     : `<p class="empty">Nothing ran today that cleared the floors. An empty page is a result, not an outage.</p>`;
   applyFilters();
@@ -390,7 +466,7 @@ function render(d) {
     ["Runners today", s.runners, false],
     ["Launched today", s.launchedToday, false],
     ["5x or better", s.bigMultiples, false],
-    ["KOL flagged", s.walletsTracked ? s.kolFlagged : "—", false],
+    ["X matched", s.xMatched ?? 0, false],
     ["Shared lores", s.loreGroups, false],
     ["Disqualified", s.disqualified, true],
   ].map(([l, v, hot], i) => `<div class="stat ${hot ? "hot" : ""} rv" style="animation-delay:${i * 50}ms"><span>${l}</span><b>${v}</b></div>`).join("");
@@ -438,9 +514,30 @@ for (const [key, id] of [["new", "#f-new"], ["kol", "#f-kol"], ["clean", "#f-cle
   });
 }
 $("#f-sort").addEventListener("click", (e) => {
-  SORT = SORT === "run" ? "kol" : SORT === "kol" ? "fresh" : "run";
-  e.currentTarget.textContent = "Sort: " + (SORT === "run" ? "run size" : SORT === "kol" ? "KOL buyers" : "newest");
+  SORT = SORT === "editorial" ? "x" : SORT === "x" ? "fresh" : "editorial";
+  e.currentTarget.textContent = "Sort: " + (SORT === "editorial" ? "editorial" : SORT === "x" ? "X activity" : "newest");
   paint();
+});
+
+$("#rows").addEventListener("click", async (event) => {
+  const button = event.target.closest(".copy");
+  if (!button) return;
+  const original = button.textContent;
+  try {
+    await navigator.clipboard.writeText(button.dataset.ca);
+    button.textContent = "Copied";
+  } catch (_) {
+    const area = document.createElement("textarea");
+    area.value = button.dataset.ca;
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+    button.textContent = "Copied";
+  }
+  setTimeout(() => { button.textContent = original; }, 1200);
 });
 
 fetch("data/latest.json", { cache: "no-store" })

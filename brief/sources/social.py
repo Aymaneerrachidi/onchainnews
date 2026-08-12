@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from urllib.parse import urlparse
 
 from brief.sources.http import CachedHttpClient
+from brief.models import Candidate, XInteraction, XPost
 
 
 TWITTER_EPOCH_MS = 1_288_834_974_657
@@ -75,3 +77,123 @@ class SocialVerifier:
                 age = (now.astimezone(timezone.utc) - created).total_seconds() / 86400 if created else None
                 result[mint] = (True, max(0.0, age) if age is not None else None)
         return result
+
+
+_URL = re.compile(r"https?://\S+", re.IGNORECASE)
+_SPACE = re.compile(r"\s+")
+_GENERIC_NAMES = {
+    "coin", "token", "meme", "solana", "official", "cash", "money", "cat", "dog",
+    "ai", "bot", "guy", "moon", "pump", "going", "orange",
+}
+_CONFIDENCE = {"confirmed": 3, "probable": 2, "possible": 1}
+
+
+def _excerpt(text: str, limit: int = 180) -> str:
+    cleaned = _SPACE.sub(" ", _URL.sub("", text)).strip()
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: limit - 1].rstrip(" ,.;:") + "…"
+
+
+def _engagement(post: XPost) -> int:
+    return post.like_count + post.repost_count * 2 + post.reply_count + post.quote_count * 2
+
+
+def _match_post(candidate: Candidate, post: XPost) -> tuple[str, str] | None:
+    token = candidate.token
+    haystack = " ".join([post.text, *post.expanded_urls]).casefold()
+    if token.mint.casefold() in haystack:
+        return "confirmed", "contract address"
+    if token.url and token.url.casefold() in haystack:
+        return "confirmed", "Dexscreener link"
+
+    symbol = token.symbol.strip().lstrip("$")
+    if len(symbol) >= 2 and re.search(rf"(?<![\w$])\${re.escape(symbol)}(?!\w)", post.text, re.IGNORECASE):
+        confidence = "probable" if candidate.recycled_label_count else "confirmed"
+        return confidence, f"${symbol} cashtag"
+
+    linked_handle = x_handle(token.socials)
+    if linked_handle and linked_handle.casefold() == post.author_handle.casefold():
+        return "probable", "linked project account"
+
+    name = _SPACE.sub(" ", token.name).strip()
+    if len(name) >= 5 and name.casefold() not in _GENERIC_NAMES:
+        if re.search(rf"(?<!\w){re.escape(name)}(?!\w)", post.text, re.IGNORECASE):
+            return "possible", "token name"
+    return None
+
+
+def match_x_interactions(
+    candidates: list[Candidate], posts: list[XPost], *, max_per_token: int = 6
+) -> None:
+    """Attach source-linked public X activity without asserting causation."""
+    for candidate in candidates:
+        matches: list[tuple[XPost, str, str]] = []
+        for post in posts:
+            matched = _match_post(candidate, post)
+            if matched:
+                matches.append((post, *matched))
+        matches.sort(
+            key=lambda item: (_CONFIDENCE[item[1]], _engagement(item[0]), item[0].created_at.timestamp()),
+            reverse=True,
+        )
+        candidate.x_interactions = [
+            XInteraction(
+                author_handle=post.author_handle,
+                author_name=post.author_name,
+                interaction=post.interaction,
+                summary=_excerpt(post.text),
+                url=post.url,
+                created_at=post.created_at,
+                confidence=confidence,
+                matched_on=matched_on,
+                like_count=post.like_count,
+                repost_count=post.repost_count,
+                reply_count=post.reply_count,
+                quote_count=post.quote_count,
+            )
+            for post, confidence, matched_on in matches[:max_per_token]
+        ]
+        if candidate.x_interactions:
+            lead = candidate.x_interactions[0]
+            qualifier = "verified" if lead.confidence == "confirmed" else lead.confidence
+            candidate.catalyst = (
+                f"@{lead.author_handle} {lead.interaction} matching content during the report window; "
+                f"the association is {qualifier} via {lead.matched_on}."
+            )
+        else:
+            candidate.catalyst = "No monitored X account produced a verifiable match in this 24-hour window."
+
+
+def build_dex_evidence(candidate: Candidate) -> list[str]:
+    """Explain admission using only the fields collected from the pair tape."""
+    token = candidate.token
+    signal = candidate.signals
+    lines: list[str] = []
+    age = signal.age_hours
+    age_text = f"{age:.0f} hours old" if age is not None and age < 48 else (
+        f"{age / 24:.0f} days old" if age is not None else "age unavailable"
+    )
+    lines.append(
+        f"The pair was {age_text} at the cutoff and moved {token.price_change_24h:+,.0f}% in 24 hours to a ${token.market_cap:,.0f} market cap."
+    )
+    lines.append(
+        f"Dexscreener recorded ${token.volume_24h:,.0f} of 24-hour volume, equal to {signal.turnover:.1f}x market cap, with ${token.liquidity_usd:,.0f} liquidity."
+    )
+    if signal.buy_imbalance_6h is not None and token.txns_6h.total:
+        lines.append(
+            f"Six-hour flow was {signal.buy_imbalance_6h:.0%} buys across {token.txns_6h.total:,} trades while the pair moved {token.price_change_6h:+.0f}%."
+        )
+    if candidate.kol_buyers:
+        holding = len(candidate.kol_holders)
+        lines.append(
+            f"{len(candidate.kol_buyers)} tracked on-chain wallets bought during the window; {holding} still held at the snapshot."
+        )
+    structure: list[str] = []
+    if candidate.safety.lp_locked_or_burned_pct is not None:
+        structure.append(f"LP {candidate.safety.lp_locked_or_burned_pct:.0f}% locked or burned")
+    if candidate.safety.top10_pct is not None:
+        structure.append(f"nominal top 10 held {candidate.safety.top10_pct:.0f}%")
+    if structure:
+        lines.append("Supply structure at the snapshot: " + "; ".join(structure) + ".")
+    return lines

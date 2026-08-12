@@ -59,9 +59,22 @@ def _runner_line(candidate) -> str:
     bits = [
         f"- **${token.symbol}** {size} 24h | {pct(token.price_change_1h, 0)} 1h | {money(token.market_cap)} mcap"
         f" | {money(token.volume_24h)} vol | {money(token.liquidity_usd)} liq | {age}",
+        f"  CA: `{token.mint}`",
     ]
+    if candidate.dex_evidence:
+        bits.append("  Why it made the rundown:")
+        bits.extend(f"  - {line}" for line in candidate.dex_evidence)
+    if candidate.x_interactions:
+        bits.append("  What happened on X:")
+        for item in candidate.x_interactions:
+            bits.append(
+                f"  - @{item.author_handle} {item.interaction} ({item.confidence}, matched on {item.matched_on}): "
+                f"{item.summary} {item.url}"
+            )
+    elif candidate.catalyst:
+        bits.append(f"  X: {candidate.catalyst}")
     if candidate.kol_buyers:
-        bits.append(f"  KOL: bought by {len(candidate.kol_buyers)} tracked wallets ({', '.join(candidate.kol_buyers[:6])})")
+        bits.append(f"  On-chain wallets: bought by {len(candidate.kol_buyers)} tracked wallets ({', '.join(candidate.kol_buyers[:6])})")
     if candidate.lore:
         bits.append(f"  Lore: {candidate.lore}" + ("" if candidate.lore_is_fresh else " (this lore has run before)"))
     if candidate.risk_labels:

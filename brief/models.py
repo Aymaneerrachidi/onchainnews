@@ -158,6 +158,45 @@ class Candidate:
     faded_from_peak: float | None = None
     # One descriptive sentence assembled from measured values, never a forecast.
     read: str = ""
+    # Editorial evidence used by the daily rundown. Dex evidence is generated
+    # only from measured pair fields. X evidence always includes provenance and
+    # a confidence label so a timing association is never stated as causation.
+    dex_evidence: list[str] = field(default_factory=list)
+    x_interactions: list["XInteraction"] = field(default_factory=list)
+    catalyst: str = ""
+
+
+@dataclass(slots=True)
+class XPost:
+    post_id: str
+    author_id: str
+    author_handle: str
+    author_name: str
+    text: str
+    created_at: datetime
+    interaction: str
+    url: str
+    like_count: int = 0
+    repost_count: int = 0
+    reply_count: int = 0
+    quote_count: int = 0
+    expanded_urls: tuple[str, ...] = ()
+
+
+@dataclass(slots=True)
+class XInteraction:
+    author_handle: str
+    author_name: str
+    interaction: str
+    summary: str
+    url: str
+    created_at: datetime
+    confidence: str
+    matched_on: str
+    like_count: int = 0
+    repost_count: int = 0
+    reply_count: int = 0
+    quote_count: int = 0
 
 
 @dataclass(slots=True)
