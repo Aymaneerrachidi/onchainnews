@@ -166,7 +166,7 @@ html_enabled = true
 # Morning message: the picks and one line each, not the full report.
 telegram_digest = true
 # Optional link appended to the digest so the full report is one tap away.
-report_url = ""
+report_url = "https://onchainnews-rho.vercel.app"
 
 # The daily journal: what ran today. Deliberately wider than the editorial
 # tracks. A coin enters through one of two doors -- created inside the fresh

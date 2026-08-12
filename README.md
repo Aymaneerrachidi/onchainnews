@@ -177,4 +177,6 @@ git commit -m "Snapshot"
 git push                         # Vercel redeploys automatically
 ```
 
+The installed Windows 06:45 task runs `scripts/run.ps1`. After a successful brief and Telegram digest, that script calls `scripts/publish-web.ps1`, which commits only `web/data/latest.json` and pushes `main`. Existing staged or unstaged work in other files is never included. If the remote branch has diverged, publishing stops instead of rebasing or overwriting work.
+
 `.vercelignore` anchors its paths with a leading slash. An unanchored `data/` would also match `web/data/`, which is the snapshot the site needs.

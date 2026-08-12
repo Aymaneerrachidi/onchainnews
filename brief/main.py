@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from brief.config import load_settings
-from brief.delivery import send_telegram, write_html
+from brief.delivery import TelegramDeliveryError, send_telegram, write_html
 from brief.engine import build_brief
 from brief.interface import serve_interface
 from brief.ledger import open_ledger
@@ -99,8 +99,14 @@ async def run(args: argparse.Namespace) -> int:
                 digest=bool(settings.get("delivery", "telegram_digest", True)),
                 report_url=str(settings.get("delivery", "report_url", "") or ""),
             )
-            await send_telegram(messages)
-            console.print(f"[dim]Telegram digest delivered ({len(messages)} message(s)).[/dim]")
+            try:
+                await send_telegram(messages)
+                console.print(f"[dim]Telegram digest delivered ({len(messages)} message(s)).[/dim]")
+            except TelegramDeliveryError as exc:
+                # The public report is already rendered. Keep web publishing
+                # independent from a temporary Telegram/API failure.
+                logging.getLogger("brief.delivery").error("Telegram digest failed: %s", exc)
+                console.print("[yellow]Telegram delivery failed; the web report will still publish.[/yellow]")
         elif not args.no_telegram:
             console.print("[dim]Telegram disabled; set delivery.telegram_enabled=true after configuring .env.[/dim]")
         return 0
