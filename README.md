@@ -143,6 +143,8 @@ The morning Telegram message is a digest, not the whole report: a header, the pi
 
 The visual interface runs locally at `http://127.0.0.1:8765`. It filters the report, shows a live clock and scheduled-run countdown, monitors refresh state, and can start a new brief. It binds only to the local machine and exposes no wallet or trading action.
 
+On Windows, `scripts/install-interface-startup.ps1` makes the local interface start automatically after sign-in. The 06:45 scheduled task replaces `output/latest.html` every morning, and the interface serves that new file immediately without needing a restart.
+
 For cron, with the host timezone matching `run.timezone`:
 
 ```cron

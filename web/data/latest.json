@@ -1,59 +1,58 @@
 {
- "generatedAt": "2026-08-11T22:46:57.415438+02:00",
- "windowStart": "2026-08-10T22:46:57.415438+02:00",
+ "generatedAt": "2026-08-12T06:45:05.443341+02:00",
+ "windowStart": "2026-08-11T06:45:05.443341+02:00",
  "timezone": "CEST",
  "summary": {
-  "runners": 11,
-  "launchedToday": 8,
-  "bigMultiples": 11,
-  "kolFlagged": 2,
-  "loreGroups": 1,
+  "runners": 21,
+  "launchedToday": 18,
+  "bigMultiples": 19,
+  "kolFlagged": 4,
+  "loreGroups": 5,
   "disqualified": 2,
   "walletsTracked": 66
  },
  "runners": [
   {
-   "symbol": "MIM",
-   "name": "Memes Into Money",
-   "mint": "86KR6eG2VuNntLBi23SAYFW1cXkiYcwxGJd746rqcUAG",
-   "url": "https://dexscreener.com/solana/fw8rnmxtsrmyfz6en6ozxakqi7zuzfwlbzelcmmwmohj",
+   "symbol": "PLUMBER",
+   "name": "Plumber",
+   "mint": "GCa9TZMK9Q3VUSkhZgX76YAQBjqQd1dPxkBnZojFpump",
+   "url": "https://dexscreener.com/solana/j3hkh2ne88wrie1shpe53jd7ke12e2lmg7cnlb4bjftn",
    "dex": "pumpswap",
-   "marketCap": 1093137.0,
-   "liquidity": 87383.48,
-   "volume24h": 4499848.32,
-   "change24h": 19595.0,
-   "change6h": 12223.0,
-   "change1h": 12715.0,
-   "runMultiple": 196.95,
-   "turnover": 4.116454131549842,
-   "ageHours": 606.738170955,
-   "buyRatio6h": 0.5234004330001382,
-   "trades6h": 43418,
-   "top10Pct": 23.557851040039232,
-   "lpLockedPct": 100.0,
+   "marketCap": 2454406.0,
+   "liquidity": 156589.36,
+   "volume24h": 14753644.88,
+   "change24h": 8085.0,
+   "change6h": 312.0,
+   "change1h": -20.35,
+   "runMultiple": 81.85,
+   "turnover": 6.011085729092905,
+   "ageHours": 23.085400928055556,
+   "buyRatio6h": 0.5431194823566395,
+   "trades6h": 76346,
+   "top10Pct": 18.837267156458175,
+   "lpLockedPct": 99.99120892213278,
    "riskLabels": [
-    "ticker reused by 4 other recent mint(s)",
-    "lore 'money' has run before"
+    "thin pool, 94x its liquidity traded",
+    "linked X account does not resolve",
+    "fading, down 20% in the last hour"
    ],
-   "lore": "money",
-   "loreIsFresh": false,
-   "faded": null,
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": -20.35,
    "kolBuyers": [
-    "Ethan Prosper",
-    "Johnson",
+    "Chairman",
     "Nach",
     "OGAntD",
-    "Spuno",
-    "big bags bobby",
-    "clukz"
+    "asta",
+    "cap",
+    "clukz",
+    "slingoor"
    ],
    "kolHolders": [
-    "Johnson",
-    "Nach",
-    "OGAntD"
+    "Chairman"
    ],
-   "kolRealisedSol": 71.93573119999999,
-   "read": "$MIM \u2014 25d-old pair at $1,093,137 market cap, +19595% on the day, $4,499,848 of 24h volume (4.1x market cap), 52% of 43,418 six-hour trades were buys, LP 100% locked or burned, top 10 hold 24%.",
+   "kolRealisedSol": -421.3289267419999,
+   "read": "$PLUMBER \u2014 23h-old pair at $2,454,406 market cap, +8085% on the day, $14,753,645 of 24h volume (6.0x market cap), 54% of 76,346 six-hour trades were buys, LP 100% locked or burned, top 10 hold 19%.",
    "track": "NEW"
   },
   {
@@ -62,36 +61,107 @@
    "mint": "HukaK2eHhbTyiuUwuKMntjPJP4aGdD4VwiExsNmyT8WJ",
    "url": "https://dexscreener.com/solana/2cdmgj24mytdzpgfvveytgfldah6387yeabxwcjy1mlg",
    "dex": "pumpswap",
-   "marketCap": 972419.0,
-   "liquidity": 104888.72,
-   "volume24h": 22384124.31,
-   "change24h": 3033.0,
-   "change6h": 3033.0,
-   "change1h": -58.42,
-   "runMultiple": 31.33,
-   "turnover": 23.01901167089495,
-   "ageHours": 3.9876153994444445,
-   "buyRatio6h": 0.5231227081894032,
-   "trades6h": 188170,
-   "top10Pct": 10.08665468028874,
+   "marketCap": 1119373.0,
+   "liquidity": 116770.37,
+   "volume24h": 24193932.52,
+   "change24h": 3507.0,
+   "change6h": 18.66,
+   "change1h": 6.15,
+   "runMultiple": 36.07,
+   "turnover": 21.613825346868293,
+   "ageHours": 11.956512039166666,
+   "buyRatio6h": 0.53866420761428,
+   "trades6h": 15182,
+   "top10Pct": 11.511794356510931,
    "lpLockedPct": 100.0,
    "riskLabels": [
-    "thin pool, 213x its liquidity traded",
-    "ticker reused by 5 other recent mint(s)",
-    "fading, down 58% in the last hour"
+    "thin pool, 207x its liquidity traded",
+    "ticker reused by 3 other recent mint(s)"
    ],
    "lore": "",
    "loreIsFresh": false,
-   "faded": -58.42,
+   "faded": null,
    "kolBuyers": [
     "Keano",
     "Loopierr",
     "Matt",
-    "big bags bobby"
+    "clukz"
    ],
    "kolHolders": [],
-   "kolRealisedSol": 356.581300034,
-   "read": "$BOT \u2014 4h-old pair at $972,419 market cap, +3033% on the day, $22,384,124 of 24h volume (23.0x market cap), 52% of 188,170 six-hour trades were buys, LP 100% locked or burned, top 10 hold 10%.",
+   "kolRealisedSol": 254.75191532900004,
+   "read": "$BOT \u2014 12h-old pair at $1,119,373 market cap, +3507% on the day, $24,193,933 of 24h volume (21.6x market cap), 54% of 15,182 six-hour trades were buys, LP 100% locked or burned, top 10 hold 12%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "PGUY",
+   "name": "PnutGuy",
+   "mint": "DcRcBtM7XopjPnmBUTmp8eWMTztkhVJUkuXeEsqApump",
+   "url": "https://dexscreener.com/solana/m3gkiwgzj8wmw6lh9pito8u2rqq3gma4kmwdazdvvmj",
+   "dex": "pumpswap",
+   "marketCap": 158113.0,
+   "liquidity": 38826.98,
+   "volume24h": 977289.87,
+   "change24h": 1861.0,
+   "change6h": 113.0,
+   "change1h": 18.17,
+   "runMultiple": 19.61,
+   "turnover": 6.180958365219811,
+   "ageHours": 11142.962623150279,
+   "buyRatio6h": 0.5243996901626646,
+   "trades6h": 12910,
+   "top10Pct": 23.415422152002286,
+   "lpLockedPct": 100.0,
+   "riskLabels": [],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [
+    "Chairman",
+    "OGAntD",
+    "Orange",
+    "asta"
+   ],
+   "kolHolders": [
+    "asta"
+   ],
+   "kolRealisedSol": -20.825290221000003,
+   "read": "$PGUY \u2014 464d-old pair at $158,113 market cap, +1861% on the day, $977,290 of 24h volume (6.2x market cap), 52% of 12,910 six-hour trades were buys, LP 100% locked or burned, top 10 hold 23%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "LENNY ",
+   "name": "Lenny ",
+   "mint": "ApMrbYXQk1j3GV62HnQLR2BPiH8MzAi5ywaW2MYxpump",
+   "url": "https://dexscreener.com/solana/bgadp2tfefhyarqjfyktqcvgtujtxb9nvfkzxhhfsaxr",
+   "dex": "pumpswap",
+   "marketCap": 376032.0,
+   "liquidity": 50006.97,
+   "volume24h": 2394059.32,
+   "change24h": 1179.0,
+   "change6h": 668.0,
+   "change1h": -12.88,
+   "runMultiple": 12.79,
+   "turnover": 6.366637201089269,
+   "ageHours": 6.150400928055555,
+   "buyRatio6h": 0.5617502956580503,
+   "trades6h": 29595,
+   "top10Pct": 23.45186070554296,
+   "lpLockedPct": 100.0,
+   "riskLabels": [],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [
+    "Apex",
+    "Schoen",
+    "Tom",
+    "cap"
+   ],
+   "kolHolders": [
+    "cap"
+   ],
+   "kolRealisedSol": -54.152266661000006,
+   "read": "$LENNY  \u2014 6h-old pair at $376,032 market cap, +1179% on the day, $2,394,059 of 24h volume (6.4x market cap), 56% of 29,595 six-hour trades were buys, LP 100% locked or burned, top 10 hold 23%.",
    "track": "NEW"
   },
   {
@@ -100,124 +170,94 @@
    "mint": "CX2v7JSHJQDcNooubzzvZG8TPaDwbaPgfzcXRSWJpump",
    "url": "https://dexscreener.com/solana/7rec27fvchhusbakitbm24bmn1chvgravprhyfrgab4m",
    "dex": "pumpswap",
-   "marketCap": 1762669.0,
-   "liquidity": 118509.72,
-   "volume24h": 5786647.12,
-   "change24h": 5707.0,
-   "change6h": 275.0,
-   "change1h": 34.81,
-   "runMultiple": 58.07,
-   "turnover": 3.2828892548742843,
-   "ageHours": 11.255948732777778,
-   "buyRatio6h": 0.5257407407407407,
-   "trades6h": 43200,
-   "top10Pct": 15.450558700487584,
-   "lpLockedPct": 100.0,
+   "marketCap": 1831295.0,
+   "liquidity": 127676.88,
+   "volume24h": 9006509.65,
+   "change24h": 5933.0,
+   "change6h": -24.56,
+   "change1h": 28.91,
+   "runMultiple": 60.33,
+   "turnover": 4.9181096710251495,
+   "ageHours": 19.224845372500003,
+   "buyRatio6h": 0.5508054845941296,
+   "trades6h": 19181,
+   "top10Pct": 15.252548522791434,
+   "lpLockedPct": 99.99986523643915,
    "riskLabels": [
-    "ticker reused by 4 other recent mint(s)"
+    "thin pool, 71x its liquidity traded",
+    "ticker reused by 1 other recent mint(s)",
+    "lore 'mario64' has run before"
    ],
-   "lore": "",
+   "lore": "mario64",
    "loreIsFresh": false,
    "faded": null,
    "kolBuyers": [
+    "Jidn",
     "slingoor"
    ],
-   "kolHolders": [],
-   "kolRealisedSol": 38.558404241,
-   "read": "$MARIO64 \u2014 11h-old pair at $1,762,669 market cap, +5707% on the day, $5,786,647 of 24h volume (3.3x market cap), 53% of 43,200 six-hour trades were buys, LP 100% locked or burned, top 10 hold 15%.",
-   "track": "NEW"
-  },
-  {
-   "symbol": "KYOKO",
-   "name": "KYOKO",
-   "mint": "HSZCUrkyJspqMAUrrKr4kSC7j9cKadqVVo4xTyFG7mDi",
-   "url": "https://dexscreener.com/solana/aujfwgkkfninqdvrjxql6c6xzeq99ardrqrjulomq91p",
-   "dex": "pumpswap",
-   "marketCap": 383141.0,
-   "liquidity": 45805.88,
-   "volume24h": 681424.29,
-   "change24h": 1140.0,
-   "change6h": 1140.0,
-   "change1h": 430.0,
-   "runMultiple": 12.4,
-   "turnover": 1.778520936156663,
-   "ageHours": 2.5198376216666665,
-   "buyRatio6h": 0.5190398844973831,
-   "trades6h": 5541,
-   "top10Pct": 31.131794644820395,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "top 10 hold 31%",
-    "only 2.5h old"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": null,
-   "kolBuyers": [
-    "OGAntD"
-   ],
-   "kolHolders": [],
-   "kolRealisedSol": -13.755249755999998,
-   "read": "$KYOKO \u2014 3h-old pair at $383,141 market cap, +1140% on the day, $681,424 of 24h volume (1.8x market cap), 52% of 5,541 six-hour trades were buys, LP 100% locked or burned, top 10 hold 31%.",
-   "track": "NEW"
-  },
-  {
-   "symbol": "PLUMBER",
-   "name": "Plumber",
-   "mint": "GCa9TZMK9Q3VUSkhZgX76YAQBjqQd1dPxkBnZojFpump",
-   "url": "https://dexscreener.com/solana/j3hkh2ne88wrie1shpe53jd7ke12e2lmg7cnlb4bjftn",
-   "dex": "pumpswap",
-   "marketCap": 262485.0,
-   "liquidity": 41003.61,
-   "volume24h": 1470155.0,
-   "change24h": 775.0,
-   "change6h": 72.77,
-   "change1h": 24.24,
-   "runMultiple": 8.75,
-   "turnover": 5.60091052822066,
-   "ageHours": 15.116504288333335,
-   "buyRatio6h": 0.5141178895300906,
-   "trades6h": 9704,
-   "top10Pct": 25.479999520576094,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "top 10 hold 25%",
-    "linked X account does not resolve"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": null,
-   "kolBuyers": [
-    "Nach"
-   ],
    "kolHolders": [
-    "Nach"
+    "Jidn",
+    "slingoor"
    ],
-   "kolRealisedSol": -19.48007957200001,
-   "read": "$PLUMBER \u2014 15h-old pair at $262,485 market cap, +775% on the day, $1,470,155 of 24h volume (5.6x market cap), 51% of 9,704 six-hour trades were buys, LP 100% locked or burned, top 10 hold 25%.",
+   "kolRealisedSol": -1.0110000000000001,
+   "read": "$MARIO64 \u2014 19h-old pair at $1,831,295 market cap, +5933% on the day, $9,006,510 of 24h volume (4.9x market cap), 55% of 19,181 six-hour trades were buys, LP 100% locked or burned, top 10 hold 15%.",
    "track": "NEW"
   },
   {
-   "symbol": "CASHCAT",
-   "name": "Cash Cat",
-   "mint": "ykizGvDSmP5LQJx4NEkAKAYuhVG55vAuXVA3aWfpump",
-   "url": "https://dexscreener.com/solana/2pqhbrxvjpivvvjij3ukf9r27admmwnuxge6q9bpb98f",
-   "dex": "pumpswap",
-   "marketCap": 898686.0,
-   "liquidity": 93483.17,
-   "volume24h": 316340.92,
-   "change24h": 1427.0,
-   "change6h": 16.76,
-   "change1h": 1.5,
-   "runMultiple": 15.27,
-   "turnover": 0.3520038367127116,
-   "ageHours": 9.602615399444446,
-   "buyRatio6h": 0.6672794117647058,
-   "trades6h": 544,
-   "top10Pct": 15.88307664341466,
+   "symbol": "MOS",
+   "name": "Mosaic",
+   "mint": "4ChT49V1iazP2XUGtycGkEsS6pRMqvGfUbqvRC9Z91ZT",
+   "url": "https://dexscreener.com/solana/gjl62zuuadjm7czhrwtnbocgn31ksfywhsceyftwiwh",
+   "dex": "meteora",
+   "marketCap": 376106.0,
+   "liquidity": 147046.49,
+   "volume24h": 1922556.8,
+   "change24h": 50.44,
+   "change6h": -24.6,
+   "change1h": 18.8,
+   "runMultiple": 1.5044,
+   "turnover": 5.11174190254875,
+   "ageHours": 6.174567594722221,
+   "buyRatio6h": 0.5289173504102461,
+   "trades6h": 9994,
+   "top10Pct": 18.852784791897985,
    "lpLockedPct": 100.0,
    "riskLabels": [
-    "ticker reused by 1 other recent mint(s)",
+    "no linked socials"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [
+    "Spuno",
+    "Tom"
+   ],
+   "kolHolders": [],
+   "kolRealisedSol": -0.5113879130000009,
+   "read": "$MOS \u2014 6h-old pair at $376,106 market cap, +50% on the day, $1,922,557 of 24h volume (5.1x market cap), 53% of 9,994 six-hour trades were buys, LP 100% locked or burned, top 10 hold 19%.",
+   "track": "MOVER"
+  },
+  {
+   "symbol": "TNOS",
+   "name": "TNOS",
+   "mint": "vNn1usZo9ZmBMYfzZMtriw7rPJvpe2csN5mggWepump",
+   "url": "https://dexscreener.com/solana/bnwgmaruconageek7pctnrbwntzu8afvkkmhb61vl3sb",
+   "dex": "pumpswap",
+   "marketCap": 1415872.0,
+   "liquidity": 86440.46,
+   "volume24h": 269819.46,
+   "change24h": 4404.0,
+   "change6h": 1.11,
+   "change1h": -0.11,
+   "runMultiple": 45.04,
+   "turnover": 0.19056769255977943,
+   "ageHours": 21.09762315027778,
+   "buyRatio6h": 0.6667729591836735,
+   "trades6h": 3136,
+   "top10Pct": 3.4929997721697164,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "ticker reused by 7 other recent mint(s)",
     "no linked socials"
    ],
    "lore": "",
@@ -226,39 +266,107 @@
    "kolBuyers": [],
    "kolHolders": [],
    "kolRealisedSol": 0.0,
-   "read": "$CASHCAT \u2014 10h-old pair at $898,686 market cap, +1427% on the day, $316,341 of 24h volume (0.4x market cap), 67% of 544 six-hour trades were buys, LP 100% locked or burned, top 10 hold 16%.",
+   "read": "$TNOS \u2014 21h-old pair at $1,415,872 market cap, +4404% on the day, $269,819 of 24h volume (0.2x market cap), 67% of 3,136 six-hour trades were buys, LP 100% locked or burned, top 10 hold 3%.",
    "track": "NEW"
   },
   {
-   "symbol": "NOSIS",
-   "name": "9gnosis",
-   "mint": "FPfi9q1AixdUeWQVPFHJMJQ7a43S78dm6UZ4fzN4pump",
-   "url": "https://dexscreener.com/solana/7nv2rtgxxvdegt9swb3ejt8mqbmua6ctmiubgvewmzsc",
+   "symbol": "MCX",
+   "name": "MCX",
+   "mint": "o1QR8YqmX39pjzo466jK3pyFRcJq51KxL5XNy85pump",
+   "url": "https://dexscreener.com/solana/fqffnf2mnu19savwsuc25k9ka8mawbflbmw1y4r5lkja",
    "dex": "pumpswap",
-   "marketCap": 678187.0,
-   "liquidity": 73951.08,
-   "volume24h": 3262468.15,
-   "change24h": 1370.0,
-   "change6h": 10.61,
-   "change1h": -17.97,
-   "runMultiple": 14.7,
-   "turnover": 4.810573116264393,
-   "ageHours": 61.008726510555555,
-   "buyRatio6h": 0.4694094070493929,
-   "trades6h": 8483,
-   "top10Pct": 20.117466058293243,
+   "marketCap": 1404879.0,
+   "liquidity": 86099.96,
+   "volume24h": 268203.4,
+   "change24h": 4378.0,
+   "change6h": 0.61,
+   "change1h": -0.01,
+   "runMultiple": 44.78,
+   "turnover": 0.1909085408778977,
+   "ageHours": 21.219289816944446,
+   "buyRatio6h": 0.6652813299232737,
+   "trades6h": 3128,
+   "top10Pct": 7.21450785938066,
    "lpLockedPct": 100.0,
    "riskLabels": [
-    "fading, down 18% in the last hour"
+    "ticker reused by 6 other recent mint(s)",
+    "no linked socials",
+    "lore 'mcx' has run before"
    ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": -17.97,
+   "lore": "mcx",
+   "loreIsFresh": false,
+   "faded": null,
    "kolBuyers": [],
    "kolHolders": [],
-   "kolRealisedSol": 86.151965921,
-   "read": "$NOSIS \u2014 3d-old pair at $678,187 market cap, +1370% on the day, $3,262,468 of 24h volume (4.8x market cap), 47% of 8,483 six-hour trades were buys, LP 100% locked or burned, top 10 hold 20%.",
-   "track": "MOVER"
+   "kolRealisedSol": 0.0,
+   "read": "$MCX \u2014 21h-old pair at $1,404,879 market cap, +4378% on the day, $268,203 of 24h volume (0.2x market cap), 67% of 3,128 six-hour trades were buys, LP 100% locked or burned, top 10 hold 7%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "SAMI",
+   "name": "sami-openlife",
+   "mint": "7Ja3auRfpesv17HPk9VE6UzyHkSW3HyRvu1omFzAbXxg",
+   "url": "https://dexscreener.com/solana/bkoagzzezrldnjreeisxfwmjepqe4qj4447ns5qsahf7",
+   "dex": "pumpswap",
+   "marketCap": 996526.0,
+   "liquidity": 72096.39,
+   "volume24h": 179442.69,
+   "change24h": 3060.0,
+   "change6h": -61.91,
+   "change1h": 1.85,
+   "runMultiple": 31.6,
+   "turnover": 0.18006824709039201,
+   "ageHours": 22.399012039166667,
+   "buyRatio6h": 0.7605814450619923,
+   "trades6h": 2339,
+   "top10Pct": 20.878879567026715,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "ticker reused by 1 other recent mint(s)",
+    "no linked socials",
+    "lore 'openlife' has run before"
+   ],
+   "lore": "openlife",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$SAMI \u2014 22h-old pair at $996,526 market cap, +3060% on the day, $179,443 of 24h volume (0.2x market cap), 76% of 2,339 six-hour trades were buys, LP 100% locked or burned, top 10 hold 21%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "CASHCAT",
+   "name": "Cash Cat",
+   "mint": "ykizGvDSmP5LQJx4NEkAKAYuhVG55vAuXVA3aWfpump",
+   "url": "https://dexscreener.com/solana/2pqhbrxvjpivvvjij3ukf9r27admmwnuxge6q9bpb98f",
+   "dex": "pumpswap",
+   "marketCap": 1058659.0,
+   "liquidity": 101731.79,
+   "volume24h": 342403.53,
+   "change24h": 1699.0,
+   "change6h": 12.01,
+   "change1h": 0.75,
+   "runMultiple": 17.99,
+   "turnover": 0.3234313693077752,
+   "ageHours": 17.571512039166667,
+   "buyRatio6h": 0.6610800744878957,
+   "trades6h": 537,
+   "top10Pct": 16.121647147604598,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "ticker reused by 2 other recent mint(s)",
+    "no linked socials",
+    "lore 'cash' has run before"
+   ],
+   "lore": "cash",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$CASHCAT \u2014 18h-old pair at $1,058,659 market cap, +1699% on the day, $342,404 of 24h volume (0.3x market cap), 66% of 537 six-hour trades were buys, LP 100% locked or burned, top 10 hold 16%.",
+   "track": "NEW"
   },
   {
    "symbol": "MOB",
@@ -266,27 +374,27 @@
    "mint": "8t7FuTFAfFTgQiscnriDcFjnsvXzQ18fua74zg1vpump",
    "url": "https://dexscreener.com/solana/aw7wexwwmy4hx7zi5xqomyra4fgn37dcxpsthusu2qvw",
    "dex": "pumpswap",
-   "marketCap": 457240.0,
-   "liquidity": 49553.19,
-   "volume24h": 492812.19,
-   "change24h": 1361.0,
-   "change6h": -8.03,
-   "change1h": 8.97,
-   "runMultiple": 14.61,
-   "turnover": 1.077797633627854,
-   "ageHours": 15.34205984388889,
-   "buyRatio6h": 0.6291036799511376,
-   "trades6h": 6549,
-   "top10Pct": 19.297393262418048,
+   "marketCap": 477388.0,
+   "liquidity": 51087.17,
+   "volume24h": 601799.98,
+   "change24h": 1426.0,
+   "change6h": -11.12,
+   "change1h": 41.03,
+   "runMultiple": 15.26,
+   "turnover": 1.2606097765339723,
+   "ageHours": 23.31095648361111,
+   "buyRatio6h": 0.6925736620565244,
+   "trades6h": 6652,
+   "top10Pct": 21.26830881936916,
    "lpLockedPct": 100.0,
    "riskLabels": [],
-   "lore": "money",
+   "lore": "",
    "loreIsFresh": true,
    "faded": null,
    "kolBuyers": [],
    "kolHolders": [],
    "kolRealisedSol": 0.0,
-   "read": "$MOB \u2014 15h-old pair at $457,240 market cap, +1361% on the day, $492,812 of 24h volume (1.1x market cap), 63% of 6,549 six-hour trades were buys, LP 100% locked or burned, top 10 hold 19%.",
+   "read": "$MOB \u2014 23h-old pair at $477,388 market cap, +1426% on the day, $601,800 of 24h volume (1.3x market cap), 69% of 6,652 six-hour trades were buys, LP 100% locked or burned, top 10 hold 21%.",
    "track": "NEW"
   },
   {
@@ -295,18 +403,18 @@
    "mint": "C6ASDsxzqBvF5bCQFVAGMRWwfgZNhfozbb9DkgiKpump",
    "url": "https://dexscreener.com/solana/6xh4qvc9egbxeqe2oja4yzfmzde6xlsnvayxmkcsrrtq",
    "dex": "pumpswap",
-   "marketCap": 938437.0,
-   "liquidity": 76636.61,
-   "volume24h": 2363360.51,
-   "change24h": 1145.0,
-   "change6h": -18.4,
-   "change1h": -5.11,
-   "runMultiple": 12.45,
-   "turnover": 2.5184008196607763,
-   "ageHours": 13.03205984388889,
-   "buyRatio6h": 0.5265583679637326,
-   "trades6h": 13235,
-   "top10Pct": 10.598476863263702,
+   "marketCap": 1099254.0,
+   "liquidity": 84039.74,
+   "volume24h": 2781080.23,
+   "change24h": 1359.0,
+   "change6h": 5.16,
+   "change1h": -2.71,
+   "runMultiple": 14.59,
+   "turnover": 2.5299705345625307,
+   "ageHours": 21.000956483611112,
+   "buyRatio6h": 0.49103672332772524,
+   "trades6h": 17237,
+   "top10Pct": 10.24655501505373,
    "lpLockedPct": 100.0,
    "riskLabels": [
     "100 paid boost(s)",
@@ -318,7 +426,71 @@
    "kolBuyers": [],
    "kolHolders": [],
    "kolRealisedSol": 0.0,
-   "read": "$ORANGE \u2014 13h-old pair at $938,437 market cap, +1145% on the day, $2,363,361 of 24h volume (2.5x market cap), 53% of 13,235 six-hour trades were buys, LP 100% locked or burned, top 10 hold 11%.",
+   "read": "$ORANGE \u2014 21h-old pair at $1,099,254 market cap, +1359% on the day, $2,781,080 of 24h volume (2.5x market cap), 49% of 17,237 six-hour trades were buys, LP 100% locked or burned, top 10 hold 10%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "XST",
+   "name": "Stealth",
+   "mint": "ESxyV2N92BSwbtxhokoGcoVf2MAxgohSJCFhVFypump",
+   "url": "https://dexscreener.com/solana/9ut2raju1twe2kvj98dfsmeh8kaer6wqkued4hxw4rz2",
+   "dex": "pumpswap",
+   "marketCap": 847505.0,
+   "liquidity": 90430.49,
+   "volume24h": 142167.49,
+   "change24h": 1344.0,
+   "change6h": 1.89,
+   "change1h": 0.23,
+   "runMultiple": 14.44,
+   "turnover": 0.16774826107220606,
+   "ageHours": 22.68595648361111,
+   "buyRatio6h": 0.65625,
+   "trades6h": 544,
+   "top10Pct": 11.92085812019194,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "ticker reused by 1 other recent mint(s)",
+    "no linked socials"
+   ],
+   "lore": "",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$XST \u2014 23h-old pair at $847,505 market cap, +1344% on the day, $142,167 of 24h volume (0.2x market cap), 66% of 544 six-hour trades were buys, LP 100% locked or burned, top 10 hold 12%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "TOAD",
+   "name": "The Toad Pepe",
+   "mint": "67dSkSauY69KT3uWEu2mYmA6hRbCieyiyLMUeEgppump",
+   "url": "https://dexscreener.com/solana/fb8cxfqe9h5nhnri7nfkxxcgqxc67pkryjsq43fkno3g",
+   "dex": "pumpswap",
+   "marketCap": 448277.0,
+   "liquidity": 49139.01,
+   "volume24h": 286865.65,
+   "change24h": 1337.0,
+   "change6h": 1337.0,
+   "change1h": 38.79,
+   "runMultiple": 14.37,
+   "turnover": 0.6399294409483423,
+   "ageHours": 3.0315120391666666,
+   "buyRatio6h": 0.4396906368273819,
+   "trades6h": 12154,
+   "top10Pct": 25.384051078050117,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "top 10 hold 25%",
+    "ticker reused by 1 other recent mint(s)"
+   ],
+   "lore": "",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$TOAD \u2014 3h-old pair at $448,277 market cap, +1337% on the day, $286,866 of 24h volume (0.6x market cap), 44% of 12,154 six-hour trades were buys, LP 100% locked or burned, top 10 hold 25%.",
    "track": "NEW"
   },
   {
@@ -327,113 +499,306 @@
    "mint": "4je81UzH57Z1CoshknjeeidXv9qfL4tiUs4kn7d5pump",
    "url": "https://dexscreener.com/solana/fpwn2il7kuu3dqf6r2andpxcqrf13wbfufqz41rgzr1a",
    "dex": "pumpswap",
-   "marketCap": 197921.0,
-   "liquidity": 33106.94,
-   "volume24h": 604830.59,
-   "change24h": 543.0,
-   "change6h": 51.95,
-   "change1h": -7.47,
-   "runMultiple": 6.43,
-   "turnover": 3.055919230400008,
-   "ageHours": 11.327893177222224,
-   "buyRatio6h": 0.42423435419440747,
-   "trades6h": 7510,
-   "top10Pct": 6.392490325246248,
+   "marketCap": 350611.0,
+   "liquidity": 45383.67,
+   "volume24h": 951949.87,
+   "change24h": 1039.0,
+   "change6h": 24.94,
+   "change1h": -3.89,
+   "runMultiple": 11.39,
+   "turnover": 2.7151169529763757,
+   "ageHours": 19.296789816944447,
+   "buyRatio6h": 0.42179960261141075,
+   "trades6h": 7046,
+   "top10Pct": 5.966660110829484,
    "lpLockedPct": 100.0,
-   "riskLabels": [
-    "50 paid boost(s)"
-   ],
-   "lore": "",
+   "riskLabels": [],
+   "lore": "fomo",
    "loreIsFresh": true,
    "faded": null,
    "kolBuyers": [],
    "kolHolders": [],
    "kolRealisedSol": 0.0,
-   "read": "$USDUF \u2014 11h-old pair at $197,921 market cap, +543% on the day, $604,831 of 24h volume (3.1x market cap), 42% of 7,510 six-hour trades were buys, LP 100% locked or burned, top 10 hold 6%.",
+   "read": "$USDUF \u2014 19h-old pair at $350,611 market cap, +1039% on the day, $951,950 of 24h volume (2.7x market cap), 42% of 7,046 six-hour trades were buys, LP 100% locked or burned, top 10 hold 6%.",
    "track": "NEW"
   },
   {
-   "symbol": "ALON",
-   "name": "alon",
-   "mint": "8XtRWb4uAAJFMP4QQhoYYCWR6XXb7ybcCdiqPwz9s5WS",
-   "url": "https://dexscreener.com/solana/eb9qkfiszkd185kdwlkzrmrejkeba2ah2bk7spnmopej",
-   "dex": "raydium",
-   "marketCap": 7943858.0,
-   "liquidity": 810583.09,
-   "volume24h": 12739566.85,
-   "change24h": 467.0,
-   "change6h": 62.27,
-   "change1h": 6.71,
-   "runMultiple": 5.67,
-   "turnover": 1.603700223493421,
-   "ageHours": 20850.410115399445,
-   "buyRatio6h": 0.5254267664321878,
-   "trades6h": 22319,
-   "top10Pct": 15.382521656037492,
+   "symbol": "BOWSER64",
+   "name": "BOWSER64",
+   "mint": "DNFUP9tDaaHSLGkRfypf4t1u1uNYnFiPKUWFivBWpump",
+   "url": "https://dexscreener.com/solana/3qyynosz7yulu83udy3b9nm72fcw4hxcfwnupxnfy741",
+   "dex": "pumpswap",
+   "marketCap": 206695.0,
+   "liquidity": 35347.93,
+   "volume24h": 1108966.19,
+   "change24h": 589.0,
+   "change6h": 589.0,
+   "change1h": -21.4,
+   "runMultiple": 6.89,
+   "turnover": 5.365229879774547,
+   "ageHours": 3.5523453725,
+   "buyRatio6h": 0.5819116973061058,
+   "trades6h": 19637,
+   "top10Pct": 22.003332832714772,
    "lpLockedPct": 100.0,
-   "riskLabels": [],
+   "riskLabels": [
+    "30 paid boost(s)",
+    "no linked socials",
+    "fading, down 21% in the last hour"
+   ],
    "lore": "",
+   "loreIsFresh": true,
+   "faded": -21.4,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$BOWSER64 \u2014 4h-old pair at $206,695 market cap, +589% on the day, $1,108,966 of 24h volume (5.4x market cap), 58% of 19,637 six-hour trades were buys, LP 100% locked or burned, top 10 hold 22%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "CASHCAT",
+   "name": "Cash Cat",
+   "mint": "9XLTeNyQDGH9STTCvrp5r3XW9FfZtkLSNT6E9egLkjni",
+   "url": "https://dexscreener.com/solana/9egg5grjexrowqwkh3w4h33h9pdzy4zukwdgnrnnptlk",
+   "dex": "pumpswap",
+   "marketCap": 750644.0,
+   "liquidity": 40657.8,
+   "volume24h": 41813043.48,
+   "change24h": 548.0,
+   "change6h": 56.42,
+   "change1h": 7.56,
+   "runMultiple": 6.48,
+   "turnover": 55.70289442132355,
+   "ageHours": 24.769567594722222,
+   "buyRatio6h": 0.5556971434639482,
+   "trades6h": 18834,
+   "top10Pct": 19.49451880943879,
+   "lpLockedPct": 7.619892376678609e-07,
+   "riskLabels": [
+    "thin pool, 1028x its liquidity traded",
+    "ticker reused by 2 other recent mint(s)",
+    "no linked socials",
+    "lore 'cash' has run before"
+   ],
+   "lore": "cash",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$CASHCAT \u2014 25h-old pair at $750,644 market cap, +548% on the day, $41,813,043 of 24h volume (55.7x market cap), 56% of 18,834 six-hour trades were buys, LP 0% locked or burned, top 10 hold 19%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "MCX",
+   "name": "MCX",
+   "mint": "7kt5AcFCL7xj2g23ZjmjenCPjj6VhjpgZXD2bHg5pump",
+   "url": "https://dexscreener.com/solana/8mqsirwgtizn6z2dx8p6wcv5ukl3haw7aewwsfu93bpe",
+   "dex": "pumpswap",
+   "marketCap": 6017207.0,
+   "liquidity": 179044.11,
+   "volume24h": 100726.26,
+   "change24h": 532.0,
+   "change6h": 23.74,
+   "change1h": 3.42,
+   "runMultiple": 6.32,
+   "turnover": 0.016739703320826423,
+   "ageHours": 26.397345372500002,
+   "buyRatio6h": 0.6638993495378295,
+   "trades6h": 11684,
+   "top10Pct": 4.762003027723799,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "ticker reused by 6 other recent mint(s)",
+    "no linked socials",
+    "lore 'mcx' has run before"
+   ],
+   "lore": "mcx",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$MCX \u2014 26h-old pair at $6,017,207 market cap, +532% on the day, $100,726 of 24h volume (0.0x market cap), 66% of 11,684 six-hour trades were buys, LP 100% locked or burned, top 10 hold 5%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "FOMEOW",
+   "name": "Fomo Meow",
+   "mint": "5qHUGTgkRaDrSNGgQg5wQxb5tDrzEW5ewuGpSS3jpump",
+   "url": "https://dexscreener.com/solana/7eyezsese86fwqkvxbwp9wkhc3l5ukp4oet6zuu3f9md",
+   "dex": "pumpswap",
+   "marketCap": 186038.0,
+   "liquidity": 31500.67,
+   "volume24h": 350371.4,
+   "change24h": 500.0,
+   "change6h": 54.48,
+   "change1h": 26.72,
+   "runMultiple": 6.0,
+   "turnover": 1.883332437459014,
+   "ageHours": 7.653178705833333,
+   "buyRatio6h": 0.434232250963126,
+   "trades6h": 3634,
+   "top10Pct": 7.57316899462874,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "100 paid boost(s)"
+   ],
+   "lore": "fomo",
    "loreIsFresh": true,
    "faded": null,
    "kolBuyers": [],
    "kolHolders": [],
    "kolRealisedSol": 0.0,
-   "read": "$ALON \u2014 869d-old pair at $7,943,858 market cap, +467% on the day, $12,739,567 of 24h volume (1.6x market cap), 53% of 22,319 six-hour trades were buys, LP 100% locked or burned, top 10 hold 15%.",
+   "read": "$FOMEOW \u2014 8h-old pair at $186,038 market cap, +500% on the day, $350,371 of 24h volume (1.9x market cap), 43% of 3,634 six-hour trades were buys, LP 100% locked or burned, top 10 hold 8%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "SAMI",
+   "name": "sami-openlife",
+   "mint": "4LHBp4xYs3suKjkCuo1qaNaxufWd4Bdp6QYsBJZNpump",
+   "url": "https://dexscreener.com/solana/4i9jjjjysogkltm2wxgfmkzwzu61zyaj1ym61xtfqnqb",
+   "dex": "pumpswap",
+   "marketCap": 163812.0,
+   "liquidity": 38578.16,
+   "volume24h": 7120842.83,
+   "change24h": 445.0,
+   "change6h": 59.16,
+   "change1h": 44.57,
+   "runMultiple": 5.45,
+   "turnover": 43.46960436353869,
+   "ageHours": 22.544012039166667,
+   "buyRatio6h": 0.5288694808345463,
+   "trades6h": 2061,
+   "top10Pct": 22.366861413443644,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "thin pool, 185x its liquidity traded",
+    "ticker reused by 1 other recent mint(s)",
+    "lore 'openlife' has run before"
+   ],
+   "lore": "openlife",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$SAMI \u2014 23h-old pair at $163,812 market cap, +445% on the day, $7,120,843 of 24h volume (43.5x market cap), 53% of 2,061 six-hour trades were buys, LP 100% locked or burned, top 10 hold 22%.",
+   "track": "NEW"
+  },
+  {
+   "symbol": "MARIO64",
+   "name": "Mario64",
+   "mint": "J1MPn3PRumi2LS5scpuV64twTKem9TNPf1DMYoYa9f84",
+   "url": "https://dexscreener.com/solana/7s79bfrtf5yrfz48mes5vpg5rghyvqb9stpgvwfffxnw",
+   "dex": "pumpswap",
+   "marketCap": 151584.0,
+   "liquidity": 219061.09,
+   "volume24h": 16520866.31,
+   "change24h": 216.0,
+   "change6h": 216.0,
+   "change1h": 7.12,
+   "runMultiple": 3.16,
+   "turnover": 108.98819341091408,
+   "ageHours": 5.4915120391666665,
+   "buyRatio6h": 0.6023026926648096,
+   "trades6h": 26925,
+   "top10Pct": 15.232255870546664,
+   "lpLockedPct": 4.0893704653586796e-08,
+   "riskLabels": [
+    "thin pool, 75x its liquidity traded",
+    "ticker reused by 1 other recent mint(s)",
+    "no linked socials",
+    "lore 'mario64' has run before"
+   ],
+   "lore": "mario64",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$MARIO64 \u2014 5h-old pair at $151,584 market cap, +216% on the day, $16,520,866 of 24h volume (109.0x market cap), 60% of 26,925 six-hour trades were buys, LP 0% locked or burned, top 10 hold 15%.",
    "track": "NEW"
   }
  ],
  "disqualified": [
   {
-   "symbol": "SE",
-   "mint": "6mLmo53cpNy8PkSXt1XTVTF8CvJj466ea3bbhZqMpump",
-   "url": "https://dexscreener.com/solana/aonavbjpt7hinq6tdhpjc9k1axa2sn8z5wycrqdp6ky5",
-   "change24h": 718.0,
-   "runMultiple": 8.18,
+   "symbol": "SAOF",
+   "mint": "s5b972bKhERCjWW9LEiSp8FXDGjdskWZKPiQEtRpump",
+   "url": "https://dexscreener.com/solana/arlzc8m5xn4tbmjama3mxtw2t4vkf6zekrkbiwkooybp",
+   "change24h": 4341.0,
+   "runMultiple": 44.41,
    "reasons": [
-    "bundled supply, top 10 circulating wallets hold 77%"
+    "bundled supply, top 10 circulating wallets hold 59%"
    ]
   },
   {
-   "symbol": "CALLOUT",
-   "mint": "75rXpR6ZA142X2nsBMWK1oVLGeUDxQJpyx65spyR63a3",
-   "url": "https://dexscreener.com/solana/cz76whlcg6qbyqgwhewnmsjsgbyxmnqsgms9bp2khmn2",
-   "change24h": 5744.0,
-   "runMultiple": 58.44,
+   "symbol": "GOING",
+   "mint": "4pPh5d4rtKyuGQ9Vfjiy9MvB8YNtV43S1ZCqPpa8r9KS",
+   "url": "https://dexscreener.com/solana/dubkashz2ju1xponz7gqcfmsjk4haakfcifx2uug9e1b",
+   "change24h": 1792.0,
+   "runMultiple": 18.92,
    "reasons": [
-    "bundled supply, top 10 circulating wallets hold 84%"
+    "bundled supply, top 10 circulating wallets hold 65%"
    ]
   }
  ],
  "loreGroups": [
   {
-   "name": "money",
+   "name": "mario64",
    "members": [
-    "MIM",
-    "MOB"
+    "MARIO64",
+    "MARIO64"
+   ]
+  },
+  {
+   "name": "mcx",
+   "members": [
+    "MCX",
+    "MCX"
+   ]
+  },
+  {
+   "name": "openlife",
+   "members": [
+    "SAMI",
+    "SAMI"
+   ]
+  },
+  {
+   "name": "cash",
+   "members": [
+    "CASHCAT",
+    "CASHCAT"
+   ]
+  },
+  {
+   "name": "fomo",
+   "members": [
+    "USDUF",
+    "FOMEOW"
    ]
   }
  ],
  "kolConviction": [
   {
-   "symbol": "MIM",
-   "mint": "86KR6eG2VuNntLBi23SAYFW1cXkiYcwxGJd746rqcUAG",
-   "url": "https://dexscreener.com/solana/fw8rnmxtsrmyfz6en6ozxakqi7zuzfwlbzelcmmwmohj",
+   "symbol": "PLUMBER",
+   "mint": "GCa9TZMK9Q3VUSkhZgX76YAQBjqQd1dPxkBnZojFpump",
+   "url": "https://dexscreener.com/solana/j3hkh2ne88wrie1shpe53jd7ke12e2lmg7cnlb4bjftn",
    "buyers": [
-    "Ethan Prosper",
-    "Johnson",
+    "Chairman",
     "Nach",
     "OGAntD",
-    "Spuno",
-    "big bags bobby",
-    "clukz"
+    "asta",
+    "cap",
+    "clukz",
+    "slingoor"
    ],
    "holders": [
-    "Johnson",
-    "Nach",
-    "OGAntD"
+    "Chairman"
    ],
-   "realisedSol": 71.93573119999999,
-   "runMultiple": 196.95
+   "realisedSol": -421.3289267419999,
+   "runMultiple": 81.85
   },
   {
    "symbol": "BOT",
@@ -443,19 +808,63 @@
     "Keano",
     "Loopierr",
     "Matt",
-    "big bags bobby"
+    "clukz"
    ],
    "holders": [],
-   "realisedSol": 356.581300034,
-   "runMultiple": 31.33
+   "realisedSol": 254.75191532900004,
+   "runMultiple": 36.07
+  },
+  {
+   "symbol": "PGUY",
+   "mint": "DcRcBtM7XopjPnmBUTmp8eWMTztkhVJUkuXeEsqApump",
+   "url": "https://dexscreener.com/solana/m3gkiwgzj8wmw6lh9pito8u2rqq3gma4kmwdazdvvmj",
+   "buyers": [
+    "Chairman",
+    "OGAntD",
+    "Orange",
+    "asta"
+   ],
+   "holders": [
+    "asta"
+   ],
+   "realisedSol": -20.825290221000003,
+   "runMultiple": 19.61
+  },
+  {
+   "symbol": "LENNY ",
+   "mint": "ApMrbYXQk1j3GV62HnQLR2BPiH8MzAi5ywaW2MYxpump",
+   "url": "https://dexscreener.com/solana/bgadp2tfefhyarqjfyktqcvgtujtxb9nvfkzxhhfsaxr",
+   "buyers": [
+    "Apex",
+    "Schoen",
+    "Tom",
+    "cap"
+   ],
+   "holders": [
+    "cap"
+   ],
+   "realisedSol": -54.152266661000006,
+   "runMultiple": 12.79
   }
  ],
  "kolProfit": [
   {
+   "mint": "J8PSdNP3QewKq2Z1JJJFDMaqF7KcaiJhR7gbr5KZpump",
+   "symbol": "TRIPLET",
+   "realisedSol": 296.751838826,
+   "traders": 2
+  },
+  {
    "mint": "HukaK2eHhbTyiuUwuKMntjPJP4aGdD4VwiExsNmyT8WJ",
    "symbol": "BOT",
-   "realisedSol": 356.581300034,
+   "realisedSol": 254.75191532900004,
    "traders": 6
+  },
+  {
+   "mint": "FPfi9q1AixdUeWQVPFHJMJQ7a43S78dm6UZ4fzN4pump",
+   "symbol": "NOSIS",
+   "realisedSol": 158.996273827,
+   "traders": 1
   },
   {
    "mint": "6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx",
@@ -464,82 +873,70 @@
    "traders": 1
   },
   {
-   "mint": "FPfi9q1AixdUeWQVPFHJMJQ7a43S78dm6UZ4fzN4pump",
-   "symbol": "NOSIS",
-   "realisedSol": 86.151965921,
+   "mint": "8NoNPSYcFq4jdYTqX4rMLpQR3GoBe6XvPYkRDERwpump",
+   "symbol": "BOT",
+   "realisedSol": 67.967459638,
    "traders": 1
   },
   {
-   "mint": "Gepjas79VptWRYEVM4cUvET9RAyEEFrF4XhukZakpump",
-   "symbol": "GENTLE",
-   "realisedSol": 79.185744015,
-   "traders": 2
-  },
-  {
-   "mint": "86KR6eG2VuNntLBi23SAYFW1cXkiYcwxGJd746rqcUAG",
-   "symbol": "MIM",
-   "realisedSol": 71.93573119999999,
-   "traders": 7
-  },
-  {
-   "mint": "tSEakxwRz3Y3BpjDttokygCgScgLnui19NJGrR4pump",
-   "symbol": "LUCIFER",
-   "realisedSol": 59.857346957000004,
-   "traders": 2
-  },
-  {
-   "mint": "53DM4mikdxyaxeuQDGPBfUaUjiUQW9Nd7XEo8HcSpump",
-   "symbol": "MIM",
-   "realisedSol": 45.192172176000014,
-   "traders": 5
-  },
-  {
-   "mint": "CX2v7JSHJQDcNooubzzvZG8TPaDwbaPgfzcXRSWJpump",
-   "symbol": "MARIO64",
-   "realisedSol": 38.558404241,
-   "traders": 1
-  },
-  {
-   "mint": "DGTqkBdoLdPjwtYc3ycbuKJm9oEAaSVf1JcxSZ7fpump",
-   "symbol": "JEF",
-   "realisedSol": 36.497470678000006,
-   "traders": 1
-  },
-  {
-   "mint": "G6tz2XwqKK6HmYfjos9RLwPNvoEVd4hntbm4PSZapump",
-   "symbol": "REGULARDUDE",
-   "realisedSol": 29.004869955,
-   "traders": 1
-  },
-  {
-   "mint": "DEQg92VjxjemxJZ9y5PPHxNh24W7eEh9MYS7G1bipump",
-   "symbol": "PANDA",
-   "realisedSol": 26.292843603,
-   "traders": 2
+   "mint": "9sfCHMLWSVy6MD6zr7pR1gD3qbT7C6K1E3dMf2ZBpump",
+   "symbol": "LAYOOO",
+   "realisedSol": 33.791559891,
+   "traders": 4
   },
   {
    "mint": "k6BE8rsFShzuQ4t2Q5cfpjCdQFFerfqex8Me7Wupump",
    "symbol": "LOBO",
-   "realisedSol": 24.709237557,
+   "realisedSol": 31.894322593000002,
    "traders": 1
   },
   {
-   "mint": "EA7bFaGurEURSSRwunpXY4g73S7dkuRifL3Nzvompump",
-   "symbol": "BMW",
-   "realisedSol": 20.381739246000002,
+   "mint": "86KR6eG2VuNntLBi23SAYFW1cXkiYcwxGJd746rqcUAG",
+   "symbol": "MIM",
+   "realisedSol": 28.209080900000004,
    "traders": 2
   },
   {
-   "mint": "Gqvboo7w8Pynm4kdPGLV3zd3AsdzqN37ot2kN9uszSFN",
-   "symbol": "MERIO",
-   "realisedSol": 19.778202849999992,
+   "mint": "7ssJZGFT3twGqeYA1kvpoMWwZYvMZvrMEbjRaWgg46BL",
+   "symbol": "BUTTHOLE",
+   "realisedSol": 24.587408463,
    "traders": 3
   },
   {
-   "mint": "HxQhDGYqyjorgogMJx7YbBHADEDxuHhLnMMmr6VYpyn",
-   "symbol": "MANLET",
-   "realisedSol": 17.471986287999997,
-   "traders": 3
+   "mint": "tSEakxwRz3Y3BpjDttokygCgScgLnui19NJGrR4pump",
+   "symbol": "LUCIFER",
+   "realisedSol": 18.426848646000003,
+   "traders": 1
+  },
+  {
+   "mint": "5xhJC2F2q8Mgk1DYaMBTxNY8t8xDE7cdgTcv5cevpump",
+   "symbol": "TIT",
+   "realisedSol": 16.484788730000002,
+   "traders": 1
+  },
+  {
+   "mint": "HSZCUrkyJspqMAUrrKr4kSC7j9cKadqVVo4xTyFG7mDi",
+   "symbol": "KYOKO",
+   "realisedSol": 13.153967285,
+   "traders": 1
+  },
+  {
+   "mint": "E3i7sTY5QYEBh3itepnomZQt7Eh5kzmHFk1vkm2pump",
+   "symbol": "CC",
+   "realisedSol": 12.803869535000006,
+   "traders": 2
+  },
+  {
+   "mint": "8TqJBbZBUoZRdz91RwabjYG49e4JoKQNkCuDQh5hpump",
+   "symbol": "GROKHOUSE",
+   "realisedSol": 12.416079629999999,
+   "traders": 1
+  },
+  {
+   "mint": "6HjvVo8yHNR4fLH3E2fXDACPvsc8mAtuuRRJagmQpump",
+   "symbol": "LAYOO",
+   "realisedSol": 11.275623924000001,
+   "traders": 1
   }
  ],
  "sources": [
@@ -551,12 +948,12 @@
   {
    "name": "Birdeye ranked discovery",
    "ok": true,
-   "detail": "489 tokens ranked by 24h volume; 106 cleared the motion gate"
+   "detail": "499 tokens ranked by 24h volume; 102 cleared the motion gate"
   },
   {
    "name": "On-chain launch collector",
    "ok": true,
-   "detail": "12,803 Pump.fun creates stored since 10 Aug 22:46 CEST; full 24h window"
+   "detail": "14,328 Pump.fun creates stored since 11 Aug 06:45 CEST; full 24h window"
   },
   {
    "name": "RugCheck",
@@ -571,27 +968,27 @@
   {
    "name": "Social verification",
    "ok": false,
-   "detail": "0/126 linked X accounts resolved; 112 unavailable"
+   "detail": "0/131 linked X accounts resolved; 118 unavailable"
   },
   {
    "name": "Holder snapshots",
    "ok": false,
-   "detail": "1/2 watchlist tokens captured; wallet-history calls 2"
+   "detail": "1/2 watchlist tokens captured; wallet-history calls 10"
   },
   {
    "name": "KOL wallet flow",
    "ok": true,
-   "detail": "66/66 wallets scanned; activity in 364 mints"
+   "detail": "66/66 wallets scanned; activity in 358 mints"
   },
   {
    "name": "24h market-indexed launches",
    "ok": true,
-   "detail": "108 launches resolved to market data; 12,803 raw Pump.fun creates stored"
+   "detail": "93 launches resolved to market data; 14,328 raw Pump.fun creates stored"
   },
   {
    "name": "Jupiter exit liquidity",
    "ok": true,
-   "detail": "3/3 featured tokens quoted below 5% impact"
+   "detail": "7/7 featured tokens quoted below 5% impact"
   },
   {
    "name": "SOL market context",
@@ -599,6 +996,6 @@
    "detail": "SOL reference price captured"
   }
  ],
- "selectionRule": "Every track requires market cap at least $150,000, liquidity at least $20,000, a passed safety gate, and an unreused ticker. NEW: created inside 24h with at least 3 strength and 2 interest signals, maximum 5 names. MOVER: any age up to 120d, at least 25% in 24h on $100,000 volume and 0.50x turnover, maximum 5 names. CTO: takeover claimed within 7d with measurable post-claim activity, maximum 3 names.",
- "journalRule": "Two doors: created inside the last 24 hours and up at least 30%, or any age doing a 5x or better. Both require $150,000 market cap and $50,000 of 24-hour volume. Safety problems are labelled on the row; only a live mint or freeze authority, unlocked liquidity, bundled supply or a manufactured tape removes a coin from the record."
+ "journalRule": "Two doors: created inside the last 24 hours and up at least 30%, or any age doing a 5x or better. Both require $150,000 market cap and $50,000 of 24-hour volume. Safety problems are labelled on the row; only a live mint or freeze authority, unlocked liquidity, bundled supply or a manufactured tape removes a coin from the record.",
+ "selectionRule": "Every track requires market cap at least $150,000, liquidity at least $20,000, a passed safety gate, and an unreused ticker. NEW: created inside 24h with at least 3 strength and 2 interest signals, maximum 5 names. MOVER: any age up to 120d, at least 25% in 24h on $100,000 volume and 0.50x turnover, maximum 5 names. CTO: takeover claimed within 7d with measurable post-claim activity, maximum 3 names."
 }

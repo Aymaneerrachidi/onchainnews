@@ -5,7 +5,7 @@ import hashlib
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
@@ -127,6 +127,12 @@ async def run_launch_collector(
     now = datetime.now(UTC)
     if not ledger.collector_state("started_at"):
         ledger.set_collector_state("started_at", iso(now))
+    last_event_raw = ledger.collector_state("last_event_at")
+    last_event = datetime.fromisoformat(last_event_raw) if last_event_raw else None
+    if last_event is None or now - last_event.astimezone(UTC) > timedelta(minutes=5):
+        # A long process/offline gap means the next 24-hour report cannot claim
+        # continuous firehose coverage until this timestamp itself matures.
+        ledger.set_collector_state("coverage_contiguous_since", iso(now))
     http = CachedHttpClient(ledger, timeout=float(settings.get("run", "request_timeout_seconds", 15)))
     helius = HeliusSource(
         http,
@@ -138,24 +144,34 @@ async def run_launch_collector(
     websocket_url = _websocket_url(helius.base_url, api_key)
     captured = 0
     delay = 1.0
+    backfill_task: asyncio.Task[None] | None = None
+
+    async def heal_recent_gap() -> None:
+        try:
+            backfill = await helius.recent_program_transactions(
+                PUMP_PROGRAM,
+                since_unix=int(datetime.now(UTC).timestamp()) - 900,
+                limit=1000,
+                ttl=30,
+            )
+            healed = 0
+            for transaction in reversed(backfill):
+                healed += _store_transaction(ledger, transaction)
+            if backfill:
+                log.info("launch_backfill transactions=%s captured=%s", len(backfill), healed)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            log.warning("launch_backfill_failed error=%s", exc.__class__.__name__)
+
     try:
         while max_events is None or captured < max_events:
             try:
                 # Heal a short disconnect and seed a new installation from the
-                # most recent 1,000 Pump transactions. The live stream remains
-                # the authoritative path for complete forward coverage.
-                backfill = await helius.recent_program_transactions(
-                    PUMP_PROGRAM,
-                    since_unix=int(datetime.now(UTC).timestamp()) - 900,
-                    limit=1000,
-                    ttl=30,
-                )
-                for transaction in reversed(backfill):
-                    captured += _store_transaction(ledger, transaction)
-                    if max_events is not None and captured >= max_events:
-                        return
-                if backfill:
-                    log.info("launch_backfill transactions=%s captured_total=%s", len(backfill), captured)
+                # most recent Pump transactions in the background. Never hold
+                # up the live subscription on a slow free-tier history call.
+                if backfill_task is None or backfill_task.done():
+                    backfill_task = asyncio.create_task(heal_recent_gap())
                 async with connect(websocket_url, ping_interval=20, ping_timeout=20, max_size=4_000_000) as socket:
                     await socket.send(json.dumps({
                         "jsonrpc": "2.0",
@@ -194,4 +210,6 @@ async def run_launch_collector(
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 30)
     finally:
+        if backfill_task is not None and not backfill_task.done():
+            backfill_task.cancel()
         await http.close()

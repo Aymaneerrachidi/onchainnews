@@ -167,7 +167,10 @@ async def build_brief(
                 log.info("archive_pruned rows=%s retention_days=%s", pruned, retention)
         window_start = now - timedelta(hours=24)
         collector_rows = ledger.launch_events_between(window_start, now)
-        collector_started_raw = ledger.collector_state("started_at")
+        collector_started_raw = (
+            ledger.collector_state("coverage_contiguous_since")
+            or ledger.collector_state("started_at")
+        )
         collector_started_at = datetime.fromisoformat(collector_started_raw) if collector_started_raw else None
         dex = DexscreenerSource(
             http,
