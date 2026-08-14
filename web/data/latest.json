@@ -1,12 +1,12 @@
 {
- "generatedAt": "2026-08-14T03:27:02.326316+02:00",
- "windowStart": "2026-08-13T03:27:02.326316+02:00",
+ "generatedAt": "2026-08-14T03:39:39.937612+02:00",
+ "windowStart": "2026-08-13T03:39:39.937612+02:00",
  "timezone": "CEST",
  "summary": {
-  "runners": 18,
-  "launchedToday": 13,
-  "bigMultiples": 17,
-  "kolFlagged": 0,
+  "runners": 16,
+  "launchedToday": 12,
+  "bigMultiples": 16,
+  "kolFlagged": 3,
   "xMatched": 0,
   "loreGroups": 0,
   "disqualified": 6,
@@ -14,190 +14,49 @@
  },
  "runners": [
   {
-   "symbol": "ANTFUN",
-   "name": "AntFun BlockChain",
-   "mint": "CWZ6BsdnjkDVTGkmL6bGbJXXig6ceef12KvyGQW14cMt",
-   "url": "https://dexscreener.com/solana/54vp27ulaw4wnlo5n7r4fcc6zlamoqc28xbarjss4euj",
-   "dex": "meteora",
-   "marketCap": 122243474.0,
-   "liquidity": 38608779.7,
-   "volume24h": 4744698.05,
-   "change24h": 16730812.0,
-   "change6h": -2.0,
-   "change1h": -0.58,
-   "runMultiple": 167309.12,
-   "turnover": 0.03881350795053485,
-   "ageHours": 834.6606461988889,
-   "buyRatio6h": 0.5025839793281653,
-   "trades6h": 774,
-   "top10Pct": 42.68880728188689,
+   "symbol": "CC",
+   "name": "creator capital",
+   "mint": "E3i7sTY5QYEBh3itepnomZQt7Eh5kzmHFk1vkm2pump",
+   "url": "https://dexscreener.com/solana/6a3a8zpkmssqqbfmjqzc6p9tfraue9ulafqu9txp2hlo",
+   "dex": "pumpswap",
+   "marketCap": 976842.0,
+   "liquidity": 87496.99,
+   "volume24h": 2652925.58,
+   "change24h": 1169.0,
+   "change6h": 385.0,
+   "change1h": 1.04,
+   "runMultiple": 12.69,
+   "turnover": 2.715818504937339,
+   "ageHours": 48.21803822555556,
+   "buyRatio6h": 0.5076364818024264,
+   "trades6h": 18464,
+   "top10Pct": 14.487899581676277,
    "lpLockedPct": 100.0,
    "riskLabels": [
-    "top 10 hold 43%"
+    "ticker reused by 2 other recent mint(s)"
    ],
    "lore": "",
-   "loreIsFresh": true,
+   "loreIsFresh": false,
    "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$ANTFUN \u2014 35d-old pair at $122,243,474 market cap, +16730812% on the day, $4,744,698 of 24h volume (0.0x market cap), 50% of 774 six-hour trades were buys, LP 100% locked or burned, top 10 hold 43%.",
+   "kolBuyers": [
+    "ItsVine",
+    "OGAntD",
+    "Orange",
+    "big bags bobby"
+   ],
+   "kolHolders": [
+    "ItsVine",
+    "Orange",
+    "big bags bobby"
+   ],
+   "kolRealisedSol": 26.15583159400001,
+   "read": "$CC \u2014 2d-old pair at $976,842 market cap, +1169% on the day, $2,652,926 of 24h volume (2.7x market cap), 51% of 18,464 six-hour trades were buys, LP 100% locked or burned, top 10 hold 14%.",
    "track": "NEW",
    "dexEvidence": [
-    "The pair was 35 days old at the cutoff and moved +16,730,812% in 24 hours to a $122,243,474 market cap.",
-    "Dexscreener recorded $4,744,698 of 24-hour volume, equal to 0.0x market cap, with $38,608,780 liquidity.",
-    "Six-hour flow was 50% buys across 774 trades while the pair moved -2%.",
-    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 43%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/54vp27ulaw4wnlo5n7r4fcc6zlamoqc28xbarjss4euj"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/CWZ6BsdnjkDVTGkmL6bGbJXXig6ceef12KvyGQW14cMt"
-    }
-   ]
-  },
-  {
-   "symbol": "CUBEMAN",
-   "name": "CUBEMAN",
-   "mint": "aQzS8bMPSbMYF8W6CcpUV7E65i89pXAnS2zNE7hpump",
-   "url": "https://dexscreener.com/solana/8sqkqt1mg7upqb5ntybjrjstzwa25wpmmm6klnvpyfzw",
-   "dex": "pumpswap",
-   "marketCap": 2518356.0,
-   "liquidity": 115647.43,
-   "volume24h": 191882.25,
-   "change24h": 37380.0,
-   "change6h": 3.07,
-   "change1h": 0.31,
-   "runMultiple": 374.8,
-   "turnover": 0.07619345716014733,
-   "ageHours": 552.6753684211111,
-   "buyRatio6h": 0.8341013824884793,
-   "trades6h": 217,
-   "top10Pct": 29.732710109303277,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "top 10 hold 30%",
-    "no linked socials"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$CUBEMAN \u2014 23d-old pair at $2,518,356 market cap, +37380% on the day, $191,882 of 24h volume (0.1x market cap), 83% of 217 six-hour trades were buys, LP 100% locked or burned, top 10 hold 30%.",
-   "track": "NEW",
-   "dexEvidence": [
-    "The pair was 23 days old at the cutoff and moved +37,380% in 24 hours to a $2,518,356 market cap.",
-    "Dexscreener recorded $191,882 of 24-hour volume, equal to 0.1x market cap, with $115,647 liquidity.",
-    "Six-hour flow was 83% buys across 217 trades while the pair moved +3%.",
-    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 30%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/8sqkqt1mg7upqb5ntybjrjstzwa25wpmmm6klnvpyfzw"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/aQzS8bMPSbMYF8W6CcpUV7E65i89pXAnS2zNE7hpump"
-    }
-   ]
-  },
-  {
-   "symbol": "K-HOME",
-   "name": "bus house",
-   "mint": "EUB1eZBt4m3X4FbperWnKGJdvLsuLMu2YmJix5yjpump",
-   "url": "https://dexscreener.com/solana/abgs2ze2ix81ntsxd7ccys8vvqn64jrnjuprs3jrlghv",
-   "dex": "pumpswap",
-   "marketCap": 1300622.0,
-   "liquidity": 109406.48,
-   "volume24h": 7982693.75,
-   "change24h": 21129.0,
-   "change6h": 40.79,
-   "change1h": 23.63,
-   "runMultiple": 212.29,
-   "turnover": 6.137597049719288,
-   "ageHours": 40.861201754444444,
-   "buyRatio6h": 0.4710286458333333,
-   "trades6h": 6144,
-   "top10Pct": 17.21201097602633,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "thin pool, 73x its liquidity traded",
-    "10 paid boost(s)"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$K-HOME \u2014 41h-old pair at $1,300,622 market cap, +21129% on the day, $7,982,694 of 24h volume (6.1x market cap), 47% of 6,144 six-hour trades were buys, LP 100% locked or burned, top 10 hold 17%, community takeover claimed 13 Aug.",
-   "track": "CTO",
-   "dexEvidence": [
-    "The pair was 41 hours old at the cutoff and moved +21,129% in 24 hours to a $1,300,622 market cap.",
-    "Dexscreener recorded $7,982,694 of 24-hour volume, equal to 6.1x market cap, with $109,406 liquidity.",
-    "Six-hour flow was 47% buys across 6,144 trades while the pair moved +41%.",
-    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 17%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/abgs2ze2ix81ntsxd7ccys8vvqn64jrnjuprs3jrlghv"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/EUB1eZBt4m3X4FbperWnKGJdvLsuLMu2YmJix5yjpump"
-    }
-   ]
-  },
-  {
-   "symbol": "PLANSEM",
-   "name": "The Red Plunger",
-   "mint": "j8RdRQ8tQRbx62cr46e5LM8ekRDZr1opqmbgsobpump",
-   "url": "https://dexscreener.com/solana/4pwnxh6ce2y5cydrkyvfewey9rbew1tbc8jvf9fft317",
-   "dex": "pumpswap",
-   "marketCap": 1546629.0,
-   "liquidity": 126436.88,
-   "volume24h": 12130112.96,
-   "change24h": 4908.0,
-   "change6h": 40.68,
-   "change1h": -21.83,
-   "runMultiple": 50.08,
-   "turnover": 7.842936450823049,
-   "ageHours": 12.225646198888889,
-   "buyRatio6h": 0.5701965273802709,
-   "trades6h": 26205,
-   "top10Pct": 13.779840618230901,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "thin pool, 96x its liquidity traded",
-    "40 paid boost(s)",
-    "fading, down 22% in the last hour"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": -21.83,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$PLANSEM \u2014 12h-old pair at $1,546,629 market cap, +4908% on the day, $12,130,113 of 24h volume (7.8x market cap), 57% of 26,205 six-hour trades were buys, LP 100% locked or burned, top 10 hold 14%.",
-   "track": "NEW",
-   "dexEvidence": [
-    "The pair was 12 hours old at the cutoff and moved +4,908% in 24 hours to a $1,546,629 market cap.",
-    "Dexscreener recorded $12,130,113 of 24-hour volume, equal to 7.8x market cap, with $126,437 liquidity.",
-    "Six-hour flow was 57% buys across 26,205 trades while the pair moved +41%.",
+    "The pair was 2 days old at the cutoff and moved +1,169% in 24 hours to a $976,842 market cap.",
+    "Dexscreener recorded $2,652,926 of 24-hour volume, equal to 2.7x market cap, with $87,497 liquidity.",
+    "Six-hour flow was 51% buys across 18,464 trades while the pair moved +385%.",
+    "4 tracked on-chain wallets bought during the window; 3 still held at the snapshot.",
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 14%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
@@ -205,60 +64,11 @@
    "sources": [
     {
      "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/4pwnxh6ce2y5cydrkyvfewey9rbew1tbc8jvf9fft317"
+     "url": "https://dexscreener.com/solana/6a3a8zpkmssqqbfmjqzc6p9tfraue9ulafqu9txp2hlo"
     },
     {
      "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/j8RdRQ8tQRbx62cr46e5LM8ekRDZr1opqmbgsobpump"
-    }
-   ]
-  },
-  {
-   "symbol": "$TROLLNEGY",
-   "name": "TROLLNEGY",
-   "mint": "Cvb21YWbvR2CRHtfhwHa2vKTXxm6FdCj8MV6Pc8kpump",
-   "url": "https://dexscreener.com/solana/8lefx7vktqjrm8uhmnawa8awjxajedgfmzt76ctx42sn",
-   "dex": "pumpswap",
-   "marketCap": 641534.0,
-   "liquidity": 61611.84,
-   "volume24h": 2277009.15,
-   "change24h": 1995.0,
-   "change6h": -82.29,
-   "change1h": -24.38,
-   "runMultiple": 20.95,
-   "turnover": 3.549319521646553,
-   "ageHours": 13.13925731,
-   "buyRatio6h": 0.7115731510490838,
-   "trades6h": 10533,
-   "top10Pct": 15.738054609173636,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "fading, down 24% in the last hour"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": -24.38,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$$TROLLNEGY \u2014 13h-old pair at $641,534 market cap, +1995% on the day, $2,277,009 of 24h volume (3.5x market cap), 71% of 10,533 six-hour trades were buys, LP 100% locked or burned, top 10 hold 16%.",
-   "track": "NEW",
-   "dexEvidence": [
-    "The pair was 13 hours old at the cutoff and moved +1,995% in 24 hours to a $641,534 market cap.",
-    "Dexscreener recorded $2,277,009 of 24-hour volume, equal to 3.5x market cap, with $61,612 liquidity.",
-    "Six-hour flow was 71% buys across 10,533 trades while the pair moved -82%.",
-    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 16%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/8lefx7vktqjrm8uhmnawa8awjxajedgfmzt76ctx42sn"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/Cvb21YWbvR2CRHtfhwHa2vKTXxm6FdCj8MV6Pc8kpump"
+     "url": "https://app.bubblemaps.io/sol/token/E3i7sTY5QYEBh3itepnomZQt7Eh5kzmHFk1vkm2pump"
     }
    ]
   },
@@ -268,34 +78,41 @@
    "mint": "94Sm8joZMSRzpQmcNVn5zZpgnRLN2DBesJYDXwuNpump",
    "url": "https://dexscreener.com/solana/c2fgky8wt81jzsqbfnwa8wqg8sq6q4jhl571bcteg1dq",
    "dex": "pumpswap",
-   "marketCap": 285891.0,
-   "liquidity": 48561.56,
-   "volume24h": 1154870.92,
-   "change24h": 1865.0,
-   "change6h": 397.0,
-   "change1h": -28.26,
-   "runMultiple": 19.65,
-   "turnover": 4.039549758474383,
-   "ageHours": 93.88981286555556,
-   "buyRatio6h": 0.5360553754490494,
-   "trades6h": 11413,
+   "marketCap": 288928.0,
+   "liquidity": 48852.89,
+   "volume24h": 1169722.75,
+   "change24h": 1755.0,
+   "change6h": 446.0,
+   "change1h": -30.98,
+   "runMultiple": 18.55,
+   "turnover": 4.048492184904197,
+   "ageHours": 94.10026044777777,
+   "buyRatio6h": 0.532367315441996,
+   "trades6h": 11663,
    "top10Pct": 18.13421423363576,
    "lpLockedPct": 100.0,
    "riskLabels": [
-    "fading, down 28% in the last hour"
+    "fading, down 31% in the last hour"
    ],
    "lore": "",
    "loreIsFresh": true,
-   "faded": -28.26,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$OMO \u2014 4d-old pair at $285,891 market cap, +1865% on the day, $1,154,871 of 24h volume (4.0x market cap), 54% of 11,413 six-hour trades were buys, LP 100% locked or burned, top 10 hold 18%.",
+   "faded": -30.98,
+   "kolBuyers": [
+    "Kadenox",
+    "cap",
+    "dov 7"
+   ],
+   "kolHolders": [
+    "dov 7"
+   ],
+   "kolRealisedSol": 51.448794058000004,
+   "read": "$OMO \u2014 4d-old pair at $288,928 market cap, +1755% on the day, $1,169,723 of 24h volume (4.0x market cap), 53% of 11,663 six-hour trades were buys, LP 100% locked or burned, top 10 hold 18%.",
    "track": "MOVER",
    "dexEvidence": [
-    "The pair was 4 days old at the cutoff and moved +1,865% in 24 hours to a $285,891 market cap.",
-    "Dexscreener recorded $1,154,871 of 24-hour volume, equal to 4.0x market cap, with $48,562 liquidity.",
-    "Six-hour flow was 54% buys across 11,413 trades while the pair moved +397%.",
+    "The pair was 4 days old at the cutoff and moved +1,755% in 24 hours to a $288,928 market cap.",
+    "Dexscreener recorded $1,169,723 of 24-hour volume, equal to 4.0x market cap, with $48,853 liquidity.",
+    "Six-hour flow was 53% buys across 11,663 trades while the pair moved +446%.",
+    "3 tracked on-chain wallets bought during the window; 1 still held at the snapshot.",
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 18%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
@@ -312,54 +129,60 @@
    ]
   },
   {
-   "symbol": "XST",
-   "name": "XST",
-   "mint": "APfNfUHkX3Gt3i3V3XV3Fizt7i3LYsJ3CnAuEZ1X2rUx",
-   "url": "https://dexscreener.com/solana/wcrpghyw6fnvdary2d8jn1vf6h357wjxkwjs6sbjwwp",
+   "symbol": "BOI\u00daNA",
+   "name": "Boi\u00fana",
+   "mint": "GRehQKv9E3fVuNJGQTwAAjYpcixRCYKkzAXAb5kGpump",
+   "url": "https://dexscreener.com/solana/63jzrkafyryrizeet1y7hzbmv2kfx48twsxzeoigk6ar",
    "dex": "pumpswap",
-   "marketCap": 206411.0,
-   "liquidity": 271374.72,
-   "volume24h": 49265697.0,
-   "change24h": 1712.0,
-   "change6h": 77.2,
-   "change1h": 5.79,
-   "runMultiple": 18.12,
-   "turnover": 238.67767221708147,
-   "ageHours": 9.242590643333333,
-   "buyRatio6h": 0.4987656113854197,
-   "trades6h": 41316,
-   "top10Pct": 28.484462525360563,
-   "lpLockedPct": 8.246616837682973e-08,
+   "marketCap": 167325.0,
+   "liquidity": 42956.89,
+   "volume24h": 16035082.82,
+   "change24h": 419.0,
+   "change6h": 11.43,
+   "change1h": 23.3,
+   "runMultiple": 5.19,
+   "turnover": 95.83196067533244,
+   "ageHours": 23.36109378111111,
+   "buyRatio6h": 0.5487643424536628,
+   "trades6h": 4532,
+   "top10Pct": 16.19682473395336,
+   "lpLockedPct": 100.0,
    "riskLabels": [
-    "top 10 hold 28%",
-    "thin pool, 182x its liquidity traded",
-    "ticker reused by 4 other recent mint(s)",
-    "no linked socials"
+    "thin pool, 373x its liquidity traded",
+    "ticker reused by 1 other recent mint(s)",
+    "linked X account does not resolve"
    ],
    "lore": "",
    "loreIsFresh": false,
    "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$XST \u2014 9h-old pair at $206,411 market cap, +1712% on the day, $49,265,697 of 24h volume (238.7x market cap), 50% of 41,316 six-hour trades were buys, LP 0% locked or burned, top 10 hold 28%.",
+   "kolBuyers": [
+    "Limfork.eth",
+    "Pain",
+    "asta"
+   ],
+   "kolHolders": [
+    "Pain"
+   ],
+   "kolRealisedSol": 200.336500015,
+   "read": "$BOI\u00daNA \u2014 23h-old pair at $167,325 market cap, +419% on the day, $16,035,083 of 24h volume (95.8x market cap), 55% of 4,532 six-hour trades were buys, LP 100% locked or burned, top 10 hold 16%.",
    "track": "NEW",
    "dexEvidence": [
-    "The pair was 9 hours old at the cutoff and moved +1,712% in 24 hours to a $206,411 market cap.",
-    "Dexscreener recorded $49,265,697 of 24-hour volume, equal to 238.7x market cap, with $271,375 liquidity.",
-    "Six-hour flow was 50% buys across 41,316 trades while the pair moved +77%.",
-    "Supply structure at the snapshot: LP 0% locked or burned; nominal top 10 held 28%."
+    "The pair was 23 hours old at the cutoff and moved +419% in 24 hours to a $167,325 market cap.",
+    "Dexscreener recorded $16,035,083 of 24-hour volume, equal to 95.8x market cap, with $42,957 liquidity.",
+    "Six-hour flow was 55% buys across 4,532 trades while the pair moved +11%.",
+    "3 tracked on-chain wallets bought during the window; 1 still held at the snapshot.",
+    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 16%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
    "xInteractions": [],
    "sources": [
     {
      "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/wcrpghyw6fnvdary2d8jn1vf6h357wjxkwjs6sbjwwp"
+     "url": "https://dexscreener.com/solana/63jzrkafyryrizeet1y7hzbmv2kfx48twsxzeoigk6ar"
     },
     {
      "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/APfNfUHkX3Gt3i3V3XV3Fizt7i3LYsJ3CnAuEZ1X2rUx"
+     "url": "https://app.bubblemaps.io/sol/token/GRehQKv9E3fVuNJGQTwAAjYpcixRCYKkzAXAb5kGpump"
     }
    ]
   },
@@ -369,17 +192,17 @@
    "mint": "EkcTa8n14fXcHdfvZqCg72cTCutJnnKb19vcHwKTpump",
    "url": "https://dexscreener.com/solana/httde6bsdc3y58owhqayqmersnmwnrzfvdewjymxgax3",
    "dex": "pumpswap",
-   "marketCap": 506585.0,
-   "liquidity": 57859.69,
-   "volume24h": 1728920.98,
-   "change24h": 1577.0,
-   "change6h": 575.0,
-   "change1h": 50.08,
-   "runMultiple": 16.77,
-   "turnover": 3.4128941441219145,
-   "ageHours": 22.550090643333334,
-   "buyRatio6h": 0.5313756336304842,
-   "trades6h": 5721,
+   "marketCap": 600230.0,
+   "liquidity": 63270.23,
+   "volume24h": 1817904.12,
+   "change24h": 1887.0,
+   "change6h": 713.0,
+   "change1h": 49.25,
+   "runMultiple": 19.87,
+   "turnover": 3.02867920630425,
+   "ageHours": 22.760538225555553,
+   "buyRatio6h": 0.5405976456383942,
+   "trades6h": 6626,
    "top10Pct": 28.552720455708226,
    "lpLockedPct": 100.0,
    "riskLabels": [
@@ -390,15 +213,22 @@
    "lore": "",
    "loreIsFresh": false,
    "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$QENIS \u2014 23h-old pair at $506,585 market cap, +1577% on the day, $1,728,921 of 24h volume (3.4x market cap), 53% of 5,721 six-hour trades were buys, LP 100% locked or burned, top 10 hold 29%.",
+   "kolBuyers": [
+    "OGAntD",
+    "slingoor"
+   ],
+   "kolHolders": [
+    "OGAntD",
+    "slingoor"
+   ],
+   "kolRealisedSol": -11.472824174,
+   "read": "$QENIS \u2014 23h-old pair at $600,230 market cap, +1887% on the day, $1,817,904 of 24h volume (3.0x market cap), 54% of 6,626 six-hour trades were buys, LP 100% locked or burned, top 10 hold 29%.",
    "track": "NEW",
    "dexEvidence": [
-    "The pair was 23 hours old at the cutoff and moved +1,577% in 24 hours to a $506,585 market cap.",
-    "Dexscreener recorded $1,728,921 of 24-hour volume, equal to 3.4x market cap, with $57,860 liquidity.",
-    "Six-hour flow was 53% buys across 5,721 trades while the pair moved +575%.",
+    "The pair was 23 hours old at the cutoff and moved +1,887% in 24 hours to a $600,230 market cap.",
+    "Dexscreener recorded $1,817,904 of 24-hour volume, equal to 3.0x market cap, with $63,270 liquidity.",
+    "Six-hour flow was 54% buys across 6,626 trades while the pair moved +713%.",
+    "2 tracked on-chain wallets bought during the window; 2 still held at the snapshot.",
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 29%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
@@ -420,17 +250,17 @@
    "mint": "J6xVFRZTX8Q5pd8tdxRcM7D43EmpAyXrCCpXh9TRpump",
    "url": "https://dexscreener.com/solana/4dlc1yecd1stu1rze2hvtzp4riktfo6rtifa7kgnhubv",
    "dex": "pumpswap",
-   "marketCap": 384234.0,
-   "liquidity": 45260.13,
-   "volume24h": 98853.55,
-   "change24h": 1172.0,
-   "change6h": -5.31,
-   "change1h": -0.98,
-   "runMultiple": 12.72,
-   "turnover": 0.25727434323875553,
-   "ageHours": 12.582312865555556,
-   "buyRatio6h": 0.5231017770597738,
-   "trades6h": 3095,
+   "marketCap": 390939.0,
+   "liquidity": 45658.73,
+   "volume24h": 98943.56,
+   "change24h": 1195.0,
+   "change6h": -1.48,
+   "change1h": 0.22,
+   "runMultiple": 12.95,
+   "turnover": 0.253092068072001,
+   "ageHours": 12.792760447777779,
+   "buyRatio6h": 0.5210187173979748,
+   "trades6h": 3259,
    "top10Pct": 18.822081173108383,
    "lpLockedPct": 100.0,
    "riskLabels": [
@@ -439,15 +269,20 @@
    "lore": "",
    "loreIsFresh": true,
    "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$NETBOY \u2014 13h-old pair at $384,234 market cap, +1172% on the day, $98,854 of 24h volume (0.3x market cap), 52% of 3,095 six-hour trades were buys, LP 100% locked or burned, top 10 hold 19%.",
+   "kolBuyers": [
+    "Snatcher"
+   ],
+   "kolHolders": [
+    "Snatcher"
+   ],
+   "kolRealisedSol": -12.145124079999999,
+   "read": "$NETBOY \u2014 13h-old pair at $390,939 market cap, +1195% on the day, $98,944 of 24h volume (0.3x market cap), 52% of 3,259 six-hour trades were buys, LP 100% locked or burned, top 10 hold 19%.",
    "track": "NEW",
    "dexEvidence": [
-    "The pair was 13 hours old at the cutoff and moved +1,172% in 24 hours to a $384,234 market cap.",
-    "Dexscreener recorded $98,854 of 24-hour volume, equal to 0.3x market cap, with $45,260 liquidity.",
-    "Six-hour flow was 52% buys across 3,095 trades while the pair moved -5%.",
+    "The pair was 13 hours old at the cutoff and moved +1,195% in 24 hours to a $390,939 market cap.",
+    "Dexscreener recorded $98,944 of 24-hour volume, equal to 0.3x market cap, with $45,659 liquidity.",
+    "Six-hour flow was 52% buys across 3,259 trades while the pair moved -1%.",
+    "1 tracked on-chain wallets bought during the window; 1 still held at the snapshot.",
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 19%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
@@ -464,26 +299,189 @@
    ]
   },
   {
-   "symbol": "CC",
-   "name": "creator capital",
-   "mint": "E3i7sTY5QYEBh3itepnomZQt7Eh5kzmHFk1vkm2pump",
-   "url": "https://dexscreener.com/solana/6a3a8zpkmssqqbfmjqzc6p9tfraue9ulafqu9txp2hlo",
+   "symbol": "BURPCOIN",
+   "name": "Burpcoin",
+   "mint": "FsLJrQRBT7gdDUXcdbww83itvh9LRusshFigpjswpump",
+   "url": "https://dexscreener.com/solana/fmr41slytjnla8wnqktrifat5cxt3bmywttcqsdkz3gf",
    "dex": "pumpswap",
-   "marketCap": 916382.0,
-   "liquidity": 84680.82,
-   "volume24h": 2645645.19,
-   "change24h": 1003.0,
-   "change6h": 323.0,
-   "change1h": 2.29,
-   "runMultiple": 11.03,
-   "turnover": 2.887054950882929,
-   "ageHours": 48.00759064333333,
-   "buyRatio6h": 0.507582369626882,
-   "trades6h": 18332,
-   "top10Pct": 14.487899581676277,
+   "marketCap": 186275.0,
+   "liquidity": 32859.41,
+   "volume24h": 911003.53,
+   "change24h": 603.0,
+   "change6h": 603.0,
+   "change1h": -2.49,
+   "runMultiple": 7.03,
+   "turnover": 4.890637659374581,
+   "ageHours": 2.157204892222222,
+   "buyRatio6h": 0.5275731634481385,
+   "trades6h": 20092,
+   "top10Pct": 29.528472091401593,
    "lpLockedPct": 100.0,
    "riskLabels": [
-    "ticker reused by 2 other recent mint(s)"
+    "top 10 hold 30%",
+    "ticker reused by 1 other recent mint(s)",
+    "only 2.2h old"
+   ],
+   "lore": "",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [
+    "Jidn"
+   ],
+   "kolHolders": [
+    "Jidn"
+   ],
+   "kolRealisedSol": 37.736434781999996,
+   "read": "$BURPCOIN \u2014 2h-old pair at $186,275 market cap, +603% on the day, $911,004 of 24h volume (4.9x market cap), 53% of 20,092 six-hour trades were buys, LP 100% locked or burned, top 10 hold 30%.",
+   "track": "NEW",
+   "dexEvidence": [
+    "The pair was 2 hours old at the cutoff and moved +603% in 24 hours to a $186,275 market cap.",
+    "Dexscreener recorded $911,004 of 24-hour volume, equal to 4.9x market cap, with $32,859 liquidity.",
+    "Six-hour flow was 53% buys across 20,092 trades while the pair moved +603%.",
+    "1 tracked on-chain wallets bought during the window; 1 still held at the snapshot.",
+    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 30%."
+   ],
+   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/fmr41slytjnla8wnqktrifat5cxt3bmywttcqsdkz3gf"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/FsLJrQRBT7gdDUXcdbww83itvh9LRusshFigpjswpump"
+    }
+   ]
+  },
+  {
+   "symbol": "NILES",
+   "name": "Niles The Croc",
+   "mint": "GDPtXowyiXHjsHXgkwM1erpFufPEeNvqK8iGq71Bpump",
+   "url": "https://dexscreener.com/solana/4kkmfdfwbxyowlhjulwjn7dxexu9af2lkcwy36wsuz2l",
+   "dex": "pumpswap",
+   "marketCap": 164110.0,
+   "liquidity": 34528.14,
+   "volume24h": 3730828.07,
+   "change24h": 428.0,
+   "change6h": -48.73,
+   "change1h": 12.89,
+   "runMultiple": 5.28,
+   "turnover": 22.7337034306258,
+   "ageHours": 11.72748267,
+   "buyRatio6h": 0.5281244000767902,
+   "trades6h": 5209,
+   "top10Pct": 22.036101772491644,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "thin pool, 108x its liquidity traded",
+    "linked X account does not resolve"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [
+    "Pain"
+   ],
+   "kolHolders": [
+    "Pain"
+   ],
+   "kolRealisedSol": -85.60926663621437,
+   "read": "$NILES \u2014 12h-old pair at $164,110 market cap, +428% on the day, $3,730,828 of 24h volume (22.7x market cap), 53% of 5,209 six-hour trades were buys, LP 100% locked or burned, top 10 hold 22%.",
+   "track": "NEW",
+   "dexEvidence": [
+    "The pair was 12 hours old at the cutoff and moved +428% in 24 hours to a $164,110 market cap.",
+    "Dexscreener recorded $3,730,828 of 24-hour volume, equal to 22.7x market cap, with $34,528 liquidity.",
+    "Six-hour flow was 53% buys across 5,209 trades while the pair moved -49%.",
+    "1 tracked on-chain wallets bought during the window; 1 still held at the snapshot.",
+    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 22%."
+   ],
+   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/4kkmfdfwbxyowlhjulwjn7dxexu9af2lkcwy36wsuz2l"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/GDPtXowyiXHjsHXgkwM1erpFufPEeNvqK8iGq71Bpump"
+    }
+   ]
+  },
+  {
+   "symbol": "CUBEMAN",
+   "name": "CUBEMAN",
+   "mint": "aQzS8bMPSbMYF8W6CcpUV7E65i89pXAnS2zNE7hpump",
+   "url": "https://dexscreener.com/solana/8sqkqt1mg7upqb5ntybjrjstzwa25wpmmm6klnvpyfzw",
+   "dex": "pumpswap",
+   "marketCap": 2518356.0,
+   "liquidity": 115647.43,
+   "volume24h": 191882.25,
+   "change24h": 37380.0,
+   "change6h": 2.87,
+   "change1h": 0.26,
+   "runMultiple": 374.8,
+   "turnover": 0.07619345716014733,
+   "ageHours": 552.8858160033333,
+   "buyRatio6h": 0.8277511961722488,
+   "trades6h": 209,
+   "top10Pct": 29.732710109303277,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "top 10 hold 30%",
+    "no linked socials"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$CUBEMAN \u2014 23d-old pair at $2,518,356 market cap, +37380% on the day, $191,882 of 24h volume (0.1x market cap), 83% of 209 six-hour trades were buys, LP 100% locked or burned, top 10 hold 30%.",
+   "track": "NEW",
+   "dexEvidence": [
+    "The pair was 23 days old at the cutoff and moved +37,380% in 24 hours to a $2,518,356 market cap.",
+    "Dexscreener recorded $191,882 of 24-hour volume, equal to 0.1x market cap, with $115,647 liquidity.",
+    "Six-hour flow was 83% buys across 209 trades while the pair moved +3%.",
+    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 30%."
+   ],
+   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/8sqkqt1mg7upqb5ntybjrjstzwa25wpmmm6klnvpyfzw"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/aQzS8bMPSbMYF8W6CcpUV7E65i89pXAnS2zNE7hpump"
+    }
+   ]
+  },
+  {
+   "symbol": "K-HOME",
+   "name": "bus house",
+   "mint": "EUB1eZBt4m3X4FbperWnKGJdvLsuLMu2YmJix5yjpump",
+   "url": "https://dexscreener.com/solana/abgs2ze2ix81ntsxd7ccys8vvqn64jrnjuprs3jrlghv",
+   "dex": "pumpswap",
+   "marketCap": 1205714.0,
+   "liquidity": 105331.62,
+   "volume24h": 8011198.21,
+   "change24h": 20191.0,
+   "change6h": 50.55,
+   "change1h": -4.51,
+   "runMultiple": 202.91,
+   "turnover": 6.644360279469261,
+   "ageHours": 41.07164933666667,
+   "buyRatio6h": 0.47592348284960423,
+   "trades6h": 6064,
+   "top10Pct": 17.21201097602633,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "thin pool, 76x its liquidity traded",
+    "10 paid boost(s)",
+    "ticker reused by 1 other recent mint(s)"
    ],
    "lore": "",
    "loreIsFresh": false,
@@ -491,12 +489,63 @@
    "kolBuyers": [],
    "kolHolders": [],
    "kolRealisedSol": 0.0,
-   "read": "$CC \u2014 2d-old pair at $916,382 market cap, +1003% on the day, $2,645,645 of 24h volume (2.9x market cap), 51% of 18,332 six-hour trades were buys, LP 100% locked or burned, top 10 hold 14%.",
+   "read": "$K-HOME \u2014 41h-old pair at $1,205,714 market cap, +20191% on the day, $8,011,198 of 24h volume (6.6x market cap), 48% of 6,064 six-hour trades were buys, LP 100% locked or burned, top 10 hold 17%, community takeover claimed 13 Aug.",
    "track": "NEW",
    "dexEvidence": [
-    "The pair was 2 days old at the cutoff and moved +1,003% in 24 hours to a $916,382 market cap.",
-    "Dexscreener recorded $2,645,645 of 24-hour volume, equal to 2.9x market cap, with $84,681 liquidity.",
-    "Six-hour flow was 51% buys across 18,332 trades while the pair moved +323%.",
+    "The pair was 41 hours old at the cutoff and moved +20,191% in 24 hours to a $1,205,714 market cap.",
+    "Dexscreener recorded $8,011,198 of 24-hour volume, equal to 6.6x market cap, with $105,332 liquidity.",
+    "Six-hour flow was 48% buys across 6,064 trades while the pair moved +51%.",
+    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 17%."
+   ],
+   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/abgs2ze2ix81ntsxd7ccys8vvqn64jrnjuprs3jrlghv"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/EUB1eZBt4m3X4FbperWnKGJdvLsuLMu2YmJix5yjpump"
+    }
+   ]
+  },
+  {
+   "symbol": "PLANSEM",
+   "name": "The Red Plunger",
+   "mint": "j8RdRQ8tQRbx62cr46e5LM8ekRDZr1opqmbgsobpump",
+   "url": "https://dexscreener.com/solana/4pwnxh6ce2y5cydrkyvfewey9rbew1tbc8jvf9fft317",
+   "dex": "pumpswap",
+   "marketCap": 991586.0,
+   "liquidity": 101514.98,
+   "volume24h": 12461707.32,
+   "change24h": 3111.0,
+   "change6h": -0.26,
+   "change1h": -54.83,
+   "runMultiple": 32.11,
+   "turnover": 12.567449842978824,
+   "ageHours": 12.436093781111111,
+   "buyRatio6h": 0.5758257413864207,
+   "trades6h": 26673,
+   "top10Pct": 13.779840618230901,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "thin pool, 123x its liquidity traded",
+    "40 paid boost(s)",
+    "fading, down 55% in the last hour"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": -54.83,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$PLANSEM \u2014 12h-old pair at $991,586 market cap, +3111% on the day, $12,461,707 of 24h volume (12.6x market cap), 58% of 26,673 six-hour trades were buys, LP 100% locked or burned, top 10 hold 14%.",
+   "track": "NEW",
+   "dexEvidence": [
+    "The pair was 12 hours old at the cutoff and moved +3,111% in 24 hours to a $991,586 market cap.",
+    "Dexscreener recorded $12,461,707 of 24-hour volume, equal to 12.6x market cap, with $101,515 liquidity.",
+    "Six-hour flow was 58% buys across 26,673 trades while the pair moved -0%.",
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 14%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
@@ -504,11 +553,110 @@
    "sources": [
     {
      "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/6a3a8zpkmssqqbfmjqzc6p9tfraue9ulafqu9txp2hlo"
+     "url": "https://dexscreener.com/solana/4pwnxh6ce2y5cydrkyvfewey9rbew1tbc8jvf9fft317"
     },
     {
      "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/E3i7sTY5QYEBh3itepnomZQt7Eh5kzmHFk1vkm2pump"
+     "url": "https://app.bubblemaps.io/sol/token/j8RdRQ8tQRbx62cr46e5LM8ekRDZr1opqmbgsobpump"
+    }
+   ]
+  },
+  {
+   "symbol": "$TROLLNEGY",
+   "name": "TROLLNEGY",
+   "mint": "Cvb21YWbvR2CRHtfhwHa2vKTXxm6FdCj8MV6Pc8kpump",
+   "url": "https://dexscreener.com/solana/8lefx7vktqjrm8uhmnawa8awjxajedgfmzt76ctx42sn",
+   "dex": "pumpswap",
+   "marketCap": 702763.0,
+   "liquidity": 64595.74,
+   "volume24h": 2278450.87,
+   "change24h": 2195.0,
+   "change6h": -81.71,
+   "change1h": 9.81,
+   "runMultiple": 22.95,
+   "turnover": 3.242132653540383,
+   "ageHours": 13.349704892222222,
+   "buyRatio6h": 0.7104360607545321,
+   "trades6h": 10205,
+   "top10Pct": 15.738054609173636,
+   "lpLockedPct": 100.0,
+   "riskLabels": [],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$$TROLLNEGY \u2014 13h-old pair at $702,763 market cap, +2195% on the day, $2,278,451 of 24h volume (3.2x market cap), 71% of 10,205 six-hour trades were buys, LP 100% locked or burned, top 10 hold 16%.",
+   "track": "NEW",
+   "dexEvidence": [
+    "The pair was 13 hours old at the cutoff and moved +2,195% in 24 hours to a $702,763 market cap.",
+    "Dexscreener recorded $2,278,451 of 24-hour volume, equal to 3.2x market cap, with $64,596 liquidity.",
+    "Six-hour flow was 71% buys across 10,205 trades while the pair moved -82%.",
+    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 16%."
+   ],
+   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/8lefx7vktqjrm8uhmnawa8awjxajedgfmzt76ctx42sn"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/Cvb21YWbvR2CRHtfhwHa2vKTXxm6FdCj8MV6Pc8kpump"
+    }
+   ]
+  },
+  {
+   "symbol": "XST",
+   "name": "XST",
+   "mint": "APfNfUHkX3Gt3i3V3XV3Fizt7i3LYsJ3CnAuEZ1X2rUx",
+   "url": "https://dexscreener.com/solana/wcrpghyw6fnvdary2d8jn1vf6h357wjxkwjs6sbjwwp",
+   "dex": "pumpswap",
+   "marketCap": 190446.0,
+   "liquidity": 261032.85,
+   "volume24h": 49428000.25,
+   "change24h": 1572.0,
+   "change6h": 47.31,
+   "change1h": 0.33,
+   "runMultiple": 16.72,
+   "turnover": 259.53813810739,
+   "ageHours": 9.453038225555556,
+   "buyRatio6h": 0.4987703139316198,
+   "trades6h": 41474,
+   "top10Pct": 28.484462525360563,
+   "lpLockedPct": 8.246616837682973e-08,
+   "riskLabels": [
+    "top 10 hold 28%",
+    "thin pool, 189x its liquidity traded",
+    "ticker reused by 4 other recent mint(s)",
+    "no linked socials"
+   ],
+   "lore": "",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$XST \u2014 9h-old pair at $190,446 market cap, +1572% on the day, $49,428,000 of 24h volume (259.5x market cap), 50% of 41,474 six-hour trades were buys, LP 0% locked or burned, top 10 hold 28%.",
+   "track": "NEW",
+   "dexEvidence": [
+    "The pair was 9 hours old at the cutoff and moved +1,572% in 24 hours to a $190,446 market cap.",
+    "Dexscreener recorded $49,428,000 of 24-hour volume, equal to 259.5x market cap, with $261,033 liquidity.",
+    "Six-hour flow was 50% buys across 41,474 trades while the pair moved +47%.",
+    "Supply structure at the snapshot: LP 0% locked or burned; nominal top 10 held 28%."
+   ],
+   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/wcrpghyw6fnvdary2d8jn1vf6h357wjxkwjs6sbjwwp"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/APfNfUHkX3Gt3i3V3XV3Fizt7i3LYsJ3CnAuEZ1X2rUx"
     }
    ]
   },
@@ -518,21 +666,21 @@
    "mint": "4CmYEygEusR76TpjxUbTjSLjyDbCMjxKhRKNozkrpump",
    "url": "https://dexscreener.com/solana/dhn4tufpkdroxdxyvthfx3y4yp6ahr8fukcrcgsp4mi3",
    "dex": "pumpswap",
-   "marketCap": 277492.0,
-   "liquidity": 45986.44,
-   "volume24h": 4551042.14,
-   "change24h": 863.0,
-   "change6h": -52.45,
-   "change1h": 16.44,
-   "runMultiple": 9.63,
-   "turnover": 16.400624666657055,
-   "ageHours": 9.27786842111111,
-   "buyRatio6h": 0.5765422696115765,
-   "trades6h": 10504,
+   "marketCap": 275513.0,
+   "liquidity": 45829.78,
+   "volume24h": 4560472.88,
+   "change24h": 856.0,
+   "change6h": -32.56,
+   "change1h": 16.72,
+   "runMultiple": 9.56,
+   "turnover": 16.552659511529402,
+   "ageHours": 9.488316003333333,
+   "buyRatio6h": 0.5713832822572124,
+   "trades6h": 9463,
    "top10Pct": 13.809712366433432,
    "lpLockedPct": 100.0,
    "riskLabels": [
-    "thin pool, 99x its liquidity traded",
+    "thin pool, 100x its liquidity traded",
     "linked X account does not resolve"
    ],
    "lore": "",
@@ -541,12 +689,12 @@
    "kolBuyers": [],
    "kolHolders": [],
    "kolRealisedSol": 0.0,
-   "read": "$BOB \u2014 9h-old pair at $277,492 market cap, +863% on the day, $4,551,042 of 24h volume (16.4x market cap), 58% of 10,504 six-hour trades were buys, LP 100% locked or burned, top 10 hold 14%.",
+   "read": "$BOB \u2014 9h-old pair at $275,513 market cap, +856% on the day, $4,560,473 of 24h volume (16.6x market cap), 57% of 9,463 six-hour trades were buys, LP 100% locked or burned, top 10 hold 14%.",
    "track": "NEW",
    "dexEvidence": [
-    "The pair was 9 hours old at the cutoff and moved +863% in 24 hours to a $277,492 market cap.",
-    "Dexscreener recorded $4,551,042 of 24-hour volume, equal to 16.4x market cap, with $45,986 liquidity.",
-    "Six-hour flow was 58% buys across 10,504 trades while the pair moved -52%.",
+    "The pair was 9 hours old at the cutoff and moved +856% in 24 hours to a $275,513 market cap.",
+    "Dexscreener recorded $4,560,473 of 24-hour volume, equal to 16.6x market cap, with $45,830 liquidity.",
+    "Six-hour flow was 57% buys across 9,463 trades while the pair moved -33%.",
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 14%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
@@ -563,22 +711,72 @@
    ]
   },
   {
+   "symbol": "LHE",
+   "name": "THE LAST EMPLOYEE",
+   "mint": "2sgbfjkAyjAw1GKeLUz97xnBWkbwtor3utRbL46gpump",
+   "url": "https://dexscreener.com/solana/8dqtnchfqu6avmpkkcr5mbkkxjysbfmaqpuatslwycvj",
+   "dex": "pumpswap",
+   "marketCap": 559941.0,
+   "liquidity": 55285.93,
+   "volume24h": 603669.61,
+   "change24h": 729.0,
+   "change6h": 729.0,
+   "change1h": 729.0,
+   "runMultiple": 8.29,
+   "turnover": 1.0780950314408124,
+   "ageHours": 0.8583160033333334,
+   "buyRatio6h": 0.7442341503774951,
+   "trades6h": 9669,
+   "top10Pct": 2.222484324060166,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "30 paid boost(s)",
+    "only 0.9h old"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolRealisedSol": 0.0,
+   "read": "$LHE \u2014 1h-old pair at $559,941 market cap, +729% on the day, $603,670 of 24h volume (1.1x market cap), 74% of 9,669 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
+   "track": "NEW",
+   "dexEvidence": [
+    "The pair was 1 hours old at the cutoff and moved +729% in 24 hours to a $559,941 market cap.",
+    "Dexscreener recorded $603,670 of 24-hour volume, equal to 1.1x market cap, with $55,286 liquidity.",
+    "Six-hour flow was 74% buys across 9,669 trades while the pair moved +729%.",
+    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 2%."
+   ],
+   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/8dqtnchfqu6avmpkkcr5mbkkxjysbfmaqpuatslwycvj"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/2sgbfjkAyjAw1GKeLUz97xnBWkbwtor3utRbL46gpump"
+    }
+   ]
+  },
+  {
    "symbol": "CJ",
    "name": "Carl Johnson",
    "mint": "Bmv7ho39ijT6ur3GSN3GK4bxZnwM7qrf1ReF5qYfpump",
    "url": "https://dexscreener.com/solana/5vskyn4e5qzmve8cqkezbadcgnnthmzpyj7rqhva2amw",
    "dex": "pumpswap",
-   "marketCap": 322511.0,
-   "liquidity": 41625.34,
-   "volume24h": 282687.42,
-   "change24h": 841.0,
-   "change6h": 841.0,
-   "change1h": 1.71,
-   "runMultiple": 9.41,
-   "turnover": 0.8765202427204033,
-   "ageHours": 3.1662017544444447,
-   "buyRatio6h": 0.48113467364362433,
-   "trades6h": 3631,
+   "marketCap": 273446.0,
+   "liquidity": 38228.08,
+   "volume24h": 289039.54,
+   "change24h": 697.0,
+   "change6h": 697.0,
+   "change1h": 0.62,
+   "runMultiple": 7.97,
+   "turnover": 1.0570260307336732,
+   "ageHours": 3.3766493366666666,
+   "buyRatio6h": 0.4791722655200215,
+   "trades6h": 3721,
    "top10Pct": 12.770108094361124,
    "lpLockedPct": 100.0,
    "riskLabels": [],
@@ -588,12 +786,12 @@
    "kolBuyers": [],
    "kolHolders": [],
    "kolRealisedSol": 0.0,
-   "read": "$CJ \u2014 3h-old pair at $322,511 market cap, +841% on the day, $282,687 of 24h volume (0.9x market cap), 48% of 3,631 six-hour trades were buys, LP 100% locked or burned, top 10 hold 13%.",
+   "read": "$CJ \u2014 3h-old pair at $273,446 market cap, +697% on the day, $289,040 of 24h volume (1.1x market cap), 48% of 3,721 six-hour trades were buys, LP 100% locked or burned, top 10 hold 13%.",
    "track": "NEW",
    "dexEvidence": [
-    "The pair was 3 hours old at the cutoff and moved +841% in 24 hours to a $322,511 market cap.",
-    "Dexscreener recorded $282,687 of 24-hour volume, equal to 0.9x market cap, with $41,625 liquidity.",
-    "Six-hour flow was 48% buys across 3,631 trades while the pair moved +841%.",
+    "The pair was 3 hours old at the cutoff and moved +697% in 24 hours to a $273,446 market cap.",
+    "Dexscreener recorded $289,040 of 24-hour volume, equal to 1.1x market cap, with $38,228 liquidity.",
+    "Six-hour flow was 48% buys across 3,721 trades while the pair moved +697%.",
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 13%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
@@ -615,17 +813,17 @@
    "mint": "GPzpoXpD74E2C4CJNayuoyBqPQJEsPtdse3nhntrpump",
    "url": "https://dexscreener.com/solana/awiirvwxxrjxmdrmdzk3dbxj73zfmsqgk5pcp5zf8uw8",
    "dex": "pumpswap",
-   "marketCap": 269912.0,
-   "liquidity": 42969.81,
-   "volume24h": 2315697.8,
-   "change24h": 823.0,
-   "change6h": 173.0,
-   "change1h": 34.73,
-   "runMultiple": 9.23,
-   "turnover": 8.579454785263344,
-   "ageHours": 16.128423976666667,
-   "buyRatio6h": 0.5330861105759969,
-   "trades6h": 20764,
+   "marketCap": 221650.0,
+   "liquidity": 38837.5,
+   "volume24h": 2328963.58,
+   "change24h": 658.0,
+   "change6h": 168.0,
+   "change1h": 2.94,
+   "runMultiple": 7.58,
+   "turnover": 10.507392646063614,
+   "ageHours": 16.33887155888889,
+   "buyRatio6h": 0.5331376040814362,
+   "trades6h": 20777,
    "top10Pct": 26.75631622956806,
    "lpLockedPct": 100.0,
    "riskLabels": [
@@ -637,13 +835,13 @@
    "faded": null,
    "kolBuyers": [],
    "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$LOOKSMAX \u2014 16h-old pair at $269,912 market cap, +823% on the day, $2,315,698 of 24h volume (8.6x market cap), 53% of 20,764 six-hour trades were buys, LP 100% locked or burned, top 10 hold 27%.",
+   "kolRealisedSol": 12.486122067,
+   "read": "$LOOKSMAX \u2014 16h-old pair at $221,650 market cap, +658% on the day, $2,328,964 of 24h volume (10.5x market cap), 53% of 20,777 six-hour trades were buys, LP 100% locked or burned, top 10 hold 27%.",
    "track": "NEW",
    "dexEvidence": [
-    "The pair was 16 hours old at the cutoff and moved +823% in 24 hours to a $269,912 market cap.",
-    "Dexscreener recorded $2,315,698 of 24-hour volume, equal to 8.6x market cap, with $42,970 liquidity.",
-    "Six-hour flow was 53% buys across 20,764 trades while the pair moved +173%.",
+    "The pair was 16 hours old at the cutoff and moved +658% in 24 hours to a $221,650 market cap.",
+    "Dexscreener recorded $2,328,964 of 24-hour volume, equal to 10.5x market cap, with $38,838 liquidity.",
+    "Six-hour flow was 53% buys across 20,777 trades while the pair moved +168%.",
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 27%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
@@ -658,258 +856,6 @@
      "url": "https://app.bubblemaps.io/sol/token/GPzpoXpD74E2C4CJNayuoyBqPQJEsPtdse3nhntrpump"
     }
    ]
-  },
-  {
-   "symbol": "BURPCOIN",
-   "name": "Burpcoin",
-   "mint": "FsLJrQRBT7gdDUXcdbww83itvh9LRusshFigpjswpump",
-   "url": "https://dexscreener.com/solana/fmr41slytjnla8wnqktrifat5cxt3bmywttcqsdkz3gf",
-   "dex": "pumpswap",
-   "marketCap": 165066.0,
-   "liquidity": 30765.57,
-   "volume24h": 861006.25,
-   "change24h": 523.0,
-   "change6h": 523.0,
-   "change1h": 61.78,
-   "runMultiple": 6.23,
-   "turnover": 5.216133243672228,
-   "ageHours": 1.94675731,
-   "buyRatio6h": 0.5272501423321774,
-   "trades6h": 19321,
-   "top10Pct": 29.528472091401593,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "top 10 hold 30%",
-    "ticker reused by 2 other recent mint(s)",
-    "only 1.9h old"
-   ],
-   "lore": "",
-   "loreIsFresh": false,
-   "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$BURPCOIN \u2014 2h-old pair at $165,066 market cap, +523% on the day, $861,006 of 24h volume (5.2x market cap), 53% of 19,321 six-hour trades were buys, LP 100% locked or burned, top 10 hold 30%.",
-   "track": "NEW",
-   "dexEvidence": [
-    "The pair was 2 hours old at the cutoff and moved +523% in 24 hours to a $165,066 market cap.",
-    "Dexscreener recorded $861,006 of 24-hour volume, equal to 5.2x market cap, with $30,766 liquidity.",
-    "Six-hour flow was 53% buys across 19,321 trades while the pair moved +523%.",
-    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 30%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/fmr41slytjnla8wnqktrifat5cxt3bmywttcqsdkz3gf"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/FsLJrQRBT7gdDUXcdbww83itvh9LRusshFigpjswpump"
-    }
-   ]
-  },
-  {
-   "symbol": "LHE",
-   "name": "THE LAST EMPLOYEE",
-   "mint": "2sgbfjkAyjAw1GKeLUz97xnBWkbwtor3utRbL46gpump",
-   "url": "https://dexscreener.com/solana/8dqtnchfqu6avmpkkcr5mbkkxjysbfmaqpuatslwycvj",
-   "dex": "pumpswap",
-   "marketCap": 383538.0,
-   "liquidity": 45293.93,
-   "volume24h": 476116.85,
-   "change24h": 468.0,
-   "change6h": 468.0,
-   "change1h": 468.0,
-   "runMultiple": 5.68,
-   "turnover": 1.2413811669247896,
-   "ageHours": 0.6478684211111112,
-   "buyRatio6h": 0.7260483624119988,
-   "trades6h": 6534,
-   "top10Pct": 2.222484324060166,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "30 paid boost(s)",
-    "only 0.6h old"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$LHE \u2014 1h-old pair at $383,538 market cap, +468% on the day, $476,117 of 24h volume (1.2x market cap), 73% of 6,534 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
-   "track": "NEW",
-   "dexEvidence": [
-    "The pair was 1 hours old at the cutoff and moved +468% in 24 hours to a $383,538 market cap.",
-    "Dexscreener recorded $476,117 of 24-hour volume, equal to 1.2x market cap, with $45,294 liquidity.",
-    "Six-hour flow was 73% buys across 6,534 trades while the pair moved +468%.",
-    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 2%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/8dqtnchfqu6avmpkkcr5mbkkxjysbfmaqpuatslwycvj"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/2sgbfjkAyjAw1GKeLUz97xnBWkbwtor3utRbL46gpump"
-    }
-   ]
-  },
-  {
-   "symbol": "APPLE",
-   "name": "Apple",
-   "mint": "FqzgaStfF1bLbcde21hsE6hsnXM29RsHsa7ZinRBmeZ",
-   "url": "https://dexscreener.com/solana/5fsyl2oryrotqywe6zjd4gnewecyhrpqwakqctccnhbn",
-   "dex": "pumpswap",
-   "marketCap": 1183212.0,
-   "liquidity": 42883.8,
-   "volume24h": 216947.18,
-   "change24h": 464.0,
-   "change6h": 464.0,
-   "change1h": 464.0,
-   "runMultiple": 5.64,
-   "turnover": 0.1833544453572141,
-   "ageHours": 0.5059239766666667,
-   "buyRatio6h": 0.5490852298081214,
-   "trades6h": 4482,
-   "top10Pct": 10.3312343618365,
-   "lpLockedPct": 4.549618785812182e-07,
-   "riskLabels": [
-    "no linked socials",
-    "only 0.5h old"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$APPLE \u2014 1h-old pair at $1,183,212 market cap, +464% on the day, $216,947 of 24h volume (0.2x market cap), 55% of 4,482 six-hour trades were buys, LP 0% locked or burned, top 10 hold 10%.",
-   "track": "NEW",
-   "dexEvidence": [
-    "The pair was 1 hours old at the cutoff and moved +464% in 24 hours to a $1,183,212 market cap.",
-    "Dexscreener recorded $216,947 of 24-hour volume, equal to 0.2x market cap, with $42,884 liquidity.",
-    "Six-hour flow was 55% buys across 4,482 trades while the pair moved +464%.",
-    "Supply structure at the snapshot: LP 0% locked or burned; nominal top 10 held 10%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/5fsyl2oryrotqywe6zjd4gnewecyhrpqwakqctccnhbn"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/FqzgaStfF1bLbcde21hsE6hsnXM29RsHsa7ZinRBmeZ"
-    }
-   ]
-  },
-  {
-   "symbol": "NILES",
-   "name": "Niles The Croc",
-   "mint": "GDPtXowyiXHjsHXgkwM1erpFufPEeNvqK8iGq71Bpump",
-   "url": "https://dexscreener.com/solana/4kkmfdfwbxyowlhjulwjn7dxexu9af2lkcwy36wsuz2l",
-   "dex": "pumpswap",
-   "marketCap": 162613.0,
-   "liquidity": 34358.84,
-   "volume24h": 3725852.93,
-   "change24h": 423.0,
-   "change6h": -46.98,
-   "change1h": 20.62,
-   "runMultiple": 5.23,
-   "turnover": 22.912392797623806,
-   "ageHours": 11.517035087777778,
-   "buyRatio6h": 0.5279984865682936,
-   "trades6h": 5286,
-   "top10Pct": 22.036101772491644,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "thin pool, 108x its liquidity traded",
-    "linked X account does not resolve"
-   ],
-   "lore": "",
-   "loreIsFresh": true,
-   "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$NILES \u2014 12h-old pair at $162,613 market cap, +423% on the day, $3,725,853 of 24h volume (22.9x market cap), 53% of 5,286 six-hour trades were buys, LP 100% locked or burned, top 10 hold 22%.",
-   "track": "NEW",
-   "dexEvidence": [
-    "The pair was 12 hours old at the cutoff and moved +423% in 24 hours to a $162,613 market cap.",
-    "Dexscreener recorded $3,725,853 of 24-hour volume, equal to 22.9x market cap, with $34,359 liquidity.",
-    "Six-hour flow was 53% buys across 5,286 trades while the pair moved -47%.",
-    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 22%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/4kkmfdfwbxyowlhjulwjn7dxexu9af2lkcwy36wsuz2l"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/GDPtXowyiXHjsHXgkwM1erpFufPEeNvqK8iGq71Bpump"
-    }
-   ]
-  },
-  {
-   "symbol": "BOI\u00daNA",
-   "name": "Boi\u00fana",
-   "mint": "GRehQKv9E3fVuNJGQTwAAjYpcixRCYKkzAXAb5kGpump",
-   "url": "https://dexscreener.com/solana/63jzrkafyryrizeet1y7hzbmv2kfx48twsxzeoigk6ar",
-   "dex": "pumpswap",
-   "marketCap": 151452.0,
-   "liquidity": 40801.93,
-   "volume24h": 16031228.96,
-   "change24h": 370.0,
-   "change6h": -1.52,
-   "change1h": 14.88,
-   "runMultiple": 4.7,
-   "turnover": 105.85022951166047,
-   "ageHours": 23.15064619888889,
-   "buyRatio6h": 0.5516790231138247,
-   "trades6h": 4586,
-   "top10Pct": 16.19682473395336,
-   "lpLockedPct": 100.0,
-   "riskLabels": [
-    "thin pool, 393x its liquidity traded",
-    "ticker reused by 1 other recent mint(s)",
-    "linked X account does not resolve"
-   ],
-   "lore": "",
-   "loreIsFresh": false,
-   "faded": null,
-   "kolBuyers": [],
-   "kolHolders": [],
-   "kolRealisedSol": 0.0,
-   "read": "$BOI\u00daNA \u2014 23h-old pair at $151,452 market cap, +370% on the day, $16,031,229 of 24h volume (105.9x market cap), 55% of 4,586 six-hour trades were buys, LP 100% locked or burned, top 10 hold 16%.",
-   "track": "NEW",
-   "dexEvidence": [
-    "The pair was 23 hours old at the cutoff and moved +370% in 24 hours to a $151,452 market cap.",
-    "Dexscreener recorded $16,031,229 of 24-hour volume, equal to 105.9x market cap, with $40,802 liquidity.",
-    "Six-hour flow was 55% buys across 4,586 trades while the pair moved -2%.",
-    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 16%."
-   ],
-   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
-   "sources": [
-    {
-     "label": "Dexscreener",
-     "url": "https://dexscreener.com/solana/63jzrkafyryrizeet1y7hzbmv2kfx48twsxzeoigk6ar"
-    },
-    {
-     "label": "Bubblemaps",
-     "url": "https://app.bubblemaps.io/sol/token/GRehQKv9E3fVuNJGQTwAAjYpcixRCYKkzAXAb5kGpump"
-    }
-   ]
   }
  ],
  "disqualified": [
@@ -917,8 +863,8 @@
    "symbol": "MET",
    "mint": "METvsvVRapdj9cFLzq4Tr43xK4tAjQfwX76z3n6mWQL",
    "url": "https://dexscreener.com/solana/eoftfbgdbxzkeqzc5dtygvnkicwevfezgtzqm9eftj6b",
-   "change24h": 552017.0,
-   "runMultiple": 5521.17,
+   "change24h": 547355.0,
+   "runMultiple": 5474.55,
    "reasons": [
     "bundled supply, top 10 circulating wallets hold 80%"
    ]
@@ -944,23 +890,23 @@
    ]
   },
   {
-   "symbol": "PINATA",
-   "mint": "Ff6LuwVMc6L7rLQCCiJHDWmHVkUKChYxY7uUpBtESna4",
-   "url": "https://dexscreener.com/solana/atm5jqax9ykpqljvcrpru2xxiyvjrw8poz3nbg48djwm",
-   "change24h": 35704.0,
-   "runMultiple": 358.04,
+   "symbol": "NEXCHAIN AI",
+   "mint": "HUxEcS2TUCoUcB6h4qJ1BLf9VsVcT191c7Nn5KkueUZa",
+   "url": "https://dexscreener.com/solana/heasumqrxyv1jj7jkby9qtskjtpy8hq3urdhaghgyvg",
+   "change24h": 44095.0,
+   "runMultiple": 441.95,
    "reasons": [
-    "bundled supply, top 10 circulating wallets hold 96%"
+    "bundled supply, top 10 circulating wallets hold 98%"
    ]
   },
   {
-   "symbol": "BUDDY",
-   "mint": "4UabPR8k9S6m7q5fUnfUXqRKni59UMyg4Gfa2kYtUBNv",
-   "url": "https://dexscreener.com/solana/9zf2wfbthb9n31ap5msk4r97mnwee3u25eeeakk6ke4r",
-   "change24h": 2492.0,
-   "runMultiple": 25.92,
+   "symbol": "PINATA",
+   "mint": "Ff6LuwVMc6L7rLQCCiJHDWmHVkUKChYxY7uUpBtESna4",
+   "url": "https://dexscreener.com/solana/atm5jqax9ykpqljvcrpru2xxiyvjrw8poz3nbg48djwm",
+   "change24h": 41830.0,
+   "runMultiple": 419.3,
    "reasons": [
-    "bundled supply, top 10 circulating wallets hold 80%"
+    "bundled supply, top 10 circulating wallets hold 96%"
    ]
   },
   {
@@ -975,8 +921,148 @@
   }
  ],
  "loreGroups": [],
- "kolConviction": [],
- "kolProfit": [],
+ "kolConviction": [
+  {
+   "symbol": "CC",
+   "mint": "E3i7sTY5QYEBh3itepnomZQt7Eh5kzmHFk1vkm2pump",
+   "url": "https://dexscreener.com/solana/6a3a8zpkmssqqbfmjqzc6p9tfraue9ulafqu9txp2hlo",
+   "buyers": [
+    "ItsVine",
+    "OGAntD",
+    "Orange",
+    "big bags bobby"
+   ],
+   "holders": [
+    "ItsVine",
+    "Orange",
+    "big bags bobby"
+   ],
+   "realisedSol": 26.15583159400001,
+   "runMultiple": 12.69
+  },
+  {
+   "symbol": "OMO",
+   "mint": "94Sm8joZMSRzpQmcNVn5zZpgnRLN2DBesJYDXwuNpump",
+   "url": "https://dexscreener.com/solana/c2fgky8wt81jzsqbfnwa8wqg8sq6q4jhl571bcteg1dq",
+   "buyers": [
+    "Kadenox",
+    "cap",
+    "dov 7"
+   ],
+   "holders": [
+    "dov 7"
+   ],
+   "realisedSol": 51.448794058000004,
+   "runMultiple": 18.55
+  },
+  {
+   "symbol": "BOI\u00daNA",
+   "mint": "GRehQKv9E3fVuNJGQTwAAjYpcixRCYKkzAXAb5kGpump",
+   "url": "https://dexscreener.com/solana/63jzrkafyryrizeet1y7hzbmv2kfx48twsxzeoigk6ar",
+   "buyers": [
+    "Limfork.eth",
+    "Pain",
+    "asta"
+   ],
+   "holders": [
+    "Pain"
+   ],
+   "realisedSol": 200.336500015,
+   "runMultiple": 5.19
+  }
+ ],
+ "kolProfit": [
+  {
+   "mint": "GRehQKv9E3fVuNJGQTwAAjYpcixRCYKkzAXAb5kGpump",
+   "symbol": "BOI\u00daNA",
+   "realisedSol": 200.336500015,
+   "traders": 3
+  },
+  {
+   "mint": "94Sm8joZMSRzpQmcNVn5zZpgnRLN2DBesJYDXwuNpump",
+   "symbol": "OMO",
+   "realisedSol": 51.448794058000004,
+   "traders": 3
+  },
+  {
+   "mint": "FsLJrQRBT7gdDUXcdbww83itvh9LRusshFigpjswpump",
+   "symbol": "BURPCOIN",
+   "realisedSol": 37.736434781999996,
+   "traders": 2
+  },
+  {
+   "mint": "Cq3cMEzjPZ5NL7mrzHo2ns5CGBqDDMQN476utN49pump",
+   "symbol": "CAPY",
+   "realisedSol": 29.068741358000004,
+   "traders": 2
+  },
+  {
+   "mint": "FRRiKCWyHECUHdvow3bkTAJPwt7xPzoo1tTkAqSuaunt",
+   "symbol": "AUNT",
+   "realisedSol": 28.628111858,
+   "traders": 1
+  },
+  {
+   "mint": "8rBHyr94RCPyPkZgaQFdB2WsRVTAWpmVMZ7KHMnSpump",
+   "symbol": "BUSHOUSE",
+   "realisedSol": 26.361503493999997,
+   "traders": 1
+  },
+  {
+   "mint": "488SaFq6wHF2z2k6NLSD3PtoSkXDNZaPkJwxze11pump",
+   "symbol": "MOMO",
+   "realisedSol": 26.190159739000002,
+   "traders": 1
+  },
+  {
+   "mint": "E3i7sTY5QYEBh3itepnomZQt7Eh5kzmHFk1vkm2pump",
+   "symbol": "CC",
+   "realisedSol": 26.15583159400001,
+   "traders": 4
+  },
+  {
+   "mint": "5HpugCZjCGofZT9fHwjhoZvjFKhXytH89J3S9JB5pump",
+   "symbol": "JOKING",
+   "realisedSol": 18.678679971,
+   "traders": 2
+  },
+  {
+   "mint": "3J8CiLKNMJfqoxnprJVsz2SmdZdrqZdhzNu27BB5pump",
+   "symbol": "NILO",
+   "realisedSol": 17.101385046,
+   "traders": 2
+  },
+  {
+   "mint": "AKnrrFCyZxoZnN2ZdXTKjA3mG8wiBHpQGQFFq2wFpump",
+   "symbol": "ANTS",
+   "realisedSol": 15.755444661999997,
+   "traders": 1
+  },
+  {
+   "mint": "Dz2iVSLXFp7dXowD1nybWyCXuUcpV7cBZu68YPV5pump",
+   "symbol": "SHEEP",
+   "realisedSol": 15.103340940999999,
+   "traders": 1
+  },
+  {
+   "mint": "xnHXrDS8PVeoPc2bZjrL66YvJF35UQqV4GqFhT1pump",
+   "symbol": "SOCK",
+   "realisedSol": 13.785590708,
+   "traders": 1
+  },
+  {
+   "mint": "GPzpoXpD74E2C4CJNayuoyBqPQJEsPtdse3nhntrpump",
+   "symbol": "LOOKSMAX",
+   "realisedSol": 12.486122067,
+   "traders": 1
+  },
+  {
+   "mint": "BwVcV7vYpA1aobyhG7XGAG1ow6FtZBAj3fSMFLgWpump",
+   "symbol": "GREG",
+   "realisedSol": 12.183667920999996,
+   "traders": 2
+  }
+ ],
  "sources": [
   {
    "name": "Dexscreener",
@@ -986,7 +1072,7 @@
   {
    "name": "Birdeye ranked discovery",
    "ok": true,
-   "detail": "514 tokens ranked by 24h volume; 119 cleared the motion gate"
+   "detail": "516 tokens ranked by 24h volume; 116 cleared the motion gate"
   },
   {
    "name": "On-chain launch collector",
@@ -1000,23 +1086,23 @@
   },
   {
    "name": "Helius",
-   "ok": false,
-   "detail": "partial: 219/219 token enrichments unavailable"
+   "ok": true,
+   "detail": "batched authority cross-check available"
   },
   {
    "name": "Social verification",
    "ok": false,
-   "detail": "0/139 linked X accounts resolved; 122 unavailable"
+   "detail": "0/137 linked X accounts resolved; 120 unavailable"
   },
   {
    "name": "Holder snapshots",
    "ok": false,
-   "detail": "0/2 watchlist tokens captured; wallet-history calls 2"
+   "detail": "1/2 watchlist tokens captured; wallet-history calls 70"
   },
   {
    "name": "KOL wallet flow",
    "ok": true,
-   "detail": "66/66 wallets scanned; activity in 0 mints"
+   "detail": "66/66 wallets scanned; activity in 396 mints"
   },
   {
    "name": "X monitored accounts",
@@ -1026,12 +1112,12 @@
   {
    "name": "24h market-indexed launches",
    "ok": false,
-   "detail": "95 launches resolved to market data; 34 raw Pump.fun creates stored"
+   "detail": "94 launches resolved to market data; 34 raw Pump.fun creates stored"
   },
   {
    "name": "Jupiter exit liquidity",
-   "ok": false,
-   "detail": "0/8 featured tokens quoted below 5% impact"
+   "ok": true,
+   "detail": "8/8 featured tokens quoted below 5% impact"
   },
   {
    "name": "SOL market context",
