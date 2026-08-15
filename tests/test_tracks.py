@@ -570,3 +570,79 @@ def test_a_real_run_backed_by_volume_is_kept(tmp_path):
     assert not implausible_run(_fake("FOMO", 6988.0, 8.15, 380_000.0), settings)
     # A modest mover well under the corroboration threshold is untouched.
     assert not implausible_run(_fake("MILD", 60.0, 0.05), settings)
+
+
+def _tape(symbol, *, mcap, vol24, vol6, liq, trades6, buys6, boosts=0, reuse=0):
+    """A candidate shaped from one row of a real report."""
+    from brief.models import Candidate, Enrichment, SafetyReport, Signals, TokenSnapshot, TransactionWindow
+    sells = max(0, trades6 - buys6)
+    token = TokenSnapshot(
+        mint="MINT" + symbol, symbol=symbol, name=symbol, chain_id="solana", pair_address="P",
+        url="", price_usd=1.0, market_cap=mcap, liquidity_usd=liq, volume_24h=vol24,
+        volume_6h=vol6, price_change_24h=500.0, price_change_6h=100.0,
+        pair_created_at=NOW - timedelta(hours=12), active_boosts=boosts,
+        txns_6h=TransactionWindow(buys6, sells),
+    )
+    signals = Signals(
+        turnover=vol24 / mcap if mcap else 0, acceleration=0, buy_imbalance_1h=None,
+        buy_imbalance_6h=(buys6 / trades6 if trades6 else None), liquidity_depth=liq / mcap,
+        holder_growth_24h=None, maker_quality=None, age_hours=12.0,
+    )
+    c = Candidate(token=token, signals=signals, safety=SafetyReport("m"), enrichment=Enrichment())
+    c.recycled_label_count = reuse
+    return c
+
+
+def test_wash_traded_pool_is_removed(tmp_path):
+    """$SPCX traded $42M against a $35k pool: 1,192x its own liquidity."""
+    from brief.journal import inorganic_reasons
+
+    settings = build_settings(tmp_path / "org1")
+    reasons = inorganic_reasons(
+        _tape("SPCX", mcap=945_000, vol24=42_263_000, vol6=10_000_000, liq=35_000,
+              trades6=19_273, buys6=10_600), settings)
+    assert any("wash-trading shape" in r for r in reasons)
+
+
+def test_bot_cadence_is_removed(tmp_path):
+    """$ONYX printed 47,977 trades in six hours, which is 133 a minute."""
+    from brief.journal import inorganic_reasons
+
+    settings = build_settings(tmp_path / "org2")
+    reasons = inorganic_reasons(
+        _tape("ONYX", mcap=165_000, vol24=38_564_000, vol6=9_000_000, liq=264_000,
+              trades6=47_977, buys6=25_400), settings)
+    assert any("trades a minute" in r for r in reasons)
+    assert any("market cap traded" in r for r in reasons)
+
+
+def test_bought_attention_and_recycled_tickers_are_removed(tmp_path):
+    """The client asked for original tickers and organic interest."""
+    from brief.journal import inorganic_reasons
+
+    settings = build_settings(tmp_path / "org3")
+    reasons = inorganic_reasons(
+        _tape("BABYANSEM", mcap=518_000, vol24=503_000, vol6=150_000, liq=54_000,
+              trades6=10_363, buys6=6_200, boosts=30, reuse=2), settings)
+    assert any("paid boost" in r for r in reasons)
+    assert any("not an original ticker" in r for r in reasons)
+
+
+def test_a_book_with_no_sellers_is_removed(tmp_path):
+    from brief.journal import inorganic_reasons
+
+    settings = build_settings(tmp_path / "org4")
+    reasons = inorganic_reasons(
+        _tape("GBACK", mcap=299_000, vol24=208_000, vol6=60_000, liq=39_000,
+              trades6=1_647, buys6=1_416), settings)
+    assert any("manufactured book" in r for r in reasons)
+
+
+def test_a_genuine_runner_survives_every_organic_check(tmp_path):
+    """$FOMO: real volume, human cadence, two-sided book, original ticker."""
+    from brief.journal import inorganic_reasons
+
+    settings = build_settings(tmp_path / "org5")
+    assert inorganic_reasons(
+        _tape("FOMO", mcap=380_000, vol24=3_098_000, vol6=900_000, liq=83_000,
+              trades6=2_467, buys6=1_233), settings) == []

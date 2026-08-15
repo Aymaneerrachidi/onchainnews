@@ -21,6 +21,17 @@ Only conditions that make a coin uninvestable at any price remove it from the re
 - bundled supply, meaning the top 10 circulating wallets hold more than 50%
 - a manufactured tape, meaning many trades from very few wallets
 
+A second gate removes coins whose market is manufactured rather than bought. These are not rugs — the coin may be perfectly safe to hold — but they are not a record of what the market did, and putting one on a broadcast costs more credibility than leaving the slot empty:
+
+- volume above 150x the pool's own depth, or above 30x market cap, in 24 hours
+- more than 40 trades a minute, which is machine cadence rather than a crowd
+- an average trade under $15, which is dust rather than demand
+- a ticker any other recent mint has already used
+- paid boosts: attention that was bought instead of earned
+- a book that is 85% buys across 300+ trades, which has no sellers in it
+
+On a live day this cut the record from sixteen coins to eight. It removed one pool that traded 1,192x its own liquidity, one printing 133 trades a minute, three recycled tickers and one with thirty bought boosts.
+
 Everything softer becomes a label: elevated concentration, a thin pool, paid boosts, a reused ticker, no linked socials, a very young pair, or a **fade** — up strongly on the day but down more than 15% in the last hour. That last one is the coin that hit an all-time high and gave it back, which the 24-hour number alone hides.
 
 Runners are grouped by **shared lore**: Dexscreener's trending metas first, then a shared significant word in the name, which is how copycats of one story cluster. A lore that has already produced recent mints is flagged rather than presented as original.

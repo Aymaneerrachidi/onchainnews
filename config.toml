@@ -219,6 +219,18 @@ max_credible_multiple = 1000.0
 corroborate_above_multiple = 10.0
 min_turnover_for_big_run = 0.15
 
+# Organic-market gate. A coin can be perfectly safe to hold and still be a bot
+# trading with itself, a bought trend slot, or the ninth mint wearing a ticker
+# that worked once. These remove it from the record rather than label it.
+max_volume_liquidity = 150.0      # 24h volume against pool depth
+max_turnover = 30.0               # 24h volume against market cap
+max_trades_per_minute = 40.0      # six-hour tape divided by 360
+min_average_trade_usd = 15.0      # dust prints are spam, not demand
+max_ticker_reuse = 0              # the client asked for original tickers only
+max_paid_boosts = 0               # bought attention is not a market signal
+max_buy_ratio = 0.85              # a book with no sellers is manufactured
+one_sided_min_trades = 300
+
 # Disqualifying: a top 10 this large means the supply was never distributed.
 bundle_top10_pct = 50.0
 # Not disqualifying, shown on the row.

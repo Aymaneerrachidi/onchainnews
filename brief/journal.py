@@ -105,6 +105,63 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     return reasons
 
 
+def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
+    """Signs the move was manufactured rather than bought by a crowd.
+
+    A rug takes money from holders; this is a different failure. The coin may be
+    perfectly safe to hold and still be a machine trading with itself, a bought
+    trend slot, or the ninth mint to wear a ticker that worked once. None of
+    those belong in a record of what the market actually did, and putting one on
+    a broadcast costs more credibility than leaving the slot empty.
+    """
+    section = settings.section("journal")
+    token = candidate.token
+    signal = candidate.signals
+    reasons: list[str] = []
+
+    ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else float("inf")
+    max_ratio = float(section.get("max_volume_liquidity", 150))
+    if ratio > max_ratio:
+        reasons.append(f"wash-trading shape: {ratio:,.0f}x its own liquidity traded in 24h")
+
+    max_turnover = float(section.get("max_turnover", 30))
+    if signal.turnover > max_turnover:
+        reasons.append(f"{signal.turnover:,.0f}x its market cap traded in 24h")
+
+    # The six-hour transaction window is 360 minutes.
+    per_minute = token.txns_6h.total / 360 if token.txns_6h.total else 0
+    max_per_minute = float(section.get("max_trades_per_minute", 40))
+    if per_minute > max_per_minute:
+        reasons.append(f"{per_minute:.0f} trades a minute is machine cadence, not a crowd")
+
+    min_trade = float(section.get("min_average_trade_usd", 15))
+    if token.txns_6h.total >= 200 and token.volume_6h:
+        average = token.volume_6h / token.txns_6h.total
+        if average < min_trade:
+            reasons.append(f"average trade is ${average:,.2f}, which is spam rather than demand")
+
+    max_reuse = int(section.get("max_ticker_reuse", 0))
+    if candidate.recycled_label_count > max_reuse:
+        reasons.append(
+            f"not an original ticker: {candidate.recycled_label_count} other recent mint(s) used it"
+        )
+
+    max_boosts = int(section.get("max_paid_boosts", 0))
+    if token.active_boosts > max_boosts:
+        reasons.append(f"{token.active_boosts} paid boost(s): the attention was bought, not earned")
+
+    max_buys = float(section.get("max_buy_ratio", 0.85))
+    if (
+        signal.buy_imbalance_6h is not None
+        and token.txns_6h.total >= int(section.get("one_sided_min_trades", 300))
+        and signal.buy_imbalance_6h >= max_buys
+    ):
+        reasons.append(
+            f"{signal.buy_imbalance_6h:.0%} of trades are buys, which is a manufactured book"
+        )
+    return reasons
+
+
 def faded_from_peak(token: TokenSnapshot) -> float | None:
     """Detect the ran-then-dumped shape: strongly up on the day, down right now.
 
@@ -136,10 +193,6 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
     ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else float("inf")
     if ratio > float(section.get("thin_liquidity_ratio", 60)):
         labels.append(f"thin pool, {ratio:.0f}x its liquidity traded")
-    if token.active_boosts:
-        labels.append(f"{token.active_boosts} paid boost(s)")
-    if candidate.recycled_label_count:
-        labels.append(f"ticker reused by {candidate.recycled_label_count} other recent mint(s)")
     if not token.socials:
         labels.append("no linked socials")
     if candidate.enrichment.social_resolves is False:
@@ -240,7 +293,7 @@ def build_journal(
             continue
         candidate.run_multiple = run_multiple(candidate.token)
         candidate.faded_from_peak = faded_from_peak(candidate.token)
-        disqualifying = rug_or_bundle(candidate, settings)
+        disqualifying = rug_or_bundle(candidate, settings) + inorganic_reasons(candidate, settings)
         if disqualifying:
             candidate.risk_labels = disqualifying
             blocked.append(candidate)
