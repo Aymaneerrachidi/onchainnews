@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Overlay Control</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+  Runs as an OBS Custom Browser Dock, beside his scenes.
+
+  Docks and browser sources share one CEF process and one origin inside OBS, so
+  localStorage is shared between them. That is the whole transport: the dock
+  writes the chosen coin, the overlay reads it. No server, no account, no
+  latency, and it keeps working with the internet down.
+*/
+:root{
+  --bg:#14161a;--panel:#1c2027;--line:#2c323b;--ink:#e9e7df;--muted:#8b9199;
+  --red:#e0201f;--green:#2fa060;
+  --display:"Archivo Black",Impact,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;
+  padding:10px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+h1{font-family:var(--display);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+h1 span{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em}
+.row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+button{font:inherit;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  padding:8px 10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  cursor:pointer;flex:1;min-width:64px}
+button:hover{border-color:#4a525d}
+button.on{background:var(--red);border-color:var(--red);color:#fff}
+button.live{background:var(--green);border-color:var(--green);color:#fff}
+.coins{display:flex;flex-direction:column;gap:4px;max-height:calc(100vh - 190px);overflow:auto}
+.coin{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+  padding:9px 10px;border:1px solid var(--line);background:var(--panel);cursor:pointer;text-align:left}
+.coin:hover{border-color:#4a525d}
+.coin.sel{border-color:var(--red);background:#2a1618}
+.coin b{font-size:14px;font-weight:700}
+.coin em{font-style:normal;font-family:var(--display);color:var(--green);font-size:13px}
+.coin i{font-style:normal;font-size:10px;color:var(--muted)}
+.coin .kol{background:var(--red);color:#fff;font-size:9px;padding:1px 4px}
+.foot{margin-top:9px;font-size:10px;color:var(--muted);line-height:1.5}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px}
+.dot.off{background:var(--muted)}
+</style>
+</head>
+<body>
+
+<h1>Overlay control <span id="stamp">—</span></h1>
+
+<div class="row">
+  <button id="show" class="live">On air</button>
+  <button id="hide">Hide</button>
+</div>
+<div class="row">
+  <button id="prev">◀ Prev</button>
+  <button id="next">Next ▶</button>
+  <button id="random">Random</button>
+  <button id="auto">Auto</button>
+</div>
+
+<div class="coins" id="coins"></div>
+
+<p class="foot">
+  <span class="dot" id="live"></span><span id="status">Loading…</span><br>
+  Click a coin to put it on screen. <b>Auto</b> cycles every 10s.
+  <b>Hide</b> clears every overlay without touching your scene.
+</p>
+
+<script>
+"use strict";
+const KEY = "onchain-overlay-state";
+const $ = (s) => document.querySelector(s);
+let coins = [];
+let state = { coin: null, visible: true, rotate: 0, updated: 0 };
+
+function push() {
+  state.updated = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+  // Same-process listeners get it immediately; the storage event does not fire
+  // in the tab that wrote it, so the overlay also polls as a safety net.
+  try { new BroadcastChannel(KEY).postMessage(state); } catch {}
+  paint();
+}
+
+function paint() {
+  $("#show").classList.toggle("live", state.visible);
+  $("#hide").classList.toggle("on", !state.visible);
+  $("#auto").classList.toggle("on", state.rotate > 0);
+  [...document.querySelectorAll(".coin")].forEach((el) => {
+    el.classList.toggle("sel", el.dataset.symbol === state.coin);
+  });
+  $("#status").textContent = state.visible
+    ? (state.rotate ? "Auto-cycling every 10s" : `Showing $${state.coin || "top runner"}`)
+    : "Overlays hidden";
+  $("#live").classList.toggle("off", !state.visible);
+}
+
+function select(symbol) {
+  state.coin = symbol;
+  state.rotate = 0;
+  state.visible = true;
+  push();
+}
+
+function step(delta) {
+  if (!coins.length) return;
+  const i = coins.findIndex((c) => c.symbol === state.coin);
+  const next = (((i < 0 ? 0 : i + delta) % coins.length) + coins.length) % coins.length;
+  select(coins[next].symbol);
+}
+
+$("#show").onclick = () => { state.visible = true; push(); };
+$("#hide").onclick = () => { state.visible = false; push(); };
+$("#next").onclick = () => step(1);
+$("#prev").onclick = () => step(-1);
+$("#random").onclick = () => {
+  if (!coins.length) return;
+  const pool = coins.filter((c) => c.symbol !== state.coin);
+  select((pool.length ? pool : coins)[Math.floor(Math.random() * (pool.length || coins.length))].symbol);
+};
+$("#auto").onclick = () => {
+  state.rotate = state.rotate > 0 ? 0 : 10;
+  state.visible = true;
+  push();
+};
+
+async function load() {
+  try {
+    const res = await fetch("data/latest.json?t=" + Date.now(), { cache: "no-store" });
+    const data = await res.json();
+    coins = (data.runners || []).slice().sort((a, b) => b.runMultiple - a.runMultiple);
+    $("#stamp").textContent = new Date(data.generatedAt)
+      .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    $("#coins").innerHTML = coins.map((c) => {
+      const n = (c.kolBuyers || []).length;
+      const size = c.runMultiple >= 2 ? c.runMultiple.toFixed(1) + "x"
+        : (c.change24h >= 0 ? "+" : "") + Math.round(c.change24h) + "%";
+      return `<button class="coin" data-symbol="${c.symbol}">
+        <span><b>$${c.symbol}</b> <i>${(c.riskLabels || []).length ? "⚑ " + c.riskLabels.length : ""}</i></span>
+        ${n ? `<span class="kol">${n} KOL</span>` : "<span></span>"}
+        <em>${size}</em></button>`;
+    }).join("") || '<p class="foot">Nothing ran today.</p>';
+    [...document.querySelectorAll(".coin")].forEach((el) => {
+      el.onclick = () => select(el.dataset.symbol);
+    });
+    paint();
+  } catch {
+    $("#status").textContent = "Could not load today's coins";
+  }
+}
+
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (saved) state = { ...state, ...saved };
+} catch {}
+load();
+setInterval(load, 5 * 60 * 1000);
+paint();
+</script>
+</body>
+</html>

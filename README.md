@@ -236,7 +236,36 @@ toggle its visibility.
 | `/overlay?mode=lower3` | Lower third while talking about one name |
 
 Extra parameters: `coin=BOT` pins a symbol, `rotate=8` cycles every 8 seconds,
-`side=left` moves the card or board, `refresh=30` sets the live price interval.
+`side=left` moves the card or board, `at=tl|tr|bl|br` pins it to a corner,
+`refresh=30` sets the live price interval, `nocontrol=1` opts a source out of the dock.
+
+### Driving it live
+
+`/control` is a **Custom Browser Dock** (View → Docks → Custom Browser Docks). It
+lists the day's coins and puts whichever he clicks on screen, with prev/next,
+random, a 10-second auto-cycle, and a hide that clears every overlay at once
+without touching his scene.
+
+Docks and browser sources share one origin inside OBS, so the dock writes the
+state to `localStorage` and the overlays read it. No server, no account, no
+latency, and it keeps working with the internet down. Each source keeps its own
+mode from its own URL, so the dock never fights a scene: it only decides which
+coin is up and whether anything shows.
+
+Storage events are not delivered in every context OBS runs these in, so the
+overlay also polls the key twice a second. That is imperceptible and never
+misses a click.
+
+### The two scenes
+
+His camera scene has him centre-right, so the panel goes left. His trading scene
+is a terminal with the camera bottom-left and content everywhere else, so the
+panel tucks into a corner and is shown only for the segment.
+
+| Scene | Suggested source |
+| --- | --- |
+| Camera | `/overlay?mode=card&at=tl` and `/overlay?mode=ticker` |
+| Trading | `/overlay?mode=lower3` or `/overlay?mode=card&at=br` |
 
 In OBS: **Sources → + → Browser**, paste the URL, set width and height to the
 canvas size, and tick *Shutdown source when not visible* and *Refresh browser

@@ -58,6 +58,12 @@ body{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;
 .card{position:absolute;right:calc(56*var(--u));top:calc(120*var(--u));
   width:calc(560*var(--u));background:var(--paper);box-shadow:var(--shadow);
   border:calc(3*var(--u)) solid var(--ink)}
+/* Scene presets. Chatting has him centre-right, so the panel goes left; the
+   trading terminal fills the middle, so it tucks into a corner instead. */
+.at-tl{top:calc(60*var(--u))!important;bottom:auto!important;left:calc(48*var(--u))!important;right:auto!important}
+.at-tr{top:calc(60*var(--u))!important;bottom:auto!important;right:calc(48*var(--u))!important;left:auto!important}
+.at-bl{bottom:calc(110*var(--u))!important;top:auto!important;left:calc(48*var(--u))!important;right:auto!important}
+.at-br{bottom:calc(110*var(--u))!important;top:auto!important;right:calc(48*var(--u))!important;left:auto!important}
 .card .top{display:flex;justify-content:space-between;align-items:center;
   background:var(--ink);color:var(--paper);padding:calc(12*var(--u)) calc(18*var(--u))}
 .card .top span{font-size:calc(13*var(--u));letter-spacing:.18em;text-transform:uppercase;color:#a9a69c}
@@ -166,6 +172,13 @@ body{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;
      &max=8               rows on the board
      &refresh=30          seconds between live price refreshes
      &side=left|right     which side the card/board sits on
+     &at=tl|tr|bl|br      corner for the card/board, overrides side
+     &nocontrol=1         ignore the OBS control dock for this source
+
+   The control dock (control.html) drives which coin is on screen and whether
+   anything shows at all. Docks and browser sources share one origin inside OBS,
+   so localStorage carries the state between them with no server involved. Each
+   source keeps its own mode from its own URL, so the dock never fights a scene.
 -------------------------------------------------------------------------- */
 const P = new URLSearchParams(location.search);
 const MODE = (P.get("mode") || "ticker").toLowerCase();
@@ -174,10 +187,16 @@ const ROTATE = Math.max(0, parseFloat(P.get("rotate") || "0")) * 1000;
 const MAX = parseInt(P.get("max") || "8", 10);
 const REFRESH = Math.max(10, parseFloat(P.get("refresh") || "30")) * 1000;
 const SIDE = (P.get("side") || "right").toLowerCase();
+const AT = (P.get("at") || "").toLowerCase();
+const NOCONTROL = P.get("nocontrol") === "1";
+const STATE_KEY = "onchain-overlay-state";
 const stage = document.getElementById("stage");
 
 let RUNNERS = [];
 let idx = 0;
+// Set by the control dock: which coin he wants up, and whether to show anything.
+let control = { coin: null, visible: true, rotate: 0 };
+let rotateTimer = null;
 
 /* ---------- formatting ---------- */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -249,7 +268,7 @@ function card(r) {
     : "";
   const pos = SIDE === "left"
     ? `left:calc(56*var(--u));right:auto` : `right:calc(56*var(--u));left:auto`;
-  return `<div class="card enter" style="${pos}">
+  return `<div class="card enter ${AT ? "at-" + AT : ""}" style="${pos}">
     <div class="top">${st ? `<span class="stamp">${st}</span>` : `<span>Ran today</span>`}<b>ONCHAIN NEWS</b></div>
     <div class="id">
       <div><div class="sym ${r.symbol.length > 11 ? "xlong" : r.symbol.length > 7 ? "long" : ""}">$${esc(r.symbol)}</div><div class="nm">${esc(r.name)}</div></div>
@@ -301,7 +320,7 @@ function board(list) {
   }).join("");
   const pos = SIDE === "left"
     ? `left:calc(48*var(--u));right:auto` : `right:calc(48*var(--u));left:auto`;
-  return `<div class="board enter" style="${pos}">
+  return `<div class="board enter ${AT ? "at-" + AT : ""}" style="${pos}">
     <div class="bh"><b>Ran Today</b><span><i class="live"></i> ${list.length} COINS</span></div>
     <ol>${rows}</ol>
   </div>`;
@@ -310,15 +329,17 @@ function board(list) {
 /* ---------- paint ---------- */
 function pick() {
   if (!RUNNERS.length) return null;
-  if (PIN) {
-    const hit = RUNNERS.find((r) => r.symbol.toUpperCase() === PIN);
+  // The dock wins over the URL: the URL sets the scene up, he steers it live.
+  const wanted = control.coin || PIN;
+  if (wanted) {
+    const hit = RUNNERS.find((r) => r.symbol.toUpperCase() === String(wanted).toUpperCase());
     if (hit) return hit;
   }
   return RUNNERS[idx % RUNNERS.length];
 }
 
 function paint() {
-  if (!RUNNERS.length) { stage.innerHTML = ""; return; }
+  if (!RUNNERS.length || !control.visible) { stage.innerHTML = ""; return; }
   const one = pick();
   if (MODE === "ticker") stage.innerHTML = ticker(RUNNERS);
   else if (MODE === "board") stage.innerHTML = board(RUNNERS);
@@ -384,10 +405,50 @@ async function refreshPrices() {
   } catch { /* keep the last good numbers on screen */ }
 }
 
+/* The control dock writes to localStorage from another OBS browser context.
+   Storage events are not delivered everywhere OBS runs these, so the state is
+   also polled: twice a second is imperceptible and never misses a click. */
+function applyControl(next) {
+  if (!next || NOCONTROL) return;
+  const changed =
+    next.coin !== control.coin ||
+    next.visible !== control.visible ||
+    next.rotate !== control.rotate;
+  control = { coin: next.coin ?? null, visible: next.visible !== false, rotate: next.rotate || 0 };
+  if (!changed) return;
+  setRotation(control.rotate ? control.rotate * 1000 : ROTATE);
+  paint();
+}
+
+function readControl() {
+  if (NOCONTROL) return;
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (raw) applyControl(JSON.parse(raw));
+  } catch { /* no dock in this context */ }
+}
+
+function setRotation(ms) {
+  if (rotateTimer) clearInterval(rotateTimer);
+  rotateTimer = null;
+  if (ms > 0) rotateTimer = setInterval(() => { idx++; paint(); }, ms);
+}
+
+try {
+  new BroadcastChannel(STATE_KEY).onmessage = (event) => applyControl(event.data);
+} catch { /* older runtime; the poll below covers it */ }
+window.addEventListener("storage", (event) => {
+  if (event.key === STATE_KEY && event.newValue) {
+    try { applyControl(JSON.parse(event.newValue)); } catch {}
+  }
+});
+
+readControl();
 loadSnapshot();
-setInterval(loadSnapshot, 10 * 60 * 1000);   // new daily snapshot, if published
+setRotation(ROTATE);
+setInterval(readControl, 500);                // dock state
+setInterval(loadSnapshot, 10 * 60 * 1000);    // new daily snapshot, if published
 setInterval(refreshPrices, REFRESH);          // live prices during the stream
-if (ROTATE) setInterval(() => { idx++; paint(); }, ROTATE);
 </script>
 </body>
 </html>

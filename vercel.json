@@ -30,6 +30,10 @@
     {
       "source": "/overlay",
       "destination": "/overlay.html"
+    },
+    {
+      "source": "/control",
+      "destination": "/control.html"
     }
   ]
 }
