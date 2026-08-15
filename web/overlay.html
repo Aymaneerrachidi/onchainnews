@@ -62,12 +62,15 @@ body{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;
   background:var(--ink);color:var(--paper);padding:calc(12*var(--u)) calc(18*var(--u))}
 .card .top span{font-size:calc(13*var(--u));letter-spacing:.18em;text-transform:uppercase;color:#a9a69c}
 .card .top b{font-family:var(--display);color:var(--red);font-size:calc(18*var(--u));letter-spacing:.06em}
-.card .id{display:flex;justify-content:space-between;align-items:flex-end;gap:calc(16*var(--u));
+.card .id{display:flex;justify-content:space-between;align-items:flex-end;gap:calc(20*var(--u));
   padding:calc(18*var(--u));border-bottom:calc(2*var(--u)) solid var(--line)}
-.card .sym{font-family:var(--display);font-size:calc(58*var(--u));line-height:.9;letter-spacing:-.02em}
+.card .id>div:first-child{min-width:0}
+.card .sym{font-family:var(--display);font-size:calc(58*var(--u));line-height:.9;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .sym.long{font-size:calc(40*var(--u))}
+.card .sym.xlong{font-size:calc(31*var(--u))}
 .card .nm{font-size:calc(16*var(--u));color:var(--muted);margin-top:calc(6*var(--u));
   max-width:calc(300*var(--u));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card .mult{font-family:var(--display);font-size:calc(56*var(--u));line-height:.9;text-align:right}
+.card .mult{font-family:var(--display);font-size:calc(56*var(--u));line-height:.9;text-align:right;flex:none;white-space:nowrap}
 .card .mult small{display:block;font-family:var(--mono);font-size:calc(13*var(--u));
   letter-spacing:.16em;color:var(--muted);margin-top:calc(6*var(--u))}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:calc(2*var(--u)) solid var(--line)}
@@ -249,7 +252,7 @@ function card(r) {
   return `<div class="card enter" style="${pos}">
     <div class="top">${st ? `<span class="stamp">${st}</span>` : `<span>Ran today</span>`}<b>ONCHAIN NEWS</b></div>
     <div class="id">
-      <div><div class="sym">$${esc(r.symbol)}</div><div class="nm">${esc(r.name)}</div></div>
+      <div><div class="sym ${r.symbol.length > 11 ? "xlong" : r.symbol.length > 7 ? "long" : ""}">$${esc(r.symbol)}</div><div class="nm">${esc(r.name)}</div></div>
       <div class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}<small>24 HOURS</small></div>
     </div>
     <div class="grid">
