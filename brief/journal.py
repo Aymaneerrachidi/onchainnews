@@ -61,6 +61,10 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     token = candidate.token
     age = _age_hours(token, now)
 
+    venues = [str(v).strip().lower() for v in section.get("venues", []) if str(v).strip()]
+    if venues and token.dex_id.lower() not in venues:
+        return False
+
     if token.volume_24h < float(section.get("min_volume_24h", 50_000)):
         return False
     if implausible_run(candidate, settings):
@@ -131,17 +135,19 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
     if signal.turnover > max_turnover:
         reasons.append(f"{signal.turnover:,.0f}x its market cap traded in 24h")
 
-    # The six-hour transaction window is 360 minutes.
+    # Cadence alone says nothing: a normal hot launch prints hundreds of trades
+    # a minute, and every coin an earlier cadence rule rejected turned out to
+    # have a larger average trade than a reference the client vouched for. Speed
+    # is what a crowd looks like. A bot looks like dust -- many prints with
+    # almost no money behind them -- so the two are only damning together.
     per_minute = token.txns_6h.total / 360 if token.txns_6h.total else 0
-    max_per_minute = float(section.get("max_trades_per_minute", 40))
-    if per_minute > max_per_minute:
-        reasons.append(f"{per_minute:.0f} trades a minute is machine cadence, not a crowd")
-
     min_trade = float(section.get("min_average_trade_usd", 15))
-    if token.txns_6h.total >= 200 and token.volume_6h:
-        average = token.volume_6h / token.txns_6h.total
-        if average < min_trade:
-            reasons.append(f"average trade is ${average:,.2f}, which is spam rather than demand")
+    average = token.volume_6h / token.txns_6h.total if token.txns_6h.total and token.volume_6h else None
+    if average is not None and token.txns_6h.total >= 200 and average < min_trade:
+        reasons.append(
+            f"average trade is ${average:,.2f} across {per_minute:.0f} trades a minute, "
+            "which is spam rather than demand"
+        )
 
     min_holders = int(section.get("min_holders", 200))
     holders = candidate.safety.holder_count

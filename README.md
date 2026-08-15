@@ -29,13 +29,16 @@ Only conditions that make a coin uninvestable at any price remove it from the re
 A second gate removes coins whose market is manufactured rather than bought, or whose move is already over. These are not all rugs — some are perfectly safe to hold — but none of them is a record of what the market did, and one on a broadcast costs more credibility than an empty slot:
 
 - volume above 150x the pool's own depth, or above 30x market cap, in 24 hours
-- more than 40 trades a minute, which is machine cadence rather than a crowd
 - an average trade under $15, which is dust rather than demand
 - fewer than 200 holders, which is not a distribution yet
 - fewer than 300 trades in 24 hours, which is not a tape
 - a book that is 85% buys across 300+ trades, which has no sellers in it
 - **the pump-and-die shape**: a large printed gain with under 8% of the day's volume in the last six hours, meaning the move finished hours ago
 - RugCheck's own `rugged` verdict, or a top 10 holding more than half the supply
+
+Trade *speed* is deliberately not one of these tests. An earlier rule rejected anything above forty trades a minute; measured against a coin the client confirmed was normal, a hot launch runs 219 trades a minute over the hour and 428 over five minutes, and every coin the rule rejected turned out to trade larger size than that reference. One of them had 13,158 holders. Speed is what a crowd looks like; a bot looks like dust, so only the average trade size decides.
+
+`[journal].venues` limits the record to chosen venues, `["pumpswap"]` by default. Note that pump.fun coins do not all end up there: on a measured day the biggest runner had migrated to Raydium, so this silently drops names. Empty the list to cover every venue.
 
 A reused ticker and a paid Dexscreener boost are both shown on the row rather than treated as disqualifying. A boost is that company's advertising product, bought by honest teams; a shared ticker is common enough that rejecting every one of them threw away real runners.
 

@@ -230,11 +230,17 @@ min_turnover_for_big_run = 0.15
 # that worked once. These remove it from the record rather than label it.
 max_volume_liquidity = 150.0      # 24h volume against pool depth
 max_turnover = 30.0               # 24h volume against market cap
-max_trades_per_minute = 40.0      # six-hour tape divided by 360
+# Cadence was measured against a coin the client confirmed was normal: it ran
+# 219 trades a minute over the hour. Speed is a crowd. Dust is a bot, so only
+# the average trade size decides.
 min_average_trade_usd = 15.0      # dust prints are spam, not demand
 # A reused ticker is shown on the row, not treated as disqualifying: plenty of
 # real coins share a name with something forgettable. Boosts are Dexscreener's
 # advertising product and honest teams buy them, so they are not a signal either.
+# Venues the record covers. Empty means every venue. Note that pump.fun coins
+# do not all end up on PumpSwap: on a measured day the biggest runner of the day
+# had migrated to Raydium, so listing PumpSwap alone silently drops it.
+venues = ["pumpswap"]
 min_holders = 200                 # a real distribution, not a handful of wallets
 min_trades_24h = 300              # a real tape, not a dozen prints
 # The insta-x-then-dead shape. An even day trades a quarter of its volume in the

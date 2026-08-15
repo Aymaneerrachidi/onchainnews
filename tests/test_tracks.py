@@ -604,16 +604,31 @@ def test_wash_traded_pool_is_removed(tmp_path):
     assert any("wash-trading shape" in r for r in reasons)
 
 
-def test_bot_cadence_is_removed(tmp_path):
-    """$ONYX printed 47,977 trades in six hours, which is 133 a minute."""
+def test_speed_alone_does_not_condemn_a_coin(tmp_path):
+    """A normal hot launch printed 219 trades a minute with a $47 average.
+
+    An earlier rule rejected anything above 40 a minute and threw away real
+    runners, every one of which traded larger size than that reference.
+    """
     from brief.journal import inorganic_reasons
 
-    settings = build_settings(tmp_path / "org2")
-    reasons = inorganic_reasons(
-        _tape("ONYX", mcap=165_000, vol24=38_564_000, vol6=9_000_000, liq=264_000,
-              trades6=47_977, buys6=25_400), settings)
-    assert any("trades a minute" in r for r in reasons)
-    assert any("market cap traded" in r for r in reasons)
+    settings = build_settings(tmp_path / "cadence")
+    # $GUNICORN: 284 trades a minute, but $89 of real money behind each one.
+    fast = _tape("GUNICORN", mcap=900_000, vol24=9_000_000, vol6=9_120_000, liq=74_000,
+                 trades6=102_240, buys6=52_140)
+    fast.token.txns_24h = fast.token.txns_6h
+    assert inorganic_reasons(fast, settings) == []
+
+
+def test_dust_at_speed_is_still_removed(tmp_path):
+    """Volume and cadence only damn a coin together: many prints, no money."""
+    from brief.journal import inorganic_reasons
+
+    settings = build_settings(tmp_path / "dust")
+    spam = _tape("SPAM", mcap=400_000, vol24=300_000, vol6=90_000, liq=50_000,
+                 trades6=30_000, buys6=15_400)
+    spam.token.txns_24h = spam.token.txns_6h
+    assert any("spam rather than demand" in r for r in inorganic_reasons(spam, settings))
 
 
 def test_neither_a_boost_nor_a_reused_ticker_removes_a_coin(tmp_path):
@@ -755,3 +770,26 @@ def test_silence_proves_nothing_when_the_scan_did_not_run(tmp_path):
     ran.run_multiple = 12.0
     ran.kol_wallets_scanned = 0
     assert not untouched_by_tracked_wallets(ran, settings)
+
+
+def test_only_configured_venues_enter_the_record(tmp_path):
+    """PumpSwap-only is a real preference, and it silently drops Raydium names."""
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "venue")
+    settings.values.setdefault("journal", {})["venues"] = ["pumpswap"]
+
+    coin = _tape("BROS", mcap=391_000, vol24=600_000, vol6=200_000, liq=60_000,
+                 trades6=1_600, buys6=850)
+    coin.token.price_change_24h = 1150.0
+    coin.token.pair_created_at = NOW - timedelta(hours=20)
+
+    coin.token.dex_id = "pumpswap"
+    assert belongs_in_journal(coin, settings, NOW)
+
+    # $FOMO, the biggest runner of a measured day, had migrated to Raydium.
+    coin.token.dex_id = "raydium"
+    assert not belongs_in_journal(coin, settings, NOW)
+
+    settings.values["journal"]["venues"] = []
+    assert belongs_in_journal(coin, settings, NOW), "empty list means every venue"
