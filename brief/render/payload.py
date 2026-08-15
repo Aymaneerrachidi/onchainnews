@@ -35,6 +35,7 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "buyRatio6h": signal.buy_imbalance_6h,
         "trades6h": token.txns_6h.total,
         "top10Pct": candidate.safety.top10_pct,
+        "holders": candidate.safety.holder_count,
         "lpLockedPct": candidate.safety.lp_locked_or_burned_pct,
         "riskLabels": candidate.risk_labels,
         "lore": candidate.lore,

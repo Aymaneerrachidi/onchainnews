@@ -12,7 +12,12 @@ from __future__ import annotations
 
 import logging
 
-import segno
+try:
+    import segno
+except ImportError:  # pragma: no cover - exercised by the guard below
+    # The QR is a convenience on one overlay. The daily report is the product,
+    # so a dependency problem degrades the code away rather than losing the run.
+    segno = None
 
 
 log = logging.getLogger("brief.qr")
@@ -39,7 +44,9 @@ def trade_url(template: str, mint: str, symbol: str) -> str:
 
 def qr_matrix(payload: str) -> list[str]:
     """Rows of "0"/"1" for the given text, or [] if it cannot be encoded."""
-    if not payload:
+    if not payload or segno is None:
+        if segno is None:
+            log.warning("segno_unavailable qr_codes_disabled")
         return []
     try:
         code = segno.make(payload, error=ERROR_CORRECTION, micro=False)

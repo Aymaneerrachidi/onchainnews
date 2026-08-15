@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Overlay Control</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700&display=swap" rel="stylesheet">
 <style>
 /*
   Runs as an OBS Custom Browser Dock, beside his scenes.
@@ -18,32 +17,35 @@
   latency, and it keeps working with the internet down.
 */
 :root{
-  --bg:#14161a;--panel:#1c2027;--line:#2c323b;--ink:#e9e7df;--muted:#8b9199;
-  --red:#e0201f;--green:#2fa060;
-  --display:"Archivo Black",Impact,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+  /* fomo brand: navy ground, blue actions, white type. */
+  --bg:#1A1640;--panel:#221D4B;--line:rgba(234,237,255,.14);--ink:#EAEDFF;--muted:#9C9BC4;
+  --red:#FF4A2E;--green:#516AF6;--blue-2:#4A36FF;
+  --display:"Aeonik","Switzer",ui-sans-serif,system-ui,sans-serif;
+  --mono:"Aeonik","Switzer",ui-sans-serif,system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;
   padding:10px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
-h1{font-family:var(--display);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+h1{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:-.01em;
   display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
 h1 span{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em}
 .row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
-button{font:inherit;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
-  padding:8px 10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
-  cursor:pointer;flex:1;min-width:64px}
+button{font:inherit;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+  padding:9px 10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  cursor:pointer;flex:1;min-width:64px;border-radius:8px}
 button:hover{border-color:#4a525d}
-button.on{background:var(--red);border-color:var(--red);color:#fff}
+button.on{background:var(--blue-2);border-color:var(--blue-2);color:#fff}
 button.live{background:var(--green);border-color:var(--green);color:#fff}
 .coins{display:flex;flex-direction:column;gap:4px;max-height:calc(100vh - 190px);overflow:auto}
 .coin{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
-  padding:9px 10px;border:1px solid var(--line);background:var(--panel);cursor:pointer;text-align:left}
+  padding:10px 12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;
+  text-align:left;border-radius:10px}
 .coin:hover{border-color:#4a525d}
-.coin.sel{border-color:var(--red);background:#2a1618}
+.coin.sel{border-color:var(--green);background:#2C2760}
 .coin b{font-size:14px;font-weight:700}
-.coin em{font-style:normal;font-family:var(--display);color:var(--green);font-size:13px}
+.coin em{font-style:normal;font-weight:700;color:var(--ink);font-size:14px}
 .coin i{font-style:normal;font-size:10px;color:var(--muted)}
-.coin .kol{background:var(--red);color:#fff;font-size:9px;padding:1px 4px}
+.coin .kol{background:var(--blue-2);color:#fff;font-size:9px;padding:2px 6px;border-radius:5px}
 .foot{margin-top:9px;font-size:10px;color:var(--muted);line-height:1.5}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px}
 .dot.off{background:var(--muted)}
@@ -51,7 +53,7 @@ button.live{background:var(--green);border-color:var(--green);color:#fff}
 </head>
 <body>
 
-<h1>Overlay control <span id="stamp">—</span></h1>
+<h1>fomo overlay <span id="stamp">—</span></h1>
 
 <div class="row">
   <button id="show" class="live">On air</button>

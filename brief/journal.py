@@ -239,8 +239,6 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
         labels.append(f"thin pool, {ratio:.0f}x its liquidity traded")
     if candidate.recycled_label_count:
         labels.append(f"ticker also used by {candidate.recycled_label_count} other recent mint(s)")
-    if candidate.safety.holder_count is not None:
-        labels.append(f"{candidate.safety.holder_count:,} holders")
     if not token.socials:
         labels.append("no linked socials")
     if candidate.enrichment.social_resolves is False:

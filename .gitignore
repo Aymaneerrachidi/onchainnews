@@ -19,3 +19,9 @@ web/.playwright-mcp/
 
 # Vercel local project link
 .vercel/
+
+# Local reference material and installers, not project source
+/overlays/
+/brand details/
+*.exe
+*.crdownload
