@@ -536,3 +536,37 @@ async def test_kol_tracking_is_dormant_with_no_wallets(mover_settings):
         assert all(not c.kol_buyers for c in brief.runners)
     finally:
         ledger.close()
+
+
+def _fake(symbol, change24h, turnover, mcap=1_000_000.0):
+    from brief.models import Candidate, Enrichment, SafetyReport, Signals, TokenSnapshot
+    token = TokenSnapshot(
+        mint="MINT" + symbol, symbol=symbol, name=symbol, chain_id="solana", pair_address="P",
+        url="", price_usd=1.0, market_cap=mcap, liquidity_usd=mcap * 0.4,
+        volume_24h=mcap * turnover, volume_6h=0, price_change_24h=change24h,
+        price_change_6h=0, pair_created_at=NOW - timedelta(days=30),
+    )
+    signals = Signals(
+        turnover=turnover, acceleration=0, buy_imbalance_1h=None, buy_imbalance_6h=None,
+        liquidity_depth=0.4, holder_growth_24h=None, maker_quality=None, age_hours=720.0,
+    )
+    return Candidate(token=token, signals=signals, safety=SafetyReport("m"), enrichment=Enrichment())
+
+
+def test_a_spectacular_move_with_no_trading_is_rejected_as_a_data_artifact(tmp_path):
+    """A feed reported 16,226,272% on a coin that was flat and barely traded."""
+    from brief.journal import implausible_run
+
+    settings = build_settings(tmp_path / "plaus")
+    assert implausible_run(_fake("ANTFUN", 16_226_272.0, 0.02, 80_000_000.0), settings)
+    assert implausible_run(_fake("QUIET", 1500.0, 0.03), settings)
+
+
+def test_a_real_run_backed_by_volume_is_kept(tmp_path):
+    from brief.journal import implausible_run
+
+    settings = build_settings(tmp_path / "plaus2")
+    # $FOMO: +6,988% on 8.15x turnover, which the tape corroborates.
+    assert not implausible_run(_fake("FOMO", 6988.0, 8.15, 380_000.0), settings)
+    # A modest mover well under the corroboration threshold is untouched.
+    assert not implausible_run(_fake("MILD", 60.0, 0.05), settings)

@@ -179,6 +179,16 @@ accounts = [
   "JupiterExchange",
 ]
 
+# Stream overlay. `trade_url_template` is what the on-screen QR opens, so a
+# viewer can scan it and land on the coin instead of copying a contract address
+# off a video. Placeholders: {mint}, {symbol}. Replace this with the client's
+# own referral link once he sends one share link from the app.
+[overlay]
+enabled = true
+trade_url_template = "https://fomo.family/token/{mint}"
+# Appended to the deep link when set, e.g. "?ref=CODE" or "&ref=CODE".
+trade_url_suffix = ""
+
 [delivery]
 # Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env.
 # A missing credential warns and skips; it never fails the run.
@@ -203,6 +213,12 @@ min_fresh_change_pct = 30.0
 old_coin_multiple = 5.0
 # 0 disables the age ceiling, so a 5x is reported at any age.
 max_age_days = 0
+# A feed sometimes reports a nonsense 24h change when a pool is reseeded. Such
+# a number tops every ranking, so a big run must be corroborated by turnover.
+max_credible_multiple = 1000.0
+corroborate_above_multiple = 10.0
+min_turnover_for_big_run = 0.15
+
 # Disqualifying: a top 10 this large means the supply was never distributed.
 bundle_top10_pct = 50.0
 # Not disqualifying, shown on the row.

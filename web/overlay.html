@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onchain News — Stream Overlay</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+  OBS Browser Source overlay.
+
+  Everything is sized in `cqw`-free relative units driven by one --u variable
+  tied to the viewport width, so a single build reads correctly at 1080p, 1440p
+  or a cropped source without a separate layout per canvas.
+
+  The background stays transparent: OBS composites this over the scene, and any
+  opaque colour here would black out his stream.
+*/
+:root{
+  --u:calc(100vw / 1920);          /* one design pixel at any canvas width */
+  --paper:#efece3; --ink:#0b0b0b; --line:#24231f;
+  --red:#e0201f; --green:#0f8a45; --muted:#6b6961;
+  --display:"Archivo Black",Impact,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --shadow:0 calc(6*var(--u)) calc(28*var(--u)) rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:transparent;overflow:hidden}
+body{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0}
+[hidden]{display:none!important}
+.up{color:var(--green)}.dn{color:var(--red)}
+
+/* ============================ TICKER ============================ */
+.ticker{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:stretch;
+  height:calc(74*var(--u));background:var(--ink);box-shadow:var(--shadow);
+  border-top:calc(4*var(--u)) solid var(--red);overflow:hidden}
+.ticker .brand{display:flex;align-items:center;gap:calc(10*var(--u));flex:none;
+  background:var(--red);color:#fff;padding:0 calc(22*var(--u));
+  font-family:var(--display);font-size:calc(22*var(--u));letter-spacing:.02em;text-transform:uppercase}
+.ticker .brand small{font-family:var(--mono);font-size:calc(12*var(--u));opacity:.85;letter-spacing:.12em}
+.ticker .vp{flex:1;overflow:hidden;display:flex;align-items:center}
+.ticker .track{display:flex;gap:calc(46*var(--u));width:max-content;
+  animation:march var(--speed,60s) linear infinite;padding-left:calc(30*var(--u))}
+@keyframes march{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tk-item{display:flex;align-items:baseline;gap:calc(10*var(--u));white-space:nowrap;color:var(--paper)}
+.tk-item b{font-size:calc(23*var(--u));font-weight:700}
+.tk-item .mult{font-family:var(--display);font-size:calc(23*var(--u))}
+.tk-item .mc{font-size:calc(16*var(--u));color:#a9a69c}
+.tk-item .flag{font-size:calc(12*var(--u));letter-spacing:.1em;text-transform:uppercase;
+  border:calc(2*var(--u)) solid var(--red);color:#ff9a9a;padding:0 calc(6*var(--u))}
+
+/* ============================ CARD ============================ */
+.card{position:absolute;right:calc(56*var(--u));top:calc(120*var(--u));
+  width:calc(560*var(--u));background:var(--paper);box-shadow:var(--shadow);
+  border:calc(3*var(--u)) solid var(--ink)}
+.card .top{display:flex;justify-content:space-between;align-items:center;
+  background:var(--ink);color:var(--paper);padding:calc(12*var(--u)) calc(18*var(--u))}
+.card .top span{font-size:calc(13*var(--u));letter-spacing:.18em;text-transform:uppercase;color:#a9a69c}
+.card .top b{font-family:var(--display);color:var(--red);font-size:calc(18*var(--u));letter-spacing:.06em}
+.card .id{display:flex;justify-content:space-between;align-items:flex-end;gap:calc(16*var(--u));
+  padding:calc(18*var(--u));border-bottom:calc(2*var(--u)) solid var(--line)}
+.card .sym{font-family:var(--display);font-size:calc(58*var(--u));line-height:.9;letter-spacing:-.02em}
+.card .nm{font-size:calc(16*var(--u));color:var(--muted);margin-top:calc(6*var(--u));
+  max-width:calc(300*var(--u));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .mult{font-family:var(--display);font-size:calc(56*var(--u));line-height:.9;text-align:right}
+.card .mult small{display:block;font-family:var(--mono);font-size:calc(13*var(--u));
+  letter-spacing:.16em;color:var(--muted);margin-top:calc(6*var(--u))}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:calc(2*var(--u)) solid var(--line)}
+.grid div{padding:calc(12*var(--u)) calc(10*var(--u));border-right:calc(1*var(--u)) solid rgba(36,35,31,.25)}
+.grid div:last-child{border-right:0}
+.grid span{display:block;font-size:calc(11*var(--u));letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:calc(5*var(--u))}
+.grid b{font-size:calc(22*var(--u))}
+.ca{display:flex;gap:calc(16*var(--u));padding:calc(16*var(--u)) calc(18*var(--u));align-items:center}
+.ca .qr{flex:none;background:#fff;padding:calc(8*var(--u));line-height:0;box-shadow:0 0 0 calc(2*var(--u)) var(--ink)}
+.ca .qr svg{display:block;width:calc(132*var(--u));height:calc(132*var(--u));shape-rendering:crispEdges}
+.ca .txt{min-width:0;flex:1}
+.ca .txt span{display:block;font-size:calc(11*var(--u));letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:calc(6*var(--u))}
+.ca .addr{font-size:calc(17*var(--u));font-weight:700;word-break:break-all;line-height:1.35}
+.ca .scan{margin-top:calc(9*var(--u));font-size:calc(13*var(--u));color:var(--red);font-weight:700}
+.flags{border-top:calc(2*var(--u)) solid var(--line);padding:calc(12*var(--u)) calc(18*var(--u));
+  display:flex;flex-wrap:wrap;gap:calc(8*var(--u))}
+.flags .f{font-size:calc(13*var(--u));border:calc(2*var(--u)) solid var(--red);color:var(--red);
+  padding:calc(3*var(--u)) calc(8*var(--u));font-weight:700}
+.flags .ok{border-color:var(--green);color:var(--green)}
+.kol{background:var(--ink);color:var(--paper);padding:calc(11*var(--u)) calc(18*var(--u));
+  font-size:calc(14*var(--u));display:flex;gap:calc(9*var(--u));align-items:baseline}
+.kol b{color:#fff;background:var(--red);padding:0 calc(7*var(--u));font-size:calc(13*var(--u))}
+.kol i{font-style:normal;color:#a9a69c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ============================ LOWER THIRD ============================ */
+.l3{position:absolute;left:calc(56*var(--u));bottom:calc(110*var(--u));
+  display:flex;align-items:stretch;box-shadow:var(--shadow);max-width:calc(1180*var(--u))}
+.l3 .mark{background:var(--red);color:#fff;font-family:var(--display);white-space:nowrap;
+  font-size:calc(30*var(--u));display:flex;align-items:center;padding:0 calc(18*var(--u))}
+.l3 .body{background:var(--paper);border:calc(3*var(--u)) solid var(--ink);border-left:0;
+  padding:calc(12*var(--u)) calc(20*var(--u));display:flex;align-items:center;gap:calc(22*var(--u))}
+.l3 .sym{font-family:var(--display);font-size:calc(40*var(--u));line-height:1}
+.l3 .mult{font-family:var(--display);font-size:calc(36*var(--u));line-height:1}
+.l3 .kv{display:flex;flex-direction:column}
+.l3 .kv span{font-size:calc(11*var(--u));letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.l3 .kv b{font-size:calc(21*var(--u));white-space:nowrap}
+.l3 .qr{background:#fff;padding:calc(6*var(--u));line-height:0}
+.l3 .qr svg{display:block;width:calc(86*var(--u));height:calc(86*var(--u));shape-rendering:crispEdges}
+.l3 .warn{font-size:calc(13*var(--u));color:var(--red);font-weight:700;
+  max-width:calc(210*var(--u));line-height:1.3}
+
+/* ============================ BOARD ============================ */
+.board{position:absolute;right:calc(48*var(--u));top:calc(70*var(--u));
+  width:calc(600*var(--u));background:var(--paper);border:calc(3*var(--u)) solid var(--ink);
+  box-shadow:var(--shadow);overflow:hidden}
+.board .bh{background:var(--ink);color:var(--paper);padding:calc(13*var(--u)) calc(18*var(--u));
+  display:flex;justify-content:space-between;align-items:baseline}
+.board .bh b{font-family:var(--display);font-size:calc(25*var(--u));text-transform:uppercase}
+.board .bh span{font-size:calc(12*var(--u));letter-spacing:.14em;color:#a9a69c}
+.board ol{list-style:none}
+.board li{display:grid;grid-template-columns:calc(34*var(--u)) 1fr auto auto;
+  gap:calc(12*var(--u));align-items:baseline;padding:calc(11*var(--u)) calc(18*var(--u));
+  border-bottom:calc(1*var(--u)) solid rgba(36,35,31,.22)}
+.board li:last-child{border-bottom:0}
+.board .n{font-family:var(--display);color:var(--red);font-size:calc(17*var(--u))}
+.board .s{font-size:calc(22*var(--u));font-weight:700}
+.board .s em{display:block;font-style:normal;font-size:calc(12*var(--u));color:var(--muted)}
+.board .m{font-family:var(--display);font-size:calc(24*var(--u))}
+.board .c{font-size:calc(16*var(--u));min-width:calc(74*var(--u));text-align:right}
+
+/* ============================ SHARED ============================ */
+.stamp{position:absolute;font-family:var(--display);color:var(--red);
+  border:calc(3*var(--u)) solid var(--red);padding:calc(2*var(--u)) calc(9*var(--u));
+  font-size:calc(15*var(--u));letter-spacing:.12em;text-transform:uppercase;
+  transform:rotate(-7deg);background:rgba(239,236,227,.9)}
+.card .top .stamp{position:static;transform:rotate(-3deg);
+  font-size:calc(14*var(--u));padding:calc(1*var(--u)) calc(8*var(--u));
+  background:transparent;color:#ff8b8b;border-color:#ff8b8b}
+.enter{animation:pop .45s cubic-bezier(.16,1,.3,1) both}
+@keyframes pop{from{opacity:0;transform:translateY(calc(18*var(--u))) scale(.985)}to{opacity:1;transform:none}}
+.live{display:inline-block;width:calc(9*var(--u));height:calc(9*var(--u));border-radius:50%;
+  background:var(--red);animation:blink 2s infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<script>
+"use strict";
+/* --------------------------------------------------------------------------
+   Config comes from the URL so OBS scene switching is the control surface.
+   No backend, no companion app: each scene is a Browser Source with its own
+   query string, and showing/hiding the source is what changes the overlay.
+
+     ?mode=ticker | card | lower3 | board
+     &coin=BOT            pin one coin by symbol (default: the top runner)
+     &rotate=8            seconds per coin; omit to stay on one
+     &max=8               rows on the board
+     &refresh=30          seconds between live price refreshes
+     &side=left|right     which side the card/board sits on
+-------------------------------------------------------------------------- */
+const P = new URLSearchParams(location.search);
+const MODE = (P.get("mode") || "ticker").toLowerCase();
+const PIN = (P.get("coin") || "").replace(/^\$/, "").toUpperCase();
+const ROTATE = Math.max(0, parseFloat(P.get("rotate") || "0")) * 1000;
+const MAX = parseInt(P.get("max") || "8", 10);
+const REFRESH = Math.max(10, parseFloat(P.get("refresh") || "30")) * 1000;
+const SIDE = (P.get("side") || "right").toLowerCase();
+const stage = document.getElementById("stage");
+
+let RUNNERS = [];
+let idx = 0;
+
+/* ---------- formatting ---------- */
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const money = (n) => {
+  if (n == null || !isFinite(n)) return "—";
+  const a = Math.abs(n);
+  if (a >= 1e9) return "$" + (n / 1e9).toFixed(1) + "B";
+  if (a >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
+  if (a >= 1e3) return "$" + Math.round(n / 1e3) + "k";
+  return "$" + Math.round(n);
+};
+const pct = (n) => n == null || !isFinite(n) ? "—" : (n >= 0 ? "+" : "") + Math.round(n) + "%";
+const mult = (r) => r.runMultiple >= 2 ? r.runMultiple.toFixed(1) + "x" : pct(r.change24h);
+const ageOf = (h) => h == null ? "—" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d";
+const shortCa = (m) => m.length > 16 ? m.slice(0, 8) + "…" + m.slice(-6) : m;
+
+/* A QR arrives as rows of "0"/"1"; drawing it as one path keeps the SVG small
+   and the edges hard, which matters after stream compression. */
+function qrSvg(matrix) {
+  if (!matrix || !matrix.length) return "";
+  const n = matrix.length, q = 2, size = n + q * 2;
+  let d = "";
+  for (let y = 0; y < n; y++) {
+    const row = matrix[y];
+    for (let x = 0; x < n; x++) {
+      if (row[x] === "1") d += `M${x + q} ${y + q}h1v1h-1z`;
+    }
+  }
+  return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="${size}" height="${size}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+
+/* The single most useful thing to say about a coin in one glance. */
+function topFlag(r) {
+  if (r.faded != null) return "FADING";
+  if ((r.riskLabels || []).some((f) => /bundle|concentr|top 10/i.test(f))) return "CONCENTRATED";
+  if ((r.riskLabels || []).some((f) => /thin pool/i.test(f))) return "THIN LIQUIDITY";
+  if ((r.riskLabels || []).some((f) => /reused/i.test(f))) return "RECYCLED TICKER";
+  if ((r.kolBuyers || []).length >= 3) return "KOL CROWD";
+  return "";
+}
+
+/* ---------- renderers ---------- */
+function ticker(list) {
+  const items = list.map((r) => {
+    const f = topFlag(r);
+    return `<span class="tk-item"><b>$${esc(r.symbol)}</b>
+      <em class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</em>
+      <em class="mc">${money(r.marketCap)}</em>
+      ${f ? `<em class="flag">${f}</em>` : ""}</span>`;
+  }).join("");
+  const speed = Math.max(30, list.length * 6);
+  return `<div class="ticker enter">
+    <div class="brand">Onchain News <small>RAN TODAY</small></div>
+    <div class="vp"><div class="track" style="--speed:${speed}s">${items}${items}</div></div>
+  </div>`;
+}
+
+function card(r) {
+  const flags = (r.riskLabels || []).slice(0, 4)
+    .map((f) => `<span class="f">${esc(f)}</span>`).join("")
+    || `<span class="f ok">No flags raised</span>`;
+  const st = topFlag(r);
+  const kol = (r.kolBuyers || []).length
+    ? `<div class="kol"><b>${r.kolBuyers.length} KOL</b>
+        <i>${esc(r.kolBuyers.slice(0, 4).join(", "))}${r.kolBuyers.length > 4 ? " +" + (r.kolBuyers.length - 4) : ""}</i></div>`
+    : "";
+  const pos = SIDE === "left"
+    ? `left:calc(56*var(--u));right:auto` : `right:calc(56*var(--u));left:auto`;
+  return `<div class="card enter" style="${pos}">
+    <div class="top">${st ? `<span class="stamp">${st}</span>` : `<span>Ran today</span>`}<b>ONCHAIN NEWS</b></div>
+    <div class="id">
+      <div><div class="sym">$${esc(r.symbol)}</div><div class="nm">${esc(r.name)}</div></div>
+      <div class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}<small>24 HOURS</small></div>
+    </div>
+    <div class="grid">
+      <div><span>Mcap</span><b>${money(r.marketCap)}</b></div>
+      <div><span>1h</span><b class="${r.change1h >= 0 ? "up" : "dn"}">${pct(r.change1h)}</b></div>
+      <div><span>Liq</span><b>${money(r.liquidity)}</b></div>
+      <div><span>Age</span><b>${ageOf(r.ageHours)}</b></div>
+    </div>
+    <div class="ca">
+      ${r.qr && r.qr.length ? `<div class="qr">${qrSvg(r.qr)}</div>` : ""}
+      <div class="txt">
+        <span>Contract</span>
+        <div class="addr">${esc(r.mint)}</div>
+        ${r.qr && r.qr.length ? `<div class="scan">Scan to open the coin</div>` : ""}
+      </div>
+    </div>
+    <div class="flags">${flags}</div>
+    ${kol}
+  </div>`;
+}
+
+function lower3(r) {
+  const warn = (r.riskLabels || [])[0] || "";
+  return `<div class="l3 enter">
+    <div class="mark">RAN TODAY</div>
+    <div class="body">
+      <div class="sym">$${esc(r.symbol)}</div>
+      <div class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</div>
+      <div class="kv"><span>Mcap</span><b>${money(r.marketCap)}</b></div>
+      <div class="kv"><span>1h</span><b class="${r.change1h >= 0 ? "up" : "dn"}">${pct(r.change1h)}</b></div>
+      <div class="kv"><span>Contract</span><b>${esc(shortCa(r.mint))}</b></div>
+      ${warn ? `<div class="warn">${esc(warn)}</div>` : ""}
+      ${r.qr && r.qr.length ? `<div class="qr">${qrSvg(r.qr)}</div>` : ""}
+    </div>
+  </div>`;
+}
+
+function board(list) {
+  const rows = list.slice(0, MAX).map((r, i) => `
+    <li><span class="n">${String(i + 1).padStart(2, "0")}</span>
+      <span class="s">$${esc(r.symbol)}<em>${esc(r.name)}</em></span>
+      <span class="m ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</span>
+      <span class="c">${money(r.marketCap)}</span></li>`).join("");
+  const pos = SIDE === "left"
+    ? `left:calc(48*var(--u));right:auto` : `right:calc(48*var(--u));left:auto`;
+  return `<div class="board enter" style="${pos}">
+    <div class="bh"><b>Ran Today</b><span><i class="live"></i> ${list.length} COINS</span></div>
+    <ol>${rows}</ol>
+  </div>`;
+}
+
+/* ---------- paint ---------- */
+function pick() {
+  if (!RUNNERS.length) return null;
+  if (PIN) {
+    const hit = RUNNERS.find((r) => r.symbol.toUpperCase() === PIN);
+    if (hit) return hit;
+  }
+  return RUNNERS[idx % RUNNERS.length];
+}
+
+function paint() {
+  if (!RUNNERS.length) { stage.innerHTML = ""; return; }
+  const one = pick();
+  if (MODE === "ticker") stage.innerHTML = ticker(RUNNERS);
+  else if (MODE === "board") stage.innerHTML = board(RUNNERS);
+  else if (MODE === "lower3") stage.innerHTML = lower3(one);
+  else stage.innerHTML = card(one);
+}
+
+/* ---------- data ---------- */
+async function loadSnapshot() {
+  try {
+    const res = await fetch("data/latest.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json();
+    RUNNERS = (data.runners || []).slice().sort((a, b) => b.runMultiple - a.runMultiple);
+    paint();
+  } catch (err) {
+    // A failed refresh must never blank an overlay that is already on air.
+    if (!RUNNERS.length) stage.innerHTML = "";
+  }
+}
+
+/* The heavy pipeline runs once a day; prices would be stale on camera by
+   evening. Dexscreener is free and CORS-open, so the overlay refreshes just
+   the numbers for the coins it is showing, leaving safety, KOL and lore from
+   the morning run. */
+async function refreshPrices() {
+  if (!RUNNERS.length) return;
+  const wanted = (MODE === "ticker" || MODE === "board")
+    ? RUNNERS.slice(0, 25) : [pick()].filter(Boolean);
+  const mints = [...new Set(wanted.map((r) => r.mint))].slice(0, 30);
+  if (!mints.length) return;
+  try {
+    const res = await fetch("https://api.dexscreener.com/tokens/v1/solana/" + mints.join(","),
+      { cache: "no-store" });
+    if (!res.ok) return;
+    const pairs = await res.json();
+    const best = new Map();
+    for (const p of Array.isArray(pairs) ? pairs : []) {
+      const mint = p?.baseToken?.address;
+      if (!mint) continue;
+      const liq = p?.liquidity?.usd || 0;
+      if (!best.has(mint) || liq > best.get(mint).liq) best.set(mint, { p, liq });
+    }
+    let changed = false;
+    for (const r of RUNNERS) {
+      const hit = best.get(r.mint);
+      if (!hit) continue;
+      const p = hit.p;
+      const mc = Number(p.marketCap) || r.marketCap;
+      const c24 = Number(p?.priceChange?.h24);
+      const c1 = Number(p?.priceChange?.h1);
+      if (isFinite(mc)) r.marketCap = mc;
+      if (isFinite(c24)) { r.change24h = c24; r.runMultiple = 1 + c24 / 100; }
+      if (isFinite(c1)) r.change1h = c1;
+      if (Number(p?.liquidity?.usd)) r.liquidity = Number(p.liquidity.usd);
+      changed = true;
+    }
+    if (changed) paint();
+  } catch { /* keep the last good numbers on screen */ }
+}
+
+loadSnapshot();
+setInterval(loadSnapshot, 10 * 60 * 1000);   // new daily snapshot, if published
+setInterval(refreshPrices, REFRESH);          // live prices during the stream
+if (ROTATE) setInterval(() => { idx++; paint(); }, ROTATE);
+</script>
+</body>
+</html>

@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from brief.config import Settings
 from brief.models import Brief, Candidate
+from brief.render.qr import qr_matrix, trade_url
 
 
-def _candidate(candidate: Candidate) -> dict[str, Any]:
+def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]:
     token = candidate.token
     signal = candidate.signals
     return {
@@ -43,6 +45,8 @@ def _candidate(candidate: Candidate) -> dict[str, Any]:
         "kolRealisedSol": candidate.kol_realised_sol,
         "read": candidate.read,
         "track": candidate.track,
+        "tradeUrl": trade_url(trade_template, token.mint, token.symbol),
+        "qr": qr_matrix(trade_url(trade_template, token.mint, token.symbol)),
         "dexEvidence": candidate.dex_evidence,
         "catalyst": candidate.catalyst,
         "xInteractions": [
@@ -83,8 +87,12 @@ def journal_rule(brief: Brief) -> str:
     )
 
 
-def build_payload(brief: Brief) -> dict[str, Any]:
-    runners = [_candidate(candidate) for candidate in brief.runners]
+def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, Any]:
+    template = ""
+    if settings is not None and settings.get("overlay", "enabled", True):
+        template = str(settings.get("overlay", "trade_url_template", "") or "")
+        template += str(settings.get("overlay", "trade_url_suffix", "") or "")
+    runners = [_candidate(candidate, template) for candidate in brief.runners]
     fresh = sum(
         1 for candidate in brief.runners
         if candidate.signals.age_hours is not None and candidate.signals.age_hours <= 24

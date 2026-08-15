@@ -8,6 +8,9 @@ dependencies = [
   "rich>=13.7,<15",
   "websockets>=14,<16",
   "tzdata>=2025.2; platform_system == 'Windows'",
+  # Pre-renders the QR each runner shows on stream. Generating these server
+  # side with a proven encoder keeps a malformed code off the broadcast.
+  "segno>=1.6,<2",
 ]
 
 [project.scripts]

@@ -188,3 +188,36 @@ git push                         # Vercel redeploys automatically
 The installed Windows 06:45 task runs `scripts/run.ps1`. After a successful brief and Telegram digest, that script calls `scripts/publish-web.ps1`, which commits only `web/data/latest.json` and pushes `main`. Existing staged or unstaged work in other files is never included. If the remote branch has diverged, publishing stops instead of rebasing or overwriting work.
 
 `.vercelignore` anchors its paths with a leading slash. An unanchored `data/` would also match `web/data/`, which is the snapshot the site needs.
+
+## Stream overlay
+
+`/overlay` is an OBS Browser Source. It reads the same snapshot as the site, so
+what is on the broadcast and what is on the site cannot disagree, and no PNG is
+designed by hand for a stream.
+
+Mode comes from the query string, which makes **OBS scene switching the control
+surface** — no backend and no companion app. Add one Browser Source per look and
+toggle its visibility.
+
+| URL | Use |
+| --- | --- |
+| `/overlay?mode=ticker` | Bottom strip of the day's runners. Safe to leave up all stream |
+| `/overlay?mode=board&max=8` | Leaderboard panel for the segment |
+| `/overlay?mode=card` | One coin, large, with contract and a QR to open it |
+| `/overlay?mode=lower3` | Lower third while talking about one name |
+
+Extra parameters: `coin=BOT` pins a symbol, `rotate=8` cycles every 8 seconds,
+`side=left` moves the card or board, `refresh=30` sets the live price interval.
+
+In OBS: **Sources → + → Browser**, paste the URL, set width and height to the
+canvas size, and tick *Shutdown source when not visible* and *Refresh browser
+when scene becomes active*. The page background is transparent, so nothing is
+composited over the scene except the panel itself.
+
+The QR opens `[overlay].trade_url_template` with `{mint}` substituted, so a
+viewer scans instead of copying a contract address off a video. Point it at the
+client's own referral link and the traffic is attributed to him.
+
+Prices refresh from Dexscreener every 30 seconds while the overlay is on air, so
+the numbers do not go stale on camera between daily runs. Everything expensive —
+safety, tracked wallets, lore — stays from the morning run.

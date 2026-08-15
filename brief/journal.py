@@ -29,6 +29,28 @@ def run_multiple(token: TokenSnapshot) -> float:
     return 1.0 + token.price_change_24h / 100.0
 
 
+def implausible_run(candidate: Candidate, settings: Settings) -> bool:
+    """A move the tape does not corroborate is a data artifact, not a run.
+
+    Feeds occasionally report a nonsense 24-hour change when a pool is reseeded
+    or the price denominator moves, and the number is spectacular enough to top
+    every ranking. The tell is that nothing else agrees with it: no turnover, a
+    flat last hour. Believing it once puts a fake 162,000x on the broadcast.
+    """
+    section = settings.section("journal")
+    multiple = run_multiple(candidate.token)
+
+    ceiling = float(section.get("max_credible_multiple", 1000))
+    if ceiling and multiple > ceiling:
+        return True
+
+    big = float(section.get("corroborate_above_multiple", 10))
+    floor = float(section.get("min_turnover_for_big_run", 0.15))
+    if multiple >= big and candidate.signals.turnover < floor:
+        return True
+    return False
+
+
 def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) -> bool:
     """Created today and running, or any age doing a large multiple.
 
@@ -40,6 +62,8 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     age = _age_hours(token, now)
 
     if token.volume_24h < float(section.get("min_volume_24h", 50_000)):
+        return False
+    if implausible_run(candidate, settings):
         return False
 
     fresh_window = float(section.get("fresh_window_hours", 24))

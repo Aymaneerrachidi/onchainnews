@@ -88,7 +88,7 @@ async def run(args: argparse.Namespace) -> int:
             console.print(f"[dim]HTML written to {html_path}[/dim]")
         if settings.get("run", "json_path"):
             json_path = settings.path("run", "json_path")
-            write_html(json_path, json.dumps(build_payload(brief), indent=1))
+            write_html(json_path, json.dumps(build_payload(brief, settings), indent=1))
             console.print(f"[dim]Site snapshot written to {json_path}[/dim]")
         if telegram_enabled and not (os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_CHAT_ID")):
             # A missing credential must not lose the morning report that already rendered.
