@@ -71,6 +71,8 @@ def parse_pair(pair: dict[str, Any]) -> TokenSnapshot | None:
         volume_by_dex={str(pair.get("dexId") or "unknown").lower(): number((pair.get("volume") or {}).get("h24"))},
         txns_1h=window("h1"),
         txns_6h=window("h6"),
+        txns_24h=window("h24"),
+        volume_1h=number((pair.get("volume") or {}).get("h1")),
         socials=[s for s in info.get("socials", []) if isinstance(s, dict)],
         active_boosts=integer((pair.get("boosts") or {}).get("active")),
         raw=pair,

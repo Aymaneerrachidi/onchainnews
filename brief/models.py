@@ -56,6 +56,8 @@ class TokenSnapshot:
     volume_by_dex: dict[str, float] = field(default_factory=dict)
     txns_1h: TransactionWindow = field(default_factory=TransactionWindow)
     txns_6h: TransactionWindow = field(default_factory=TransactionWindow)
+    txns_24h: TransactionWindow = field(default_factory=TransactionWindow)
+    volume_1h: float = 0.0
     socials: list[dict[str, str]] = field(default_factory=list)
     active_boosts: int = 0
     from_profile: bool = False
@@ -94,6 +96,10 @@ class SafetyReport:
     excluded_owners: set[str] = field(default_factory=set)
     lp_vaults: tuple[str, ...] = ()
     creator: str | None = None
+    # Real holder count, free on every RugCheck report we already fetch.
+    holder_count: int | None = None
+    # RugCheck's own verdict that the token has already rugged.
+    rugged: bool = False
     source: str = "unavailable"
 
 
@@ -154,6 +160,9 @@ class Candidate:
     kol_holders: list[str] = field(default_factory=list)
     kol_realised_sol: float = 0.0
     kol_sol_spent: float = 0.0
+    # How many wallets the scan actually covered; 0 means it did not run,
+    # in which case silence from them proves nothing.
+    kol_wallets_scanned: int = 0
     run_multiple: float = 1.0
     faded_from_peak: float | None = None
     # One descriptive sentence assembled from measured values, never a forecast.

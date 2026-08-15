@@ -10,6 +10,11 @@ The report opens with **what ran today**, not a shortlist. A coin enters through
 
 - **Created inside the last 24 hours** and up at least 30%.
 - **Any age, doing a 5x or better** on the day.
+- **Bought by two or more tracked wallets**, whatever the price has done.
+
+The third door is the one that earns its keep. The tracked-wallet scan runs during discovery rather than after it, so a coin several of these wallets are buying enters the record on conviction alone — before the move, which is the only reason to watch them at all. On a live day it surfaced a coin up 1.3%: invisible to every price test, bought by two wallets off the leaderboard.
+
+A Dexscreener boost is that company's advertising product and plenty of honest teams buy one, so it is not treated as evidence of anything.
 
 Everything above $150,000 market cap and $50,000 of 24-hour volume that clears one of those doors is recorded, ranked by size of run. This is deliberately the opposite of an editorial cut: a coin is *not* dropped for failing a safety check. It is shown with the problem written on its row.
 
@@ -21,18 +26,28 @@ Only conditions that make a coin uninvestable at any price remove it from the re
 - bundled supply, meaning the top 10 circulating wallets hold more than 50%
 - a manufactured tape, meaning many trades from very few wallets
 
-A second gate removes coins whose market is manufactured rather than bought. These are not rugs — the coin may be perfectly safe to hold — but they are not a record of what the market did, and putting one on a broadcast costs more credibility than leaving the slot empty:
+A second gate removes coins whose market is manufactured rather than bought, or whose move is already over. These are not all rugs — some are perfectly safe to hold — but none of them is a record of what the market did, and one on a broadcast costs more credibility than an empty slot:
 
 - volume above 150x the pool's own depth, or above 30x market cap, in 24 hours
 - more than 40 trades a minute, which is machine cadence rather than a crowd
 - an average trade under $15, which is dust rather than demand
-- a ticker any other recent mint has already used
-- paid boosts: attention that was bought instead of earned
+- fewer than 200 holders, which is not a distribution yet
+- fewer than 300 trades in 24 hours, which is not a tape
 - a book that is 85% buys across 300+ trades, which has no sellers in it
+- **the pump-and-die shape**: a large printed gain with under 8% of the day's volume in the last six hours, meaning the move finished hours ago
+- RugCheck's own `rugged` verdict, or a top 10 holding more than half the supply
 
-On a live day this cut the record from sixteen coins to eight. It removed one pool that traded 1,192x its own liquidity, one printing 133 trades a minute, three recycled tickers and one with thirty bought boosts.
+A reused ticker and a paid Dexscreener boost are both shown on the row rather than treated as disqualifying. A boost is that company's advertising product, bought by honest teams; a shared ticker is common enough that rejecting every one of them threw away real runners.
 
-Everything softer becomes a label: elevated concentration, a thin pool, paid boosts, a reused ticker, no linked socials, a very young pair, or a **fade** — up strongly on the day but down more than 15% in the last hour. That last one is the coin that hit an all-time high and gave it back, which the 24-hour number alone hides.
+On a live day this took sixteen coins to six. It removed one pool trading 1,112x its own liquidity, three printing 52 to 277 trades a minute, and three whose top ten wallets held 62-89% of the supply — including one showing a 244x. Every coin that survived carries a real holder count, from 371 to 7,563.
+
+## Was the smart money in it?
+
+The tracked wallets are a check on the day's runners, not a way into the record: a coin earns its place by moving, and the wallets answer whether the people who usually catch these moves were in it.
+
+The absence is the interesting half. Measured on live data, these 66 wallets touch only about **one runner in seven**, so silence from all of them is the norm and not evidence by itself. Above `expect_tracked_wallets_above` the silence is reported on the row anyway, because a coin doing 10x or better that not one of them bought, sold or held was moved by somebody else. Lower that threshold as more wallets are added and coverage improves.
+
+Everything softer becomes a label:Everything softer becomes a label: elevated concentration, a thin pool, paid boosts, a reused ticker, no linked socials, a very young pair, or a **fade** — up strongly on the day but down more than 15% in the last hour. That last one is the coin that hit an all-time high and gave it back, which the 24-hour number alone hides.
 
 Runners are grouped by **shared lore**: Dexscreener's trending metas first, then a shared significant word in the name, which is how copycats of one story cluster. A lore that has already produced recent mints is flagged rather than presented as original.
 

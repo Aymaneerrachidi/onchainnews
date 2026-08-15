@@ -6,6 +6,13 @@ from brief.models import SafetyReport, number
 from brief.sources.http import CachedHttpClient
 
 
+def integer_or_none(value: Any) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 # Tokens sent here are provably unspendable, so they are supply removed from
 # circulation rather than a concentrated holder.
 BURN_ADDRESSES = {
@@ -99,6 +106,8 @@ def parse_report(mint: str, payload: dict[str, Any]) -> SafetyReport:
         excluded_owners=excluded_owners,
         lp_vaults=tuple(dict.fromkeys(lp_vaults)),
         creator=str(payload.get("creator")) if payload.get("creator") else None,
+        holder_count=integer_or_none(payload.get("totalHolders")),
+        rugged=bool(payload.get("rugged")),
         source="rugcheck",
     )
 

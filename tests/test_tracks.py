@@ -616,16 +616,68 @@ def test_bot_cadence_is_removed(tmp_path):
     assert any("market cap traded" in r for r in reasons)
 
 
-def test_bought_attention_and_recycled_tickers_are_removed(tmp_path):
-    """The client asked for original tickers and organic interest."""
-    from brief.journal import inorganic_reasons
+def test_neither_a_boost_nor_a_reused_ticker_removes_a_coin(tmp_path):
+    """Both are shown on the row instead.
+
+    A boost is Dexscreener's ad product and honest teams buy one. A shared
+    ticker is common enough that dropping every coin with one threw away real
+    runners; the client asked for safety, not novelty.
+    """
+    from brief.journal import inorganic_reasons, risk_labels
 
     settings = build_settings(tmp_path / "org3")
-    reasons = inorganic_reasons(
-        _tape("BABYANSEM", mcap=518_000, vol24=503_000, vol6=150_000, liq=54_000,
-              trades6=10_363, buys6=6_200, boosts=30, reuse=2), settings)
-    assert any("paid boost" in r for r in reasons)
-    assert any("not an original ticker" in r for r in reasons)
+    c = _tape("BABYANSEM", mcap=518_000, vol24=503_000, vol6=400_000, liq=54_000,
+              trades6=10_363, buys6=6_200, boosts=30, reuse=2)
+    c.token.txns_24h = c.token.txns_6h
+    assert inorganic_reasons(c, settings) == []
+    labels = risk_labels(c, settings, NOW)
+    assert any("also used by 2 other recent mint(s)" in f for f in labels)
+
+
+def test_a_coin_with_almost_no_holders_is_removed(tmp_path):
+    """"Real holders" is the ask; a few wallets is not a distribution."""
+    from brief.journal import inorganic_reasons
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "holders")
+    c = _tape("THIN", mcap=400_000, vol24=600_000, vol6=200_000, liq=50_000,
+              trades6=1_200, buys6=640)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport("m", holder_count=40)
+    assert any("only 40 holders" in r for r in inorganic_reasons(c, settings))
+
+    c.safety = SafetyReport("m", holder_count=1_764)
+    assert inorganic_reasons(c, settings) == []
+
+
+def test_the_pump_and_die_shape_is_removed(tmp_path):
+    """An insta-x that stopped trading hours ago is not today's market."""
+    from brief.journal import inorganic_reasons
+
+    settings = build_settings(tmp_path / "dead")
+    dead = _tape("DEADCAT", mcap=400_000, vol24=2_000_000, vol6=40_000, liq=60_000,
+                 trades6=400, buys6=210)
+    dead.token.txns_24h = dead.token.txns_6h
+    dead.token.price_change_24h = 1400.0        # a 15x on paper
+    reasons = inorganic_reasons(dead, settings)
+    assert any("the move is over" in r for r in reasons)
+
+    alive = _tape("ALIVE", mcap=400_000, vol24=2_000_000, vol6=700_000, liq=60_000,
+                  trades6=1_800, buys6=950)
+    alive.token.txns_24h = alive.token.txns_6h
+    alive.token.price_change_24h = 1400.0
+    assert not any("the move is over" in r for r in inorganic_reasons(alive, settings))
+
+
+def test_a_token_rugcheck_calls_rugged_is_removed(tmp_path):
+    from brief.journal import rug_or_bundle
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "rugged")
+    c = _tape("GONE", mcap=400_000, vol24=600_000, vol6=200_000, liq=50_000,
+              trades6=1_200, buys6=640)
+    c.safety = SafetyReport("m", rugged=True)
+    assert any("rugged" in r for r in rug_or_bundle(c, settings))
 
 
 def test_a_book_with_no_sellers_is_removed(tmp_path):
@@ -646,3 +698,60 @@ def test_a_genuine_runner_survives_every_organic_check(tmp_path):
     assert inorganic_reasons(
         _tape("FOMO", mcap=380_000, vol24=3_098_000, vol6=900_000, liq=83_000,
               trades6=2_467, buys6=1_233), settings) == []
+
+
+def test_a_big_move_no_tracked_wallet_touched_is_flagged(tmp_path):
+    """These wallets exist because they find moves like this. Silence is odd."""
+    from brief.journal import risk_labels, untouched_by_tracked_wallets
+
+    settings = build_settings(tmp_path / "untouched")
+    ran = _tape("GHOST", mcap=400_000, vol24=900_000, vol6=250_000, liq=60_000,
+                trades6=1_200, buys6=640)
+    ran.token.price_change_24h = 1100.0          # a 12x
+    ran.run_multiple = 12.0
+    ran.kol_wallets_scanned = 66
+
+    assert untouched_by_tracked_wallets(ran, settings)
+    assert any("not one tracked wallet touched it" in f
+               for f in risk_labels(ran, settings, NOW))
+
+
+def test_a_runner_the_wallets_traded_is_not_flagged(tmp_path):
+    """Selling counts: the position may have been opened before the window."""
+    from brief.journal import untouched_by_tracked_wallets
+
+    settings = build_settings(tmp_path / "touched")
+    ran = _tape("MOLLIE", mcap=187_000, vol24=1_085_000, vol6=300_000, liq=37_000,
+                trades6=1_245, buys6=535)
+    ran.run_multiple = 15.4
+    ran.kol_wallets_scanned = 66
+
+    ran.kol_buyers = ["Wugi"]
+    assert not untouched_by_tracked_wallets(ran, settings)
+
+    ran.kol_buyers = []
+    ran.kol_realised_sol = 42.6          # closed a position opened earlier
+    assert not untouched_by_tracked_wallets(ran, settings)
+
+
+def test_a_modest_mover_is_not_expected_to_draw_smart_money(tmp_path):
+    from brief.journal import untouched_by_tracked_wallets
+
+    settings = build_settings(tmp_path / "modest")
+    mild = _tape("MILD", mcap=400_000, vol24=200_000, vol6=60_000, liq=60_000,
+                 trades6=900, buys6=470)
+    mild.run_multiple = 2.0
+    mild.kol_wallets_scanned = 66
+    assert not untouched_by_tracked_wallets(mild, settings)
+
+
+def test_silence_proves_nothing_when_the_scan_did_not_run(tmp_path):
+    """A Helius outage must not accuse every runner of being ignored."""
+    from brief.journal import untouched_by_tracked_wallets
+
+    settings = build_settings(tmp_path / "noscan")
+    ran = _tape("GHOST", mcap=400_000, vol24=900_000, vol6=250_000, liq=60_000,
+                trades6=1_200, buys6=640)
+    ran.run_multiple = 12.0
+    ran.kol_wallets_scanned = 0
+    assert not untouched_by_tracked_wallets(ran, settings)

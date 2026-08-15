@@ -129,6 +129,7 @@ body{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;
 .board .s em{display:block;font-style:normal;font-size:calc(12*var(--u));color:var(--muted)}
 .board .m{font-family:var(--display);font-size:calc(24*var(--u))}
 .board .c{font-size:calc(16*var(--u));min-width:calc(74*var(--u));text-align:right}
+.board .kolc{background:var(--red);color:#fff;font-size:calc(12*var(--u));padding:calc(2*var(--u)) calc(6*var(--u));white-space:nowrap}
 
 /* ============================ SHARED ============================ */
 .stamp{position:absolute;font-family:var(--display);color:var(--red);
@@ -213,7 +214,8 @@ function topFlag(r) {
   if ((r.riskLabels || []).some((f) => /bundle|concentr|top 10/i.test(f))) return "CONCENTRATED";
   if ((r.riskLabels || []).some((f) => /thin pool/i.test(f))) return "THIN LIQUIDITY";
   if ((r.riskLabels || []).some((f) => /reused/i.test(f))) return "RECYCLED TICKER";
-  if ((r.kolBuyers || []).length >= 3) return "KOL CROWD";
+  if ((r.kolBuyers || []).length >= 2) return "KOL CROWD";
+  if ((r.riskLabels || []).some((f) => /tracked wallet touched/i.test(f))) return "NO SMART MONEY";
   return "";
 }
 
@@ -286,11 +288,14 @@ function lower3(r) {
 }
 
 function board(list) {
-  const rows = list.slice(0, MAX).map((r, i) => `
+  const rows = list.slice(0, MAX).map((r, i) => {
+    const n = (r.kolBuyers || []).length;
+    return `
     <li><span class="n">${String(i + 1).padStart(2, "0")}</span>
       <span class="s">$${esc(r.symbol)}<em>${esc(r.name)}</em></span>
       <span class="m ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</span>
-      <span class="c">${money(r.marketCap)}</span></li>`).join("");
+      <span class="c">${n ? `<b class="kolc">${n} KOL</b>` : money(r.marketCap)}</span></li>`;
+  }).join("");
   const pos = SIDE === "left"
     ? `left:calc(48*var(--u));right:auto` : `right:calc(48*var(--u));left:auto`;
   return `<div class="board enter" style="${pos}">
@@ -324,7 +329,11 @@ async function loadSnapshot() {
     const res = await fetch("data/latest.json?t=" + Date.now(), { cache: "no-store" });
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
-    RUNNERS = (data.runners || []).slice().sort((a, b) => b.runMultiple - a.runMultiple);
+    const by = (P.get("sort") || "run").toLowerCase();
+    RUNNERS = (data.runners || []).slice().sort((a, b) =>
+      by === "kol"
+        ? (b.kolBuyers || []).length - (a.kolBuyers || []).length || b.runMultiple - a.runMultiple
+        : b.runMultiple - a.runMultiple);
     paint();
   } catch (err) {
     // A failed refresh must never blank an overlay that is already on air.

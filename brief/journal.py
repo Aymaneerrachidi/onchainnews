@@ -66,6 +66,7 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     if implausible_run(candidate, settings):
         return False
 
+
     fresh_window = float(section.get("fresh_window_hours", 24))
     if age is not None and age <= fresh_window:
         return token.price_change_24h >= float(section.get("min_fresh_change_pct", 30))
@@ -87,6 +88,8 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     enrichment = candidate.enrichment
     reasons: list[str] = []
 
+    if report.rugged:
+        reasons.append("RugCheck has already marked this token as rugged")
     if report.mint_authority_renounced is False or enrichment.mint_authority_renounced is False:
         reasons.append("mint authority still live, supply can be inflated")
     if report.freeze_authority_disabled is False or enrichment.freeze_authority_disabled is False:
@@ -140,15 +143,25 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
         if average < min_trade:
             reasons.append(f"average trade is ${average:,.2f}, which is spam rather than demand")
 
-    max_reuse = int(section.get("max_ticker_reuse", 0))
-    if candidate.recycled_label_count > max_reuse:
-        reasons.append(
-            f"not an original ticker: {candidate.recycled_label_count} other recent mint(s) used it"
-        )
+    min_holders = int(section.get("min_holders", 200))
+    holders = candidate.safety.holder_count
+    if holders is not None and holders < min_holders:
+        reasons.append(f"only {holders} holders, which is not a market yet")
 
-    max_boosts = int(section.get("max_paid_boosts", 0))
-    if token.active_boosts > max_boosts:
-        reasons.append(f"{token.active_boosts} paid boost(s): the attention was bought, not earned")
+    min_trades = int(section.get("min_trades_24h", 300))
+    if token.txns_24h.total and token.txns_24h.total < min_trades:
+        reasons.append(f"only {token.txns_24h.total} trades in 24h")
+
+    # The pump-and-die shape: an enormous printed gain with nothing still
+    # trading behind it. An even day puts a quarter of its volume in the last
+    # six hours, so a few percent means the move finished hours ago.
+    min_share = float(section.get("min_recent_volume_share", 0.08))
+    if token.volume_24h and run_multiple(token) >= float(section.get("dead_check_above_multiple", 5)):
+        share = token.volume_6h / token.volume_24h
+        if share < min_share:
+            reasons.append(
+                f"the move is over: only {share:.0%} of the day's volume traded in the last six hours"
+            )
 
     max_buys = float(section.get("max_buy_ratio", 0.85))
     if (
@@ -176,6 +189,31 @@ def faded_from_peak(token: TokenSnapshot) -> float | None:
     return None
 
 
+def untouched_by_tracked_wallets(candidate: Candidate, settings: Settings) -> bool:
+    """A large move that not one tracked wallet went near.
+
+    These wallets are on the leaderboard because they find moves like this. When
+    a coin doubles several times over and none of them bought, sold or held any
+    of it, the move was made by someone else and it is worth saying so out loud.
+
+    Weak evidence on its own -- it is 66 wallets out of a very large market, so
+    plenty of real runners are missed by all of them. That is why this labels
+    the row rather than removing it.
+    """
+    section = settings.section("journal")
+    if not candidate.kol_wallets_scanned:
+        return False
+    threshold = float(section.get("expect_tracked_wallets_above", 5.0))
+    if candidate.run_multiple < threshold:
+        return False
+    return not (
+        candidate.kol_buyers
+        or candidate.kol_sellers
+        or candidate.kol_holders
+        or candidate.kol_realised_sol
+    )
+
+
 def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list[str]:
     """Everything worth seeing on the row that is not a reason to hide it."""
     section = settings.section("journal")
@@ -193,6 +231,10 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
     ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else float("inf")
     if ratio > float(section.get("thin_liquidity_ratio", 60)):
         labels.append(f"thin pool, {ratio:.0f}x its liquidity traded")
+    if candidate.recycled_label_count:
+        labels.append(f"ticker also used by {candidate.recycled_label_count} other recent mint(s)")
+    if candidate.safety.holder_count is not None:
+        labels.append(f"{candidate.safety.holder_count:,} holders")
     if not token.socials:
         labels.append("no linked socials")
     if candidate.enrichment.social_resolves is False:
@@ -205,6 +247,10 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
     fade = faded_from_peak(token)
     if fade is not None:
         labels.append(f"fading, down {abs(fade):.0f}% in the last hour")
+    if untouched_by_tracked_wallets(candidate, settings):
+        labels.append(
+            f"{candidate.run_multiple:.0f}x and not one tracked wallet touched it"
+        )
     return labels
 
 

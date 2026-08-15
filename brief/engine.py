@@ -285,6 +285,38 @@ async def build_brief(
                 "not started; launch counts currently fall back to Dexscreener discovery feeds",
             ))
 
+        helius = HeliusSource(
+            http,
+            str(urls.get("helius_base_url", "https://mainnet.helius-rpc.com")),
+            os.getenv("HELIUS_API_KEY"),
+            int(cache.get("keyed_ttl_seconds", 900)),
+            requests_per_minute=int(settings.get("holders", "helius_requests_per_minute", 100)),
+            holder_page_limit=int(settings.get("holders", "holder_page_limit", 1000)),
+            max_holder_pages=int(settings.get("holders", "max_holder_pages", 100)),
+        )
+        # Tracked-wallet flow is a check on the day's runners: a coin earns its
+        # place by moving, and this answers whether the wallets that usually
+        # catch these moves were in it. Scanned before screening so the answer
+        # is available while the record is being built.
+        kol_tracker = KolTracker(helius, settings)
+        kol_activity = {}
+        if kol_tracker.enabled:
+            try:
+                kol_activity = await kol_tracker.activity(now)
+                statuses.append(SourceStatus(
+                    "KOL wallet flow", True,
+                    f"{kol_tracker.scanned}/{len(kol_tracker.wallets)} wallets scanned; "
+                    f"activity in {len(kol_activity)} mints",
+                ))
+            except Exception as exc:
+                log.warning("kol_tracking_failed error=%s", exc)
+                statuses.append(SourceStatus("KOL wallet flow", False, str(exc)))
+        else:
+            statuses.append(SourceStatus(
+                "KOL wallet flow", False,
+                "no wallets configured; add addresses to [kol].wallets in config.toml",
+            ))
+
         token_by_mint = {token.mint: token for token in tokens}
         chains = allowed_chains(settings)
         hard_pass_mints = [
@@ -309,15 +341,6 @@ async def build_brief(
             f"partial: {rug_failures}/{len(rug_results)} token reports unavailable" if rug_failures else "open safety reports available",
         ))
 
-        helius = HeliusSource(
-            http,
-            str(urls.get("helius_base_url", "https://mainnet.helius-rpc.com")),
-            os.getenv("HELIUS_API_KEY"),
-            int(cache.get("keyed_ttl_seconds", 900)),
-            requests_per_minute=int(settings.get("holders", "helius_requests_per_minute", 100)),
-            holder_page_limit=int(settings.get("holders", "holder_page_limit", 1000)),
-            max_holder_pages=int(settings.get("holders", "max_holder_pages", 100)),
-        )
         enrichments: dict[str, Enrichment] = {mint: Enrichment() for mint in hard_pass_mints}
         if helius.configured:
             try:
@@ -584,6 +607,16 @@ async def build_brief(
         candidates, exclusions, journal_pool = screen(
             tokens, safety, enrichments, ctos, ledger, settings, now
         )
+        scanned_wallets = kol_tracker.scanned if kol_tracker.enabled else 0
+        for candidate in journal_pool:
+            candidate.kol_wallets_scanned = scanned_wallets
+            record = kol_activity.get(candidate.token.mint)
+            if record:
+                candidate.kol_buyers = record.buyers
+                candidate.kol_sellers = record.sellers
+                candidate.kol_holders = record.holders
+                candidate.kol_realised_sol = record.realised_sol
+                candidate.kol_sol_spent = record.sol_spent
         top_limit = int(settings.get("editorial", "max_shortlist", settings.get("run", "top_tokens", 10)))
         def launched_in_window(candidate) -> bool:
             created = candidate.token.pair_created_at
@@ -635,24 +668,6 @@ async def build_brief(
 
         # The journal is the day's record: every coin that ran, ranked, with
         # risk shown on the row instead of being a reason to hide it.
-        kol_tracker = KolTracker(helius, settings)
-        kol_activity = {}
-        if kol_tracker.enabled:
-            try:
-                kol_activity = await kol_tracker.activity(now)
-                statuses.append(SourceStatus(
-                    "KOL wallet flow", True,
-                    f"{kol_tracker.scanned}/{len(kol_tracker.wallets)} wallets scanned; "
-                    f"activity in {len(kol_activity)} mints",
-                ))
-            except Exception as exc:
-                log.warning("kol_tracking_failed error=%s", exc)
-                statuses.append(SourceStatus("KOL wallet flow", False, str(exc)))
-        else:
-            statuses.append(SourceStatus(
-                "KOL wallet flow", False,
-                "no wallets configured; add addresses to [kol].wallets in config.toml",
-            ))
         for candidate in journal_pool:
             record = kol_activity.get(candidate.token.mint)
             if record:
@@ -664,7 +679,7 @@ async def build_brief(
         runners, blocked_runners = build_journal(journal_pool, settings, ledger, now)
         runners = runners[:int(settings.get('journal', 'max_runners', 40))]
         lore_groups = assign_lore(runners, settings)
-        min_kol = int(settings.get("kol", "min_buyers_to_flag", 3))
+        min_kol = int(settings.get("kol", "min_buyers_to_flag", 2))
         kol_flagged = sorted(
             (c for c in runners if len(c.kol_buyers) >= min_kol),
             key=lambda c: len(c.kol_buyers),

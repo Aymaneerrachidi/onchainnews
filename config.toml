@@ -211,6 +211,12 @@ min_volume_24h = 50000.0
 fresh_window_hours = 24
 min_fresh_change_pct = 30.0
 old_coin_multiple = 5.0
+# Above this multiple, expect at least one tracked wallet to have been in it.
+# Measured on live data, 66 wallets touch only about one runner in seven, so
+# silence is the norm and flagging it at 5x accused nearly every coin. Set where
+# absence is genuinely odd, and reported on the row rather than treated as proof.
+# Lower this as more wallets are added and coverage improves.
+expect_tracked_wallets_above = 10.0
 # 0 disables the age ceiling, so a 5x is reported at any age.
 max_age_days = 0
 # A feed sometimes reports a nonsense 24h change when a pool is reseeded. Such
@@ -226,8 +232,15 @@ max_volume_liquidity = 150.0      # 24h volume against pool depth
 max_turnover = 30.0               # 24h volume against market cap
 max_trades_per_minute = 40.0      # six-hour tape divided by 360
 min_average_trade_usd = 15.0      # dust prints are spam, not demand
-max_ticker_reuse = 0              # the client asked for original tickers only
-max_paid_boosts = 0               # bought attention is not a market signal
+# A reused ticker is shown on the row, not treated as disqualifying: plenty of
+# real coins share a name with something forgettable. Boosts are Dexscreener's
+# advertising product and honest teams buy them, so they are not a signal either.
+min_holders = 200                 # a real distribution, not a handful of wallets
+min_trades_24h = 300              # a real tape, not a dozen prints
+# The insta-x-then-dead shape. An even day trades a quarter of its volume in the
+# last six hours, so a few percent means the move finished hours ago.
+min_recent_volume_share = 0.08
+dead_check_above_multiple = 5.0
 max_buy_ratio = 0.85              # a book with no sellers is manufactured
 one_sided_min_trades = 300
 
@@ -244,7 +257,7 @@ min_lore_group = 2
 [kol]
 enabled = true
 window_hours = 24
-min_buyers_to_flag = 3
+min_buyers_to_flag = 2
 # Helius free tier answers a burst of heavy wallet-history calls with 429s, so
 # this work is paced and budgeted separately from the holder snapshots.
 max_transactions_per_wallet = 40
