@@ -394,18 +394,25 @@ async def test_empty_day_states_the_result_rather_than_looking_broken(settings, 
 
 
 @pytest.mark.asyncio
-async def test_journal_records_an_old_coin_doing_a_big_multiple(mover_settings):
-    """Old coins earn their place with a 5x, not by drifting up a few percent."""
+async def test_age_is_a_wall_that_no_multiple_buys_past(mover_settings):
+    """The record is about coins that launched and worked.
+
+    Inside the wall the bar eases with age: a pair in its first day only has to
+    be up a third, one in its second has to have done a real multiple. Nothing
+    older gets in at all, however large the number beside it.
+    """
     ledger = Ledger(mover_settings.path("run", "database_path"))
     try:
         brief = await build_brief(mover_settings, ledger, commit=False, now=NOW)
         runners = {c.token.symbol: c for c in brief.runners}
+        # 30 hours old and up 8x: past its first day, so it needs the multiple.
         assert "RUNNER" in runners
         assert runners["RUNNER"].run_multiple == pytest.approx(8.0)
-        # +64% on a five-day-old pair is not a 5x, so it stays out.
+        # Same age, only up 64%: not a multiple, so it is not the day's news.
         assert "MOVER" not in runners
-        # ...but it is still an editorial mover, the two views are independent.
+        # ...though it is still an editorial mover, the two views are independent.
         assert "MOVER" in {c.token.symbol for c in brief.movers}
+        assert all(c.signals.age_hours <= 36 for c in brief.runners)
     finally:
         ledger.close()
 
@@ -889,3 +896,49 @@ def test_solana_wallet_silence_is_not_held_against_other_chains(tmp_path):
     c.token.chain_id = "base"
     c.kol_wallets_scanned = 0          # what the engine records off Solana
     assert not untouched_by_tracked_wallets(c, settings)
+
+
+def test_a_coin_past_the_age_wall_is_excluded_however_large_the_move(tmp_path):
+    """A 50x on a week-old pair is not what the report is for."""
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "wall")
+    coin = _tape("OLDRUN", mcap=900_000, vol24=3_000_000, vol6=900_000, liq=120_000,
+                 trades6=2_400, buys6=1_260)
+    coin.token.price_change_24h = 4900.0        # a 50x
+
+    coin.token.pair_created_at = NOW - timedelta(hours=30)
+    assert belongs_in_journal(coin, settings, NOW), "inside the wall a multiple counts"
+
+    coin.token.pair_created_at = NOW - timedelta(hours=37)
+    assert not belongs_in_journal(coin, settings, NOW), "an hour past the wall is out"
+
+    coin.token.pair_created_at = NOW - timedelta(days=7)
+    assert not belongs_in_journal(coin, settings, NOW)
+
+
+def test_a_pair_with_no_known_creation_time_is_excluded(tmp_path):
+    """The point of the wall is that everything inside it provably is new."""
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "unknownage")
+    coin = _tape("NOAGE", mcap=400_000, vol24=900_000, vol6=300_000, liq=60_000,
+                 trades6=1_400, buys6=740)
+    coin.token.price_change_24h = 900.0
+    coin.token.pair_created_at = None
+    assert not belongs_in_journal(coin, settings, NOW)
+
+
+def test_the_first_day_bar_is_lower_than_the_second(tmp_path):
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "bands")
+    coin = _tape("BAND", mcap=400_000, vol24=900_000, vol6=300_000, liq=60_000,
+                 trades6=1_400, buys6=740)
+    coin.token.price_change_24h = 40.0          # up 40%, not a multiple
+
+    coin.token.pair_created_at = NOW - timedelta(hours=6)
+    assert belongs_in_journal(coin, settings, NOW), "a fresh pair only needs to run"
+
+    coin.token.pair_created_at = NOW - timedelta(hours=30)
+    assert not belongs_in_journal(coin, settings, NOW), "past a day it needs a multiple"

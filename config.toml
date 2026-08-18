@@ -59,7 +59,8 @@ min_strength_signals = 2
 min_price_change_24h = 25.0
 min_turnover = 0.5
 min_volume_24h = 100000.0
-max_age_days = 120
+# Kept in step with the journal's ceiling: no old coins anywhere in the report.
+max_age_days = 1.5
 
 # Community takeovers are old tokens by definition, so this track is also
 # evaluated outside the launch window and is gated on post-claim vitality.
@@ -226,17 +227,21 @@ email_subject_prefix = "Solana Brief"
 enabled = true
 max_runners = 40
 min_volume_24h = 50000.0
+# Nothing older than this reaches the record, whatever it did. The report is
+# about coins that launched and worked, so age is a wall rather than something
+# a large multiple can buy past.
+max_age_hours = 36
+# Inside the wall the bar eases with age: a pair in its first day only has to be
+# up this much, while one in its second has to have done a real multiple.
 fresh_window_hours = 24
 min_fresh_change_pct = 30.0
-old_coin_multiple = 5.0
+older_than_a_day_multiple = 5.0
 # Above this multiple, expect at least one tracked wallet to have been in it.
 # Measured on live data, 66 wallets touch only about one runner in seven, so
 # silence is the norm and flagging it at 5x accused nearly every coin. Set where
 # absence is genuinely odd, and reported on the row rather than treated as proof.
 # Lower this as more wallets are added and coverage improves.
 expect_tracked_wallets_above = 10.0
-# 0 disables the age ceiling, so a 5x is reported at any age.
-max_age_days = 0
 # A feed sometimes reports a nonsense 24h change when a pool is reseeded. Such
 # a number tops every ranking, so a big run must be corroborated by turnover.
 max_credible_multiple = 1000.0

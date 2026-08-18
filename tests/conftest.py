@@ -63,7 +63,7 @@ min_strength_signals = 2
 min_price_change_24h = 25.0
 min_turnover = 0.5
 min_volume_24h = 100000.0
-max_age_days = 120
+max_age_days = 1.5
 
 [cto]
 enabled = true
@@ -83,8 +83,8 @@ max_runners = 40
 min_volume_24h = 50000.0
 fresh_window_hours = 24
 min_fresh_change_pct = 30.0
-old_coin_multiple = 5.0
-max_age_days = 0
+older_than_a_day_multiple = 5.0
+max_age_hours = 36
 kol_buyers_door = 0
 expect_tracked_wallets_above = 10.0
 max_credible_multiple = 1000.0

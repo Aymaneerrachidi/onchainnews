@@ -52,10 +52,16 @@ def implausible_run(candidate: Candidate, settings: Settings) -> bool:
 
 
 def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) -> bool:
-    """Created today and running, or any age doing a large multiple.
+    """Only coins created inside the age ceiling, and only if they ran.
 
-    Two doors, because the day's record needs today's launches *and* the older
-    coin that just did a 5x, but not an established major drifting up 8%.
+    The record is about what launched and worked, so age is a hard wall rather
+    than something a big multiple can buy past. A pair with no known creation
+    time is excluded too: it cannot be shown to be new, and the whole point of
+    the ceiling is that everything in the record provably is.
+
+    Inside the wall the bar eases with age. A pair still in its first day only
+    has to be up `min_fresh_change_pct`; past that it has to have done a real
+    multiple, because a day-old coin that is only up a third is not news.
     """
     section = settings.section("journal")
     token = candidate.token
@@ -78,14 +84,14 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
         return False
 
 
-    fresh_window = float(section.get("fresh_window_hours", 24))
-    if age is not None and age <= fresh_window:
-        return token.price_change_24h >= float(section.get("min_fresh_change_pct", 30))
-
-    max_age_days = float(section.get("max_age_days", 0))
-    if max_age_days and age is not None and age > max_age_days * 24:
+    ceiling = float(section.get("max_age_hours", 36))
+    if age is None or (ceiling and age > ceiling):
         return False
-    return run_multiple(token) >= float(section.get("old_coin_multiple", 5.0))
+
+    fresh_window = float(section.get("fresh_window_hours", 24))
+    if age <= fresh_window:
+        return token.price_change_24h >= float(section.get("min_fresh_change_pct", 30))
+    return run_multiple(token) >= float(section.get("older_than_a_day_multiple", 5.0))
 
 
 def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
