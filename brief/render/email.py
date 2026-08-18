@@ -1,3 +1,16 @@
+"""The daily report as an email.
+
+Email is not the web. Gmail strips `<style>` blocks it dislikes, drops web
+fonts entirely, and removes SVG, so the brand's Aeonik and the overlay's QR
+codes cannot survive the trip. Everything here is therefore tables and inline
+styles, with a system stack chosen to sit as close to Aeonik as installed fonts
+allow, and a proportional bar drawn from coloured table cells instead of an
+image: it renders in every client, needs no downloads, and turns the list into
+something readable in two seconds.
+
+A QR is not needed here either. It exists on the overlay because nobody can tap
+a television; in an inbox the address is a link.
+"""
 from __future__ import annotations
 
 import html
@@ -8,167 +21,428 @@ from brief.render.formatting import money, pct, ratio
 from brief.render.html import report_picks
 
 
+# fomo brand, verbatim from the guidelines.
+BLUE = "#516AF6"       # primary
+BLUE_2 = "#4A36FF"     # secondary, reserved for tracked-wallet conviction
+NAVY = "#221D4B"
+PAPER = "#EAEDFF"
+SURFACE = "#FFFFFF"
+LINE = "#D9DDF7"
+MUTED = "#6E6BA8"
+ALERT = "#FF4A2E"
+TRACK = "#E3E6FA"      # the unfilled part of a run bar
+
+# Aeonik cannot be delivered to an inbox, so this is the closest thing every
+# reader already has: SF on Apple, Segoe on Windows, Helvetica elsewhere.
+FONT = ("-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',"
+        "Helvetica,Arial,sans-serif")
+
+CHAIN_NAMES = {
+    "solana": "Solana", "ethereum": "Ethereum", "bsc": "BNB Chain",
+    "base": "Base", "robinhood": "Robinhood",
+}
+
+
 def _e(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
+def _txt(size: int, weight: int, color: str, leading: float = 1.4,
+         tracking: float = 0.0, transform: str = "") -> str:
+    parts = [
+        f"font-family:{FONT}",
+        f"font-size:{size}px",
+        f"font-weight:{weight}",
+        f"line-height:{leading}",
+        f"color:{color}",
+        "margin:0",
+    ]
+    if tracking:
+        parts.append(f"letter-spacing:{tracking}em")
+    if transform:
+        parts.append(f"text-transform:{transform}")
+    return ";".join(parts)
+
+
 def email_subject(brief: Brief, settings: Settings) -> str:
-    prefix = str(settings.get("delivery", "email_subject_prefix", "Solana Brief"))
-    return f"{prefix} — {brief.generated_at.strftime('%d %b %Y')}"
-
-
-def _cell(value: str, label: str, color: str = "#1a1a1a") -> str:
+    prefix = str(settings.get("delivery", "email_subject_prefix", "fomo onchain"))
+    runners = brief.runners
+    if not runners:
+        return f"{prefix} — nothing ran, {brief.generated_at.strftime('%d %b')}"
+    top = max(runners, key=lambda c: c.run_multiple)
+    # The subject line is the one part read before anything is opened, so it
+    # carries the day's headline rather than repeating the date twice.
     return (
-        f'<td style="padding:8px 14px;border-top:1px solid #e3e1da;'
-        f'font:600 13px/1.4 Arial,Helvetica,sans-serif;color:{color}">'
-        f"{value}<br>"
-        f'<span style="font:400 10px Arial,Helvetica,sans-serif;color:#8a877f;'
-        f'letter-spacing:.08em">{label}</span></td>'
+        f"{prefix} — ${top.token.symbol} {top.run_multiple:.0f}x"
+        f" and {len(runners) - 1} more, {brief.generated_at.strftime('%d %b')}"
     )
 
 
-def _runner_row(candidate: Candidate, index: int) -> str:
+def _chain_name(chain: str) -> str:
+    return CHAIN_NAMES.get(str(chain or "").lower(), str(chain or "—"))
+
+
+def _size(candidate: Candidate) -> str:
+    if candidate.run_multiple >= 2:
+        return f"{candidate.run_multiple:.1f}x"
+    return pct(candidate.token.price_change_24h, 0)
+
+
+def _age(candidate: Candidate) -> str:
+    hours = candidate.signals.age_hours
+    if hours is None:
+        return "age unknown"
+    if hours < 1:
+        return f"{hours * 60:.0f} min old"
+    return f"{hours:.0f}h old"
+
+
+# A gap in the data is not a danger. Saying "concentration unknown" in the same
+# red as "fading, down 15%" made every row look alarming, which is the same as
+# no row looking alarming. Unknowns are set quiet; only measured risk is loud.
+UNKNOWN_MARKERS = ("unknown", "no contract safety source", "not published")
+
+
+def _is_unknown(label: str) -> bool:
+    return any(marker in label.lower() for marker in UNKNOWN_MARKERS)
+
+
+def _split_labels(labels: list[str]) -> tuple[list[str], list[str]]:
+    risks = [l for l in labels if not _is_unknown(l)]
+    gaps = [l for l in labels if _is_unknown(l)]
+    return risks, gaps
+
+
+def _chip(text: str, background: str, color: str = SURFACE) -> str:
+    return (
+        f'<span style="display:inline-block;background:{background};'
+        f'padding:4px 9px;border-radius:20px;{_txt(10, 700, color, 1.0, 0.06, "uppercase")}">'
+        f"{_e(text)}</span>"
+    )
+
+
+def _run_bar(share: float, color: str = BLUE, height: int = 8) -> str:
+    """A proportional bar built from two table cells.
+
+    An image would need hosting and would be blocked by default in most
+    clients; a bar made of cells always draws. Width encodes the size of the
+    run against the biggest one in the same email, so the ranking is legible
+    before a single number is read.
+    """
+    filled = max(3, min(100, round(share * 100)))
+    rest = 100 - filled
+    empty = (
+        f'<td width="{rest}%" bgcolor="{TRACK}" '
+        f'style="background:{TRACK};font-size:0;line-height:{height}px;'
+        f'border-radius:0 {height}px {height}px 0">&nbsp;</td>'
+        if rest > 0 else ""
+    )
+    return (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'border="0" style="border-collapse:separate;table-layout:fixed">'
+        f'<tr><td width="{filled}%" bgcolor="{color}" '
+        f'style="background:{color};font-size:0;line-height:{height}px;'
+        f'border-radius:{height}px 0 0 {height}px">&nbsp;</td>{empty}</tr></table>'
+    )
+
+
+def _section(title: str, note: str = "") -> str:
+    caption = (
+        f'<div style="{_txt(12, 400, MUTED, 1.5)};padding-top:6px">{_e(note)}</div>'
+        if note else ""
+    )
+    return (
+        '<tr><td style="padding:34px 24px 12px">'
+        f'<div style="{_txt(12, 700, BLUE, 1.2, 0.14, "uppercase")}">{_e(title)}</div>'
+        f"{caption}</td></tr>"
+    )
+
+
+def _hero(candidate: Candidate) -> str:
+    """The biggest run of the day, given the room it earns."""
     token = candidate.token
-    signal = candidate.signals
-    age = "N/A" if signal.age_hours is None else (
-        f"{signal.age_hours:.0f}H" if signal.age_hours < 48 else f"{signal.age_hours / 24:.0f}D"
+    risks, gaps = _split_labels(candidate.risk_labels)
+    flag_line = (
+        f'<div style="{_txt(12, 500, "#FF9C88", 1.5)};padding-top:10px">'
+        + _e(" · ".join(risks[:3])) + "</div>"
+        if risks else ""
     )
-    multiple = f"{candidate.run_multiple:.1f}x" if candidate.run_multiple >= 2 else pct(token.price_change_24h, 0)
-    labels = "".join(
-        f'<li style="font:400 11px/1.5 Arial,Helvetica,sans-serif;color:#b3261e;margin:0 0 2px">{_e(label)}</li>'
-        for label in candidate.risk_labels
+    if gaps:
+        flag_line += (
+            f'<div style="{_txt(11, 400, "#8A88BC", 1.5)};padding-top:6px">'
+            + _e(" · ".join(gaps[:2])) + "</div>"
+        )
+    kol = (
+        f'<div style="padding-top:12px">{_chip(f"{len(candidate.kol_buyers)} tracked wallets bought", BLUE_2)}</div>'
+        if candidate.kol_buyers else ""
     )
-    kol = f'<span style="display:inline-block;background:#b3261e;color:#fff;font:700 10px Arial,Helvetica,sans-serif;padding:1px 6px;margin-right:4px">{len(candidate.kol_buyers)} KOL</span>' if candidate.kol_buyers else ""
-    lore = f'<span style="display:inline-block;background:#1a1a1a;color:#f5f3ee;font:700 10px Arial,Helvetica,sans-serif;padding:1px 6px;margin-right:4px">{_e(candidate.lore)}</span>' if candidate.lore else ""
-    read = candidate.read or "No summary available."
-    return f"""
-<tr style="mso-table-lspace:0;mso-table-rspace:0">
-  <td style="padding:14px">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:0;border-color:#e3e1da">
-      <tr>
-        <td style="padding:0 14px 0 0;font:800 15px Arial,Helvetica,sans-serif;color:#b3261e;vertical-align:top">${_e(token.symbol)}</td>
-        <td style="padding:0 14px 0 0;font:700 15px Arial,Helvetica,sans-serif;color:#1a1a1a;color:#237343;vertical-align:top">{_e(multiple)}<br><span style="font:400 10px Arial,Helvetica,sans-serif;color:#8a877f;letter-spacing:.08em">RUN 24H</span></td>
-        <td style="padding:0 14px 0 0;font:700 13px Arial,Helvetica,sans-serif;color:#1a1a1a;vertical-align:top">{_e(pct(token.price_change_1h, 0))}<br><span style="font:400 10px Arial,Helvetica,sans-serif;color:#8a877f;letter-spacing:.08em">1H</span></td>
-        <td style="padding:0 14px 0 0;font:700 13px Arial,Helvetica,sans-serif;color:#1a1a1a;vertical-align:top">{_e(money(token.market_cap))}<br><span style="font:400 10px Arial,Helvetica,sans-serif;color:#8a877f;letter-spacing:.08em">MCAP</span></td>
-        <td style="padding:0 14px 0 0;font:700 13px Arial,Helvetica,sans-serif;color:#1a1a1a;vertical-align:top">{_e(money(token.volume_24h))}<br><span style="font:400 10px Arial,Helvetica,sans-serif;color:#8a877f;letter-spacing:.08em">VOL 24H</span></td>
-        <td style="padding:0;font:700 13px Arial,Helvetica,sans-serif;color:#1a1a1a;vertical-align:top">{_e(age)}<br><span style="font:400 10px Arial,Helvetica,sans-serif;color:#8a877f;letter-spacing:.08em">AGE</span></td>
-      </tr>
-      <tr>
-        <td colspan="6" style="padding:8px 0 0">
-          <p style="margin:0 0 8px;font:400 13px/1.55 Arial,Helvetica,sans-serif;color:#33302a">{_e(read)}</p>
-          <p style="margin:0 0 4px">{kol}{lore}<span style="font:400 11px Arial,Helvetica,sans-serif;color:#8a877f">TURNOVER {_e(ratio(signal.turnover))} · 6H BUYS {_e("N/A" if signal.buy_imbalance_6h is None else f"{signal.buy_imbalance_6h:.0%}")} · MINT {_e(token.mint)}</span></p>
-          <ul style="margin:0;padding-left:16px">{labels}</ul>
-          <p style="margin:6px 0 0"><a href="{_e(token.url)}" style="color:#b3261e;font:700 11px Arial,Helvetica,sans-serif;text-decoration:underline" target="_blank">OPEN DEXSCREENER &#8599;</a></p>
-        </td>
-      </tr>
-    </table>
-  </td>
-</tr>"""
+    return (
+        '<tr><td style="padding:0 24px">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{NAVY};border-radius:14px">'
+        '<tr><td style="padding:22px 22px 20px">'
+        # Symbol and the number, the number given display weight.
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        f'<td style="vertical-align:bottom">'
+        f'<div style="{_txt(26, 700, SURFACE, 1.05, -0.02)}">${_e(token.symbol)}</div>'
+        f'<div style="{_txt(13, 400, "#A7A5D4", 1.4)};padding-top:4px">'
+        f"{_e(_chain_name(token.chain_id))} &middot; {_e(_age(candidate))}</div></td>"
+        f'<td align="right" style="vertical-align:bottom">'
+        f'<div style="{_txt(44, 700, SURFACE, 1.0, -0.03)}">{_e(_size(candidate))}</div>'
+        f'<div style="{_txt(10, 700, "#A7A5D4", 1.2, 0.14, "uppercase")};padding-top:2px">'
+        "in 24 hours</div></td>"
+        "</tr></table>"
+        f'<div style="padding-top:16px">{_run_bar(1.0, BLUE)}</div>'
+        # The four numbers that decide whether it is worth a look.
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        'style="padding-top:18px"><tr>'
+        + _hero_stat("Market cap", money(token.market_cap))
+        + _hero_stat("Liquidity", money(token.liquidity_usd))
+        + _hero_stat("Holders", f"{candidate.safety.holder_count:,}" if candidate.safety.holder_count else "—")
+        + _hero_stat("Last hour", pct(token.price_change_1h, 0), True)
+        + "</tr></table>"
+        f'<div style="{_txt(14, 400, "#D5D3EE", 1.6)};padding-top:18px">'
+        + _e(candidate.read) + "</div>"
+        + flag_line + kol
+        + f'<div style="padding-top:18px">'
+        f'<a href="{_e(token.url)}" target="_blank" '
+        f'style="display:inline-block;background:{BLUE};color:{SURFACE};'
+        f'padding:12px 22px;border-radius:8px;text-decoration:none;'
+        f'{_txt(13, 700, SURFACE, 1.0)}">Open the chart</a></div>'
+        f'<div style="{_txt(11, 400, "#8A88BC", 1.6)};padding-top:14px;word-break:break-all">'
+        + _e(token.mint) + "</div>"
+        "</td></tr></table></td></tr>"
+    )
 
 
-def _blocked_rows(brief: Brief) -> str:
-    rows = "".join(
-        f'<li style="margin:0 0 6px;font:400 12px/1.5 Arial,Helvetica,sans-serif;color:#33302a">'
-        f'<b>${_e(candidate.token.symbol)}</b> {_e(pct(candidate.token.price_change_24h, 0))} — '
-        f'{_e("; ".join(candidate.risk_labels))}</li>'
-        for candidate in brief.blocked_runners
+def _hero_stat(label: str, value: str, tinted: bool = False) -> str:
+    colour = SURFACE
+    if tinted and value.startswith("-"):
+        colour = "#FF9C88"
+    return (
+        '<td width="25%" style="vertical-align:top;padding-right:8px">'
+        f'<div style="{_txt(10, 700, "#8A88BC", 1.2, 0.12, "uppercase")}">{_e(label)}</div>'
+        f'<div style="{_txt(15, 700, colour, 1.3)};padding-top:5px">{_e(value)}</div></td>'
     )
-    if not rows:
-        rows = '<li style="font:400 12px Arial,Helvetica,sans-serif;color:#8a877f">No runner was disqualified today.</li>'
-    return f'<ul style="margin:0;padding-left:18px">{rows}</ul>'
+
+
+def _runner_row(candidate: Candidate, share: float) -> str:
+    """One line of the ranking: name, size, bar, and what is wrong with it."""
+    token = candidate.token
+    risks, gaps = _split_labels(candidate.risk_labels)
+    # The stripe earns attention only when something was actually measured wrong.
+    accent = ALERT if risks else BLUE
+    flag_line = (
+        f'<div style="{_txt(11, 500, ALERT, 1.5)};padding-top:8px">'
+        + _e(" · ".join(risks[:2])) + "</div>"
+        if risks else ""
+    )
+    if gaps:
+        flag_line += (
+            f'<div style="{_txt(11, 400, MUTED, 1.5)};padding-top:{6 if risks else 8}px">'
+            + _e(" · ".join(gaps[:2])) + "</div>"
+        )
+    kol = (
+        f" &middot; <span style=\"color:{BLUE_2};font-weight:700\">"
+        f"{len(candidate.kol_buyers)} KOL</span>"
+        if candidate.kol_buyers else ""
+    )
+    return (
+        '<tr><td style="padding:0 24px 10px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border-radius:12px;border-left:4px solid {accent}">'
+        '<tr><td style="padding:16px 18px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        '<td style="vertical-align:top">'
+        f'<div style="{_txt(17, 700, NAVY, 1.2, -0.01)}">${_e(token.symbol)}</div>'
+        f'<div style="{_txt(11, 400, MUTED, 1.5)};padding-top:3px">'
+        f"{_e(_chain_name(token.chain_id))} &middot; {_e(_age(candidate))} &middot; "
+        f"{_e(money(token.market_cap))} mcap{kol}</div></td>"
+        '<td align="right" style="vertical-align:top;padding-left:12px">'
+        f'<div style="{_txt(22, 700, NAVY, 1.0, -0.02)}">{_e(_size(candidate))}</div></td>'
+        "</tr></table>"
+        f'<div style="padding-top:12px">{_run_bar(share, BLUE, 6)}</div>'
+        + flag_line
+        + f'<div style="padding-top:12px">'
+        f'<a href="{_e(token.url)}" target="_blank" '
+        f'style="text-decoration:none;{_txt(11, 700, BLUE, 1.2, 0.08, "uppercase")}">'
+        "Open chart &#8594;</a></div>"
+        "</td></tr></table></td></tr>"
+    )
+
+
+def _blocked_row(candidate: Candidate) -> str:
+    reason = candidate.risk_labels[0] if candidate.risk_labels else "did not qualify"
+    return (
+        '<tr><td style="padding:0 24px 6px">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border-radius:10px"><tr>'
+        f'<td style="padding:12px 16px;vertical-align:top">'
+        f'<span style="{_txt(13, 700, NAVY, 1.3)}">${_e(candidate.token.symbol)}</span>'
+        f'<span style="{_txt(11, 400, MUTED, 1.3)}"> &middot; '
+        f"{_e(_chain_name(candidate.token.chain_id))}</span>"
+        f'<div style="{_txt(11, 400, MUTED, 1.5)};padding-top:4px">{_e(reason)}</div></td>'
+        f'<td align="right" style="padding:12px 16px;vertical-align:top;white-space:nowrap">'
+        f'<span style="{_txt(13, 700, MUTED, 1.3)}">{_e(_size(candidate))}</span></td>'
+        "</tr></table></td></tr>"
+    )
+
+
+def _stat_band(brief: Brief) -> str:
+    runners = brief.runners
+    chains = {c.token.chain_id.lower() for c in runners}
+    big = sum(1 for c in runners if c.run_multiple >= 5)
+    def plural(word: str, count: int) -> str:
+        return word if count == 1 else word + "s"
+
+    cells = [
+        (plural("Runner", len(runners)), str(len(runners))),
+        (plural("Chain", len(chains)), str(len(chains))),
+        ("Did 5x+", str(big)),
+        ("Filtered out", str(len(brief.blocked_runners))),
+    ]
+    tds = "".join(
+        f'<td width="25%" align="center" style="padding:16px 4px;vertical-align:top">'
+        f'<div style="{_txt(22, 700, NAVY, 1.0, -0.02)}">{_e(value)}</div>'
+        f'<div style="{_txt(10, 700, MUTED, 1.2, 0.1, "uppercase")};padding-top:5px">'
+        f"{_e(label)}</div></td>"
+        for label, value in cells
+    )
+    return (
+        '<tr><td style="padding:20px 24px 0">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border-radius:12px"><tr>{tds}</tr></table></td></tr>'
+    )
 
 
 def render_email(brief: Brief, settings: Settings) -> str:
-    """Flat, inline-styled standalone email. No <details>, no external CSS:
-    the interactive report does not survive email clients."""
-    generated = brief.generated_at.strftime("%a %d %b %Y / %H:%M %Z")
-    window_start = brief.window_start or brief.generated_at
-    window_text = (
-        f"{window_start.strftime('%d %b / %H:%M')} &rarr; "
-        f"{brief.generated_at.strftime('%d %b / %H:%M %Z')}"
-    )
-    picks = report_picks(brief)
-    pick_rows = "".join(
-        f"""
-<tr>
-  <td style="padding:12px 14px;border-top:1px solid #e3e1da">
-    <p style="margin:0 0 4px">
-      <span style="display:inline-block;background:#1a1a1a;color:#f5f3ee;font:700 10px Arial,Helvetica,sans-serif;padding:2px 7px;margin-right:8px">{_e(candidate.track)}</span>
-      <b style="font:800 16px Arial,Helvetica,sans-serif;color:#1a1a1a">${_e(candidate.token.symbol)}</b>
-      <span style="font:400 12px Arial,Helvetica,sans-serif;color:#8a877f"> — {_e(candidate.token.name)}</span>
-    </p>
-    <p style="margin:0 0 6px;font:400 13px/1.55 Arial,Helvetica,sans-serif;color:#33302a">{_e(candidate.read)}</p>
-    <p style="margin:0"><a href="{_e(candidate.token.url)}" style="color:#b3261e;font:700 11px Arial,Helvetica,sans-serif" target="_blank">CHART &#8599;</a></p>
-  </td>
-</tr>"""
-        for candidate in picks
-    ) or (
-        '<tr><td style="padding:16px 14px;font:400 12px Arial,Helvetica,sans-serif;color:#8a877f">'
-        "NOTHING CLEARED THE BAR TODAY. AN EMPTY BRIEF IS A RESULT, NOT AN OUTAGE.</td></tr>"
-    )
-    runner_rows = "".join(
-        _runner_row(candidate, index) for index, candidate in enumerate(brief.runners, 1)
-    ) or (
-        '<tr><td style="padding:16px 14px;font:400 12px Arial,Helvetica,sans-serif;color:#8a877f">'
-        "NOTHING RAN TODAY THAT CLEARED THE FLOORS.</td></tr>"
-    )
-    scorecard = brief.scorecard
-    sc_cells = "".join(
-        f'<td style="padding:10px 14px;border-left:1px solid #e3e1da;text-align:center;vertical-align:top">'
-        f'<span style="display:block;font:400 9px Arial,Helvetica,sans-serif;color:#8a877f;'
-        f'letter-spacing:.08em;margin-bottom:4px">{label}</span>'
-        f'<b style="font:800 14px Arial,Helvetica,sans-serif;color:#1a1a1a">{value}</b></td>'
-        for label, value in (
-            ("FEATURED", str(scorecard.featured_count)),
-            ("72H Q1", pct(scorecard.featured_q1_72h)),
-            ("72H MEDIAN", pct(scorecard.featured_median_72h)),
-            ("72H Q3", pct(scorecard.featured_q3_72h)),
-            ("72H UP", pct(scorecard.featured_up_pct_72h, 0)),
-            ("LOSS &gt;90%", pct(scorecard.featured_crash_pct_72h, 0)),
-        )
-    )
     report_url = str(settings.get("delivery", "report_url", "") or "")
-    footer_link = (
-        f'<p style="margin:0 0 10px"><a href="{_e(report_url)}" '
-        f'style="color:#b3261e;font:700 12px Arial,Helvetica,sans-serif" target="_blank">'
-        f"OPEN THE FULL REPORT &#8599;</a></p>"
-        if report_url
-        else ""
+    runners = sorted(brief.runners, key=lambda c: c.run_multiple, reverse=True)
+    when = brief.generated_at.strftime("%d %b %Y")
+    window = f"{brief.generated_at.strftime('%H:%M')} {brief.generated_at.tzname() or ''}".strip()
+
+    body: list[str] = []
+
+    # ---- masthead ---------------------------------------------------------
+    body.append(
+        '<tr><td style="padding:0">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{NAVY}"><tr><td style="padding:30px 24px 28px">'
+        f'<div style="{_txt(28, 700, SURFACE, 1.0, -0.03)}">fomo <span style="color:{BLUE}">onchain</span></div>'
+        f'<div style="{_txt(13, 400, "#A7A5D4", 1.5)};padding-top:8px">'
+        "Everything that ran in the last 36 hours, ranked, with the risks on the row."
+        "</div>"
+        f'<div style="{_txt(11, 700, "#8A88BC", 1.4, 0.12, "uppercase")};padding-top:14px">'
+        f"{_e(when)} &middot; {_e(window)}</div>"
+        "</td></tr></table></td></tr>"
     )
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{_e(email_subject(brief, settings))}</title>
-</head>
-<body style="margin:0;padding:0;background:#f1efe9">
-<div style="max-width:680px;margin:0 auto;background:#ffffff;font-family:Arial,Helvetica,sans-serif">
-  <div style="background:#1a1a1a;color:#f5f3ee;padding:22px 26px;border-bottom:4px solid #b3261e">
-    <p style="margin:0 0 4px;font:700 11px Arial,Helvetica,sans-serif;letter-spacing:.18em;color:#b3261e">SOLANA BRIEF</p>
-    <h1 style="margin:0;font-size:26px;line-height:1.1;letter-spacing:-.02em">{_e(generated)}</h1>
-    <p style="margin:10px 0 0;font:400 11px Arial,Helvetica,sans-serif;color:#a8a59c">WINDOW {_e(window_text)} &middot; {len(brief.runners)} RUNNERS &middot; {sum(1 for c in brief.runners if c.run_multiple >= 5)} DID 5X+ &middot; {len(brief.blocked_runners)} DISQUALIFIED</p>
-  </div>
-  <div style="border-bottom:3px solid #1a1a1a">
-    <p style="margin:0;padding:12px 14px;font:800 13px Arial,Helvetica,sans-serif;background:#f5f3ee;border-bottom:1px solid #cfcdc5">THE READ &middot; {len(picks):02d} PICKS</p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">{pick_rows}</table>
-  </div>
-  <div style="border-bottom:3px solid #1a1a1a">
-    <p style="margin:0;padding:12px 14px;font:800 13px Arial,Helvetica,sans-serif;background:#f5f3ee;border-bottom:1px solid #cfcdc5">RUNNERS OF THE DAY &middot; {len(brief.runners):02d}</p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">{runner_rows}</table>
-  </div>
-  <div style="border-bottom:3px solid #1a1a1a">
-    <p style="margin:0;padding:12px 14px;font:800 13px Arial,Helvetica,sans-serif;background:#f5f3ee;border-bottom:1px solid #cfcdc5">RAN, BUT DISQUALIFIED &middot; {len(brief.blocked_runners):02d}</p>
-    <div style="padding:14px">{_blocked_rows(brief)}</div>
-  </div>
-  <div style="border-bottom:3px solid #1a1a1a">
-    <p style="margin:0;padding:12px 14px;font:800 13px Arial,Helvetica,sans-serif;background:#f5f3ee;border-bottom:1px solid #cfcdc5">30D OUTCOME SCORECARD</p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>{sc_cells}</tr></table>
-  </div>
-  <div style="background:#f5f3ee;padding:18px 26px">
-    {footer_link}
-    <p style="margin:0;font:400 11px/1.6 Arial,Helvetica,sans-serif;color:#8a877f">Measured changes, never recommendations. Everything here can go to zero.</p>
-  </div>
-</div>
-</body>
-</html>"""
+
+    body.append(_stat_band(brief))
+
+    # ---- the day ----------------------------------------------------------
+    if runners:
+        biggest = runners[0]
+        top_multiple = max(biggest.run_multiple, 1.0)
+        body.append(_section("Biggest run", "The one the day belonged to."))
+        body.append(_hero(biggest))
+
+        rest = runners[1:]
+        if rest:
+            body.append(_section(
+                "Runners of the day",
+                f"{len(rest)} more cleared the floors. Bar length is the run, "
+                "relative to the biggest above.",
+            ))
+            for candidate in rest:
+                body.append(_runner_row(candidate, candidate.run_multiple / top_multiple))
+    else:
+        body.append(_section("Runners of the day"))
+        body.append(
+            '<tr><td style="padding:0 24px">'
+            f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+            f'style="background:{SURFACE};border-radius:12px"><tr>'
+            f'<td style="padding:26px 20px;{_txt(14, 400, MUTED, 1.6)}">'
+            "Nothing cleared the floors today. An empty report is a result, "
+            "not an outage.</td></tr></table></td></tr>"
+        )
+
+    # ---- what was kept out -------------------------------------------------
+    if brief.blocked_runners:
+        body.append(_section(
+            "Ran, but disqualified",
+            "These moved and were kept out: unsafe to hold, or a manufactured market.",
+        ))
+        for candidate in brief.blocked_runners[:8]:
+            body.append(_blocked_row(candidate))
+
+    # ---- editorial picks ---------------------------------------------------
+    picks = report_picks(brief)
+    if runners:
+        picks = [p for p in picks if p.token.mint != runners[0].token.mint]
+    if picks:
+        body.append(_section("Worth a closer look"))
+        for candidate in picks:
+            body.append(
+                '<tr><td style="padding:0 24px 10px">'
+                f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+                f'style="background:{SURFACE};border-radius:12px"><tr>'
+                f'<td style="padding:16px 18px">'
+                f"{_chip(candidate.track, BLUE)}"
+                f'<span style="{_txt(16, 700, NAVY, 1.3)};padding-left:8px">'
+                f"${_e(candidate.token.symbol)}</span>"
+                f'<div style="{_txt(13, 400, NAVY, 1.6)};padding-top:10px">'
+                + _e(candidate.read) + "</div>"
+                f'<div style="padding-top:12px">'
+                f'<a href="{_e(candidate.token.url)}" target="_blank" '
+                f'style="text-decoration:none;{_txt(11, 700, BLUE, 1.2, 0.08, "uppercase")}">'
+                "Open chart &#8594;</a></div>"
+                "</td></tr></table></td></tr>"
+            )
+    else:
+        body.append(
+            '<tr><td style="padding:24px 24px 0">'
+            f'<div style="{_txt(12, 400, MUTED, 1.6)}">'
+            "Nothing else cleared the bar for the editorial tracks today.</div></td></tr>"
+        )
+
+    # ---- footer ------------------------------------------------------------
+    link = (
+        f'<div style="padding-top:16px"><a href="{_e(report_url)}" target="_blank" '
+        f'style="color:{BLUE};text-decoration:none;{_txt(12, 700, BLUE, 1.4)}">'
+        "See the full report &#8594;</a></div>"
+        if report_url else ""
+    )
+    body.append(
+        '<tr><td style="padding:30px 24px 0">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{NAVY};border-radius:14px"><tr>'
+        f'<td style="padding:22px">'
+        f'<div style="{_txt(12, 400, "#A7A5D4", 1.7)}">'
+        "Data, not advice. Everything here can go to zero. Coins are included "
+        "because they moved, not because they are recommended."
+        "</div>" + link +
+        "</td></tr></table></td></tr>"
+    )
+
+    rows = "".join(body)
+    preheader = (
+        f"{len(runners)} runners across "
+        f"{len({c.token.chain_id for c in runners})} chains"
+        if runners else "Nothing ran today that cleared the floors"
+    )
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<meta name="x-apple-disable-message-reformatting">'
+        f"<title>fomo onchain — {_e(when)}</title></head>"
+        f'<body style="margin:0;padding:0;background:{PAPER};'
+        f'-webkit-font-smoothing:antialiased">'
+        # Hidden line the inbox shows beside the subject.
+        f'<div style="display:none;max-height:0;overflow:hidden;opacity:0">{_e(preheader)}</div>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{PAPER}"><tr><td align="center" style="padding:0 0 36px">'
+        '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" '
+        'style="width:600px;max-width:600px">'
+        f"{rows}"
+        "</table></td></tr></table></body></html>"
+    )

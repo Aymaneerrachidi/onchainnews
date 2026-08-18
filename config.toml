@@ -216,7 +216,7 @@ report_url = "https://onchainnews-rho.vercel.app"
 email_enabled = true
 email_from = "onboarding@resend.dev"
 email_to = ["ue06prog@gmail.com"]
-email_subject_prefix = "Solana Brief"
+email_subject_prefix = "fomo onchain"
 
 # The daily journal: what ran today. Deliberately wider than the editorial
 # tracks. A coin enters through one of two doors -- created inside the fresh

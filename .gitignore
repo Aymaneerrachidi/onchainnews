@@ -25,3 +25,4 @@ web/.playwright-mcp/
 /brand details/
 *.exe
 *.crdownload
+/output/*.png
