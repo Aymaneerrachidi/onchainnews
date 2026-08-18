@@ -12,11 +12,12 @@ from rich.console import Console
 from rich.table import Table
 
 from brief.config import load_settings
-from brief.delivery import TelegramDeliveryError, send_telegram, write_html
+from brief.delivery import EmailDeliveryError, TelegramDeliveryError, send_email, send_telegram, write_html
 from brief.engine import build_brief
 from brief.interface import serve_interface
 from brief.ledger import open_ledger
 from brief.launch_collector import run_launch_collector
+from brief.render.email import email_subject, render_email
 from brief.render.html import render_html
 from brief.render.payload import build_payload
 from brief.render.telegram import render_telegram
@@ -109,6 +110,20 @@ async def run(args: argparse.Namespace) -> int:
                 console.print("[yellow]Telegram delivery failed; the web report will still publish.[/yellow]")
         elif not args.no_telegram:
             console.print("[dim]Telegram disabled; set delivery.telegram_enabled=true after configuring .env.[/dim]")
+        if settings.get("delivery", "email_enabled", False):
+            recipients = list(settings.get("delivery", "email_to", []) or [])
+            if not os.getenv("RESEND_API_KEY") or not recipients:
+                # A missing credential must not lose the morning report that already rendered.
+                console.print("[yellow]Email enabled but RESEND_API_KEY/email_to unset; skipping delivery.[/yellow]")
+            else:
+                try:
+                    count = await send_email(settings, email_subject(brief, settings), render_email(brief, settings))
+                    console.print(f"[dim]Email digest delivered ({count} recipient(s)).[/dim]")
+                except EmailDeliveryError as exc:
+                    # The public report is already rendered. Keep web publishing
+                    # independent from a temporary email/API failure.
+                    logging.getLogger("brief.delivery").error("Email delivery failed: %s", exc)
+                    console.print("[yellow]Email delivery failed; the web report will still publish.[/yellow]")
         return 0
     except Exception as exc:
         logging.getLogger("brief").exception("Daily brief failed")

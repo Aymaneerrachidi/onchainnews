@@ -272,6 +272,7 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
   <section id="runners">
     <div class="head"><h2>Highlight coins</h2><span class="count" id="runner-count">n/a</span></div>
     <p class="note" id="rule">Every highlighted coin states why it cleared the tape, what monitored accounts did on X, and which facts remain unverified.</p>
+    <div class="controls" id="chain-bar" role="group" aria-label="Filter by chain"></div>
     <div class="controls">
       <input id="q" type="search" placeholder="Filter by ticker, name, flag or lore…" autocomplete="off" aria-label="Filter runners">
       <button class="chip" id="f-new" aria-pressed="false">Launched today</button>
@@ -339,6 +340,11 @@ const age = (h) => h === null || h === undefined ? "n/a" : h < 48 ? Math.round(h
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let DATA = null, SORT = "editorial", FILTERS = { new: false, kol: false, clean: false };
+let CHAIN = "all";
+const CHAIN_NAMES = { solana: "Solana", ethereum: "Ethereum", bsc: "BNB Chain",
+  base: "Base", robinhood: "Robinhood" };
+const chainName = (c) => CHAIN_NAMES[String(c || "").toLowerCase()] || (c || "—");
+
 
 function stamp(r) {
   if (r.faded !== null && r.faded !== undefined) return "Fading";
@@ -394,7 +400,8 @@ function rowHTML(r, i) {
   const search = [r.symbol, r.name, r.mint, r.lore, ...risks, ...x.map((item) => `${item.handle} ${item.summary}`)].join(" ").toLowerCase();
   return `
 <article class="coin-card row rv" style="animation-delay:${Math.min(i * 45, 600)}ms"
-  data-q="${esc(search)}" data-new="${r.ageHours !== null && r.ageHours <= 24}"
+  data-q="${esc(search)}" data-chain="${esc(String(r.chain || "").toLowerCase())}"
+  data-new="${r.ageHours !== null && r.ageHours <= 24}"
   data-kol="${x.length > 0}" data-clean="${risks.length === 0}">
   <header class="coin-top">
     <span class="coin-rank">${String(i + 1).padStart(2, "0")}</span>
@@ -432,7 +439,33 @@ function paint() {
   else if (SORT === "fresh") rows.sort((a, b) => (a.ageHours ?? 1e9) - (b.ageHours ?? 1e9));
   $("#rows").innerHTML = rows.length ? rows.map(rowHTML).join("")
     : `<p class="empty">Nothing ran today that cleared the floors. An empty page is a result, not an outage.</p>`;
+  buildChainBar();
   applyFilters();
+}
+
+function buildChainBar() {
+  const bar = document.querySelector("#chain-bar");
+  if (!bar || !DATA) return;
+  const counts = {};
+  for (const r of DATA.runners || []) {
+    const c = String(r.chain || "").toLowerCase();
+    counts[c] = (counts[c] || 0) + 1;
+  }
+  const chains = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const total = (DATA.runners || []).length;
+  bar.innerHTML =
+    `<button class="chip" data-chain="all" aria-pressed="${CHAIN === "all"}">All chains ${total}</button>` +
+    chains.map((c) =>
+      `<button class="chip" data-chain="${c}" aria-pressed="${CHAIN === c}">${chainName(c)} ${counts[c]}</button>`
+    ).join("");
+  bar.querySelectorAll("button").forEach((b) => {
+    b.addEventListener("click", () => {
+      CHAIN = b.dataset.chain;
+      bar.querySelectorAll("button").forEach((o) =>
+        o.setAttribute("aria-pressed", String(o.dataset.chain === CHAIN)));
+      applyFilters();
+    });
+  });
 }
 
 function applyFilters() {
@@ -441,6 +474,7 @@ function applyFilters() {
   document.querySelectorAll(".row").forEach((el) => {
     const ok =
       (!q || el.dataset.q.includes(q)) &&
+      (CHAIN === "all" || el.dataset.chain === CHAIN) &&
       (!FILTERS.new || el.dataset.new === "true") &&
       (!FILTERS.kol || el.dataset.kol === "true") &&
       (!FILTERS.clean || el.dataset.clean === "true");

@@ -66,6 +66,8 @@ button.live{background:var(--green);border-color:var(--green);color:#fff}
   <button id="auto">Auto</button>
 </div>
 
+<div class="row" id="chainbar"></div>
+
 <div class="coins" id="coins"></div>
 
 <p class="foot">
@@ -77,8 +79,35 @@ button.live{background:var(--green);border-color:var(--green);color:#fff}
 <script>
 "use strict";
 const KEY = "onchain-overlay-state";
+const CHAIN_SHORT = { solana: "SOL", ethereum: "ETH", bsc: "BNB", base: "BASE", robinhood: "RH" };
+let all = [];
+
+/* One button per chain that actually has runners today, so he can narrow the
+   list to the chain he is talking about without hunting through it. */
+function paintChains() {
+  const bar = document.querySelector("#chainbar");
+  const counts = {};
+  for (const c of all) {
+    const k = String(c.chain || "").toLowerCase();
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  bar.innerHTML =
+    `<button data-chain="all" class="${chain === "all" ? "on" : ""}">All ${all.length}</button>` +
+    keys.map((k) => `<button data-chain="${k}" class="${chain === k ? "on" : ""}">`
+      + `${CHAIN_SHORT[k] || k} ${counts[k]}</button>`).join("");
+  bar.querySelectorAll("button").forEach((b) => {
+    b.onclick = () => {
+      chain = b.dataset.chain;
+      coins = chain === "all" ? all : all.filter((c) => String(c.chain).toLowerCase() === chain);
+      paintChains();
+      renderCoins();
+    };
+  });
+}
 const $ = (s) => document.querySelector(s);
-let coins = [];
+let coins = [];       // every runner in the snapshot
+let chain = "all";   // which chain the list is narrowed to
 let state = { coin: null, visible: true, rotate: 0, updated: 0 };
 
 function push() {
@@ -136,15 +165,26 @@ async function load() {
   try {
     const res = await fetch("data/latest.json?t=" + Date.now(), { cache: "no-store" });
     const data = await res.json();
-    coins = (data.runners || []).slice().sort((a, b) => b.runMultiple - a.runMultiple);
+    all = (data.runners || []).slice().sort((a, b) => b.runMultiple - a.runMultiple);
+    coins = chain === "all" ? all : all.filter((c) => String(c.chain).toLowerCase() === chain);
+    paintChains();
     $("#stamp").textContent = new Date(data.generatedAt)
       .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    renderCoins();
+    paint();
+  } catch {
+    $("#status").textContent = "Could not load today's coins";
+  }
+}
+
+function renderCoins() {
+  {
     $("#coins").innerHTML = coins.map((c) => {
       const n = (c.kolBuyers || []).length;
       const size = c.runMultiple >= 2 ? c.runMultiple.toFixed(1) + "x"
         : (c.change24h >= 0 ? "+" : "") + Math.round(c.change24h) + "%";
       return `<button class="coin" data-symbol="${c.symbol}">
-        <span><b>$${c.symbol}</b> <i>${(c.riskLabels || []).length ? "⚑ " + c.riskLabels.length : ""}</i></span>
+        <span><b>$${c.symbol}</b> <i>${CHAIN_SHORT[String(c.chain||"").toLowerCase()] || c.chain || ""}${(c.riskLabels || []).length ? " ⚑ " + c.riskLabels.length : ""}</i></span>
         ${n ? `<span class="kol">${n} KOL</span>` : "<span></span>"}
         <em>${size}</em></button>`;
     }).join("") || '<p class="foot">Nothing ran today.</p>';
@@ -152,8 +192,6 @@ async function load() {
       el.onclick = () => select(el.dataset.symbol);
     });
     paint();
-  } catch {
-    $("#status").textContent = "Could not load today's coins";
   }
 }
 

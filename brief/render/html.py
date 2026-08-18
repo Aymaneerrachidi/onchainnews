@@ -267,6 +267,15 @@ def _kol_section(brief: Brief) -> str:
 </section>"""
 
 
+def report_picks(brief: Brief) -> list[Candidate]:
+    """The day's picks: new-and-moving first, then movers, then CTOS.
+
+    Single definition shared by the site and the email so the two can never
+    disagree. Mirror it in any other renderer that shows picks.
+    """
+    return [*brief.new_and_moving, *brief.movers, *brief.ctos]
+
+
 def render_html(brief: Brief) -> str:
     sc = brief.scorecard
     generated_iso = brief.generated_at.isoformat()
@@ -274,7 +283,7 @@ def render_html(brief: Brief) -> str:
     window_start = brief.window_start or brief.generated_at
     window_text = f"{window_start.strftime('%d %b / %H:%M')} → {brief.generated_at.strftime('%d %b / %H:%M %Z')}"
     shortlist = list(brief.new_and_moving)
-    picks: list[Candidate] = [*brief.new_and_moving, *brief.movers, *brief.ctos]
+    picks = report_picks(brief)
     pick_rows = "".join(
         f"""
 <li class="pick searchable" data-search="{_e(candidate.token.symbol)} {_e(candidate.token.name)} {_e(candidate.token.mint)} {_e(candidate.track)}">

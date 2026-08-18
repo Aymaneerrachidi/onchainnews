@@ -77,6 +77,33 @@ max_tokens = 100
 page_size = 50
 requests_per_minute = 50
 
+[journal]
+enabled = true
+max_runners = 40
+min_volume_24h = 50000.0
+fresh_window_hours = 24
+min_fresh_change_pct = 30.0
+old_coin_multiple = 5.0
+max_age_days = 0
+kol_buyers_door = 0
+expect_tracked_wallets_above = 10.0
+max_credible_multiple = 1000.0
+corroborate_above_multiple = 10.0
+min_turnover_for_big_run = 0.15
+max_volume_liquidity = 150.0
+max_turnover = 30.0
+min_average_trade_usd = 15.0
+min_holders = 200
+min_trades_24h = 300
+min_recent_volume_share = 0.08
+dead_check_above_multiple = 5.0
+max_sell_tax_pct = 15.0
+bundle_top10_pct = 50.0
+caution_top10_pct = 25.0
+thin_liquidity_ratio = 60.0
+min_lore_group = 2
+venues = {{}}
+
 [cache]
 pairs_ttl_seconds = 60
 discovery_ttl_seconds = 600

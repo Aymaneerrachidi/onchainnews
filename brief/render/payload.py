@@ -22,6 +22,7 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "name": token.name,
         "mint": token.mint,
         "url": token.url,
+        "chain": token.chain_id,
         "dex": token.dex_id,
         "marketCap": token.market_cap,
         "liquidity": token.liquidity_usd,
@@ -113,8 +114,10 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
             "walletsTracked": brief.kol_wallet_count,
         },
         "runners": runners,
+        "chains": sorted({c.token.chain_id for c in brief.runners}),
         "disqualified": [
             {
+                "chain": candidate.token.chain_id,
                 "symbol": candidate.token.symbol,
                 "mint": candidate.token.mint,
                 "url": candidate.token.url,

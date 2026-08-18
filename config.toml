@@ -15,9 +15,11 @@ archive_compress = true
 # fixture_path = "tests/fixtures/run.json" # Uncomment for deterministic offline runs.
 
 [thresholds]
-# Safety verification (RugCheck authority/LP, Helius holders) is Solana-only.
-# Adding a chain here widens discovery but those names ship without that layer.
-chains = ["solana"]
+# Five chains. Contract safety is answered per chain: RugCheck covers Solana,
+# GoPlus covers Ethereum, BNB Chain and Base. Nothing covers Robinhood Chain
+# yet, so its coins are reported and labelled unverified rather than dropped.
+# Tracked-wallet flow is Solana-only and is never held against another chain.
+chains = ["solana", "ethereum", "bsc", "base", "robinhood"]
 min_market_cap = 150000.0
 min_liquidity = 20000.0
 # Strength has to show up in the tape. Without these two floors a thin float
@@ -149,9 +151,15 @@ watcher_holder_cache_seconds = 30
 watcher_cluster_sell_pct = 5.0
 watcher_creator_outflow_pp = 0.1
 
+[goplus]
+# Free contract security for the EVM chains. No key, so the only limit worth
+# respecting is the request rate.
+requests_per_minute = 30
+
 [sources]
 dexscreener_base_url = "https://api.dexscreener.com"
 birdeye_base_url = "https://public-api.birdeye.so"
+goplus_base_url = "https://api.gopluslabs.io"
 rugcheck_base_url = "https://api.rugcheck.xyz/v1"
 helius_base_url = "https://mainnet.helius-rpc.com"
 jupiter_quote_url = "https://lite-api.jup.ag/swap/v1/quote"
@@ -199,6 +207,16 @@ telegram_digest = true
 # Optional link appended to the digest so the full report is one tap away.
 report_url = "https://onchainnews-rho.vercel.app"
 
+# Optional email delivery via Resend (https://resend.com). Requires
+# RESEND_API_KEY in .env. A missing credential warns and skips; it never
+# fails the run. The testing sender onboarding@resend.dev only delivers to
+# your own address while developing -- verify a domain in Resend before
+# it is relied upon, then set email_from = "brief@yourdomain.com".
+email_enabled = true
+email_from = "onboarding@resend.dev"
+email_to = ["ue06prog@gmail.com"]
+email_subject_prefix = "Solana Brief"
+
 # The daily journal: what ran today. Deliberately wider than the editorial
 # tracks. A coin enters through one of two doors -- created inside the fresh
 # window and up by min_fresh_change_pct, or any age doing old_coin_multiple.
@@ -237,10 +255,10 @@ min_average_trade_usd = 15.0      # dust prints are spam, not demand
 # A reused ticker is shown on the row, not treated as disqualifying: plenty of
 # real coins share a name with something forgettable. Boosts are Dexscreener's
 # advertising product and honest teams buy them, so they are not a signal either.
-# Venues the record covers. Empty means every venue. Note that pump.fun coins
-# do not all end up on PumpSwap: on a measured day the biggest runner of the day
-# had migrated to Raydium, so listing PumpSwap alone silently drops it.
-venues = ["pumpswap"]
+# Venues per chain. Empty, or a chain that is absent, means every venue there.
+# Solana is restricted to PumpSwap on request; the EVM chains are left open
+# because their liquidity is spread across many routers.
+venues = { solana = ["pumpswap"] }
 min_holders = 200                 # a real distribution, not a handful of wallets
 min_trades_24h = 300              # a real tape, not a dozen prints
 # The insta-x-then-dead shape. An even day trades a quarter of its volume in the

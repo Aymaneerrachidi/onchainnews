@@ -20,6 +20,14 @@ MAJORS = {
     "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",    # mSOL
     "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",   # jitoSOL
     "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4",   # JLP
+    # EVM quote assets and wrapped natives, which top every volume ranking.
+    "0xdac17f958d2ee523a2206206994597c13d831ec7",     # USDT  ethereum
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",     # USDC  ethereum
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",     # WETH  ethereum
+    "0x55d398326f99059ff775485246999027b3197955",     # USDT  bsc
+    "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",     # WBNB  bsc
+    "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",     # USDC  base
+    "0x4200000000000000000000000000000000000006",     # WETH  base
 }
 
 
@@ -52,6 +60,7 @@ class BirdeyeSource:
         self.api_key = api_key
         self.ttl = ttl
         self.page_size = max(1, min(50, page_size))
+        self.chain = "solana"
         self.requests_per_minute = requests_per_minute
         self.request_interval = max(0.0, request_interval)
 
@@ -62,7 +71,7 @@ class BirdeyeSource:
     def _headers(self) -> dict[str, str]:
         # The key travels as a header, so it never reaches the archived request
         # parameters or the request log line.
-        return {"X-API-KEY": str(self.api_key), "x-chain": "solana", "accept": "application/json"}
+        return {"X-API-KEY": str(self.api_key), "x-chain": self.chain, "accept": "application/json"}
 
     @staticmethod
     def _tokens(payload: Any) -> list[dict[str, Any]]:
@@ -118,7 +127,7 @@ class BirdeyeSource:
                 break
             for item in page:
                 address = str(item.get("address") or "")
-                if not address or address in seen or address in MAJORS:
+                if not address or address in seen or address.lower() in MAJORS or address in MAJORS:
                     continue
                 seen.add(address)
                 if number(item.get("liquidity")) < min_liquidity:
@@ -128,5 +137,5 @@ class BirdeyeSource:
                 found.append(address)
             if len(page) < self.page_size:
                 break
-        log.info("birdeye_discovery addresses=%s scanned=%s", len(found), len(seen))
+        log.info("birdeye_discovery chain=%s addresses=%s scanned=%s", self.chain, len(found), len(seen))
         return found

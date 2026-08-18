@@ -61,7 +61,14 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     token = candidate.token
     age = _age_hours(token, now)
 
-    venues = [str(v).strip().lower() for v in section.get("venues", []) if str(v).strip()]
+    # Venue rules are per chain: PumpSwap means nothing on Ethereum, and the
+    # EVM chains spread their liquidity across many routers.
+    configured = section.get("venues") or {}
+    if isinstance(configured, dict):
+        allowed = configured.get(token.chain_id.lower(), [])
+    else:
+        allowed = configured
+    venues = [str(v).strip().lower() for v in (allowed or []) if str(v).strip()]
     if venues and token.dex_id.lower() not in venues:
         return False
 
@@ -103,6 +110,17 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     bundle_pct = float(section.get("bundle_top10_pct", 50))
     if report.top10_pct is not None and report.top10_pct > bundle_pct:
         reasons.append(f"bundled supply, top 10 circulating wallets hold {report.top10_pct:.0f}%")
+    for flag in report.risk_flags:
+        lowered = flag.lower()
+        if "sell tax" in lowered:
+            try:
+                if float(lowered.split("%")[0]) >= float(section.get("max_sell_tax_pct", 15)):
+                    reasons.append(f"{flag}: selling is penalised")
+            except ValueError:
+                pass
+        elif any(word in lowered for word in ("taken back", "hidden owner", "self-destruct", "paused", "blacklist")):
+            reasons.append(flag)
+
     if (
         enrichment.unique_makers_24h is not None
         and candidate.token.txns_6h.total >= 100
@@ -239,6 +257,11 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
         labels.append(f"thin pool, {ratio:.0f}x its liquidity traded")
     if candidate.recycled_label_count:
         labels.append(f"ticker also used by {candidate.recycled_label_count} other recent mint(s)")
+    if candidate.safety.source == "unavailable" and token.chain_id.lower() != "solana":
+        labels.append("no contract safety source covers this chain")
+    for flag in candidate.safety.risk_flags:
+        if flag.lower().startswith(("upgradeable", "contract source")) or "buy tax" in flag.lower():
+            labels.append(flag)
     if not token.socials:
         labels.append("no linked socials")
     if candidate.enrichment.social_resolves is False:

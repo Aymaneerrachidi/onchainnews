@@ -160,3 +160,29 @@ def test_a_wallet_that_only_sold_still_counts_as_a_trader():
     record = MintActivity(mint="MINTA", buyers=["Wugi"], sellers=["Wugi", "theo"])
     assert record.participants == 2
     assert len(record.buyers) == 1
+
+
+@pytest.mark.asyncio
+async def test_goplus_asks_for_one_contract_at_a_time():
+    """A batch answers HTTP 200 and returns a single record regardless.
+
+    Sending twenty addresses looked like it worked and quietly left nineteen
+    coins with no safety data at all, so each contract gets its own request.
+    """
+    from brief.sources.goplus import GoPlusSource
+
+    asked: list[str] = []
+
+    class FakeHttp:
+        async def get_json(self, url, *, family, limit, ttl, params=None, headers=None):
+            address = params["contract_addresses"]
+            asked.append(address)
+            assert "," not in address, "batching silently drops every extra address"
+            return {"result": {address.lower(): {"holder_count": "1234", "is_mintable": "0"}}}
+
+    source = GoPlusSource(FakeHttp(), "https://goplus.test", 60)
+    reports = await source.reports("base", ["0xAAA", "0xBBB", "0xCCC"])
+
+    assert len(asked) == 3
+    assert set(reports) == {"0xAAA", "0xBBB", "0xCCC"}
+    assert reports["0xAAA"].holder_count == 1234

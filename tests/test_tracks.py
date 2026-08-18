@@ -793,3 +793,99 @@ def test_only_configured_venues_enter_the_record(tmp_path):
 
     settings.values["journal"]["venues"] = []
     assert belongs_in_journal(coin, settings, NOW), "empty list means every venue"
+
+
+def test_goplus_maps_evm_dangers_onto_the_same_report_shape(tmp_path):
+    """RugCheck is Solana-only; EVM needs the same questions answered."""
+    from brief.sources.goplus import parse_security
+
+    payload = {
+        "token_symbol": "EVMCOIN", "holder_count": "4821",
+        "is_mintable": "0", "transfer_pausable": "0", "is_blacklisted": "0",
+        "cannot_sell_all": "0", "is_honeypot": "0",
+        "buy_tax": "0", "sell_tax": "0.02",
+        "creator_address": "0xabc",
+        "lp_holders": [
+            {"address": "0x000000000000000000000000000000000000dead", "percent": "0.91", "is_locked": 0},
+            {"address": "0xpool", "percent": "0.09", "is_locked": 1},
+        ],
+        "holders": [
+            {"address": "0xpair", "percent": "0.40", "tag": "Uniswap V3"},
+            {"address": "0xw1", "percent": "0.06", "tag": ""},
+            {"address": "0xw2", "percent": "0.04", "tag": ""},
+        ],
+    }
+    r = parse_security("0xEVM", payload)
+    assert r.holder_count == 4821
+    assert r.mint_authority_renounced is True
+    assert r.freeze_authority_disabled is True
+    assert not r.rugged
+    # The burn and the locked pool both count as locked liquidity.
+    assert r.lp_locked_or_burned_pct == pytest.approx(100.0, abs=0.5)
+    # The Uniswap pair is not a whale, so only the two real wallets count.
+    assert r.top10_pct == pytest.approx(10.0, abs=0.5)
+
+
+def test_a_honeypot_is_treated_as_already_rugged(tmp_path):
+    from brief.journal import rug_or_bundle
+    from brief.sources.goplus import parse_security
+
+    settings = build_settings(tmp_path / "honey")
+    c = _tape("TRAP", mcap=400_000, vol24=600_000, vol6=200_000, liq=50_000,
+              trades6=1_200, buys6=640)
+    c.safety = parse_security("0xTRAP", {"is_honeypot": "1", "holder_count": "900"})
+    assert any("rugged" in r for r in rug_or_bundle(c, settings))
+
+
+def test_a_sale_that_can_be_taxed_or_blocked_removes_the_coin(tmp_path):
+    """Ways to lose money that no Solana check would ever look for.
+
+    A third of every sale taken as tax, or ownership that can be clawed back
+    after being renounced, is the same class of problem as a rug: the holder
+    cannot get their money out.
+    """
+    from brief.journal import rug_or_bundle
+    from brief.sources.goplus import parse_security
+
+    settings = build_settings(tmp_path / "tax")
+    c = _tape("TAXED", mcap=400_000, vol24=600_000, vol6=200_000, liq=50_000,
+              trades6=1_200, buys6=640)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = parse_security("0xTAX", {
+        "holder_count": "5000", "sell_tax": "0.35", "can_take_back_ownership": "1",
+    })
+    reasons = rug_or_bundle(c, settings)
+    assert any("sell tax" in r for r in reasons)
+    assert any("taken back" in r for r in reasons)
+
+
+def test_venue_rules_are_per_chain(tmp_path):
+    """PumpSwap means nothing on Ethereum."""
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "venue2")
+    settings.values["journal"]["venues"] = {"solana": ["pumpswap"]}
+
+    coin = _tape("X", mcap=391_000, vol24=600_000, vol6=200_000, liq=60_000,
+                 trades6=1_600, buys6=850)
+    coin.token.price_change_24h = 1150.0
+    coin.token.pair_created_at = NOW - timedelta(hours=20)
+
+    coin.token.chain_id, coin.token.dex_id = "solana", "raydium"
+    assert not belongs_in_journal(coin, settings, NOW), "Solana is restricted to PumpSwap"
+
+    coin.token.chain_id, coin.token.dex_id = "ethereum", "uniswap"
+    assert belongs_in_journal(coin, settings, NOW), "no rule for ethereum means every venue"
+
+
+def test_solana_wallet_silence_is_not_held_against_other_chains(tmp_path):
+    """The tracked wallets are Solana wallets; they cannot buy on Base."""
+    from brief.journal import untouched_by_tracked_wallets
+
+    settings = build_settings(tmp_path / "chainkol")
+    c = _tape("BASECOIN", mcap=400_000, vol24=900_000, vol6=250_000, liq=60_000,
+              trades6=1_200, buys6=640)
+    c.run_multiple = 12.0
+    c.token.chain_id = "base"
+    c.kol_wallets_scanned = 0          # what the engine records off Solana
+    assert not untouched_by_tracked_wallets(c, settings)

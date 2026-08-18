@@ -121,6 +121,9 @@ body{font-family:var(--font);color:var(--white);font-variant-numeric:tabular-num
 .ca .txt{min-width:0;flex:1}
 .ca .txt span{display:block;font-size:calc(11*var(--u));font-weight:500;letter-spacing:.14em;
   text-transform:uppercase;color:var(--muted);margin-bottom:calc(7*var(--u))}
+.chain{background:var(--blue-2);color:var(--white);font-size:calc(11*var(--u));font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;padding:calc(2*var(--u)) calc(8*var(--u));
+  border-radius:calc(6*var(--u));white-space:nowrap}
 .ca .addr{font-size:calc(17*var(--u));font-weight:500;word-break:break-all;line-height:1.4}
 .ca .scan{margin-top:calc(10*var(--u));font-size:calc(13*var(--u));font-weight:700;color:var(--blue)}
 .flags{border-top:calc(1*var(--u)) solid var(--line);padding:calc(14*var(--u)) calc(20*var(--u));
@@ -211,6 +214,8 @@ body{font-family:var(--font);color:var(--white);font-variant-numeric:tabular-num
      &side=left|right     which side the card/board sits on
      &at=tl|tr|bl|br      corner for the card/board, overrides side
      &nocontrol=1         ignore the OBS control dock for this source
+     &refresh=off         freeze everything: no polling, no price updates,
+                          nothing moves. For judging a layout in peace.
 
    The control dock (control.html) drives which coin is on screen and whether
    anything shows at all. Docks and browser sources share one origin inside OBS,
@@ -222,10 +227,13 @@ const MODE = (P.get("mode") || "ticker").toLowerCase();
 const PIN = (P.get("coin") || "").replace(/^\$/, "").toUpperCase();
 const ROTATE = Math.max(0, parseFloat(P.get("rotate") || "0")) * 1000;
 const MAX = parseInt(P.get("max") || "8", 10);
+const FROZEN = P.get("refresh") === "off" || P.get("live") === "0";
 const REFRESH = Math.max(10, parseFloat(P.get("refresh") || "30")) * 1000;
 const SIDE = (P.get("side") || "right").toLowerCase();
 const AT = (P.get("at") || "").toLowerCase();
 const NOCONTROL = P.get("nocontrol") === "1";
+// Narrow a source to one chain, e.g. a Solana-only ticker beside a BNB board.
+const CHAIN = (P.get("chain") || "").toLowerCase();
 const STATE_KEY = "onchain-overlay-state";
 const stage = document.getElementById("stage");
 
@@ -250,6 +258,10 @@ const pct = (n) => n == null || !isFinite(n) ? "—" : (n >= 0 ? "+" : "") + Mat
 const mult = (r) => r.runMultiple >= 2 ? r.runMultiple.toFixed(1) + "x" : pct(r.change24h);
 const ageOf = (h) => h == null ? "—" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d";
 const shortCa = (m) => m.length > 16 ? m.slice(0, 8) + "…" + m.slice(-6) : m;
+/* Chain ids are how the feeds spell them, not how anyone says them out loud. */
+const CHAIN_NAMES = { solana: "Solana", ethereum: "Ethereum", bsc: "BNB Chain",
+  base: "Base", robinhood: "Robinhood" };
+const chainName = (c) => CHAIN_NAMES[String(c || "").toLowerCase()] || (c || "—");
 
 /* A QR arrives as rows of "0"/"1"; drawing it as one path keeps the SVG small
    and the edges hard, which matters after stream compression. */
@@ -306,7 +318,7 @@ function card(r) {
   const pos = SIDE === "left"
     ? `left:calc(56*var(--u));right:auto` : `right:calc(56*var(--u));left:auto`;
   return `<div class="card enter ${AT ? "at-" + AT : ""}" style="${pos}">
-    <div class="top">${st ? `<span class="stamp">${st}</span>` : `<span>Ran today</span>`}<b>fomo</b></div>
+    <div class="top">${st ? `<span class="stamp">${st}</span>` : `<span class="chain">${esc(chainName(r.chain))}</span>`}<b>fomo</b></div>
     <div class="id">
       <div><div class="sym ${r.symbol.length > 11 ? "xlong" : r.symbol.length > 7 ? "long" : ""}">$${esc(r.symbol)}</div><div class="nm">${esc(r.name)}</div></div>
       <div class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}<small>24 HOURS</small></div>
@@ -321,7 +333,7 @@ function card(r) {
     <div class="ca">
       ${r.qr && r.qr.length ? `<div class="qr">${qrSvg(r.qr)}</div>` : ""}
       <div class="txt">
-        <span>Contract</span>
+        <span>Contract on ${esc(chainName(r.chain))}</span>
         <div class="addr">${esc(r.mint)}</div>
         ${r.qr && r.qr.length ? `<div class="scan">Scan to open the coin</div>` : ""}
       </div>
@@ -340,7 +352,7 @@ function lower3(r) {
       <div class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</div>
       <div class="kv"><span>Mcap</span><b>${money(r.marketCap)}</b></div>
       <div class="kv"><span>1h</span><b class="${r.change1h >= 0 ? "up" : "dn"}">${pct(r.change1h)}</b></div>
-      <div class="kv"><span>Contract</span><b>${esc(shortCa(r.mint))}</b></div>
+      <div class="kv"><span>${esc(chainName(r.chain))}</span><b>${esc(shortCa(r.mint))}</b></div>
       ${warn ? `<div class="warn">${esc(warn)}</div>` : ""}
       ${r.qr && r.qr.length ? `<div class="qr">${qrSvg(r.qr)}</div>` : ""}
     </div>
@@ -352,14 +364,14 @@ function board(list) {
     const n = (r.kolBuyers || []).length;
     return `
     <li><span class="n">${String(i + 1).padStart(2, "0")}</span>
-      <span class="s">$${esc(r.symbol)}<em>${esc(r.name)}</em></span>
+      <span class="s">$${esc(r.symbol)}<em>${esc(chainName(r.chain))} · ${esc(r.name)}</em></span>
       <span class="m ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</span>
       <span class="c">${n ? `<b class="kolc">${n} KOL</b>` : money(r.marketCap)}</span></li>`;
   }).join("");
   const pos = SIDE === "left"
     ? `left:calc(48*var(--u));right:auto` : `right:calc(48*var(--u));left:auto`;
   return `<div class="board enter ${AT ? "at-" + AT : ""}" style="${pos}">
-    <div class="bh"><b>ran today</b><span><i class="live"></i> ${list.length} COINS</span></div>
+    <div class="bh"><b>ran today</b><span><i class="live"></i> ${CHAIN ? esc(chainName(CHAIN)) + " · " : ""}${list.length} COINS</span></div>
     <ol>${rows}</ol>
   </div>`;
 }
@@ -392,7 +404,9 @@ async function loadSnapshot() {
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
     const by = (P.get("sort") || "run").toLowerCase();
-    RUNNERS = (data.runners || []).slice().sort((a, b) =>
+    const all = (data.runners || []).filter(
+      (r) => !CHAIN || String(r.chain || "").toLowerCase() === CHAIN);
+    RUNNERS = all.slice().sort((a, b) =>
       by === "kol"
         ? (b.kolBuyers || []).length - (a.kolBuyers || []).length || b.runMultiple - a.runMultiple
         : b.runMultiple - a.runMultiple);
@@ -483,10 +497,12 @@ window.addEventListener("storage", (event) => {
 
 readControl();
 loadSnapshot();
-setRotation(ROTATE);
-setInterval(readControl, 500);                // dock state
-setInterval(loadSnapshot, 10 * 60 * 1000);    // new daily snapshot, if published
-setInterval(refreshPrices, REFRESH);          // live prices during the stream
+if (!FROZEN) {
+  setRotation(ROTATE);
+  setInterval(readControl, 500);              // dock state
+  setInterval(loadSnapshot, 10 * 60 * 1000);  // new daily snapshot, if published
+  setInterval(refreshPrices, REFRESH);        // live prices during the stream
+}
 </script>
 </body>
 </html>

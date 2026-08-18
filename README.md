@@ -176,6 +176,8 @@ Replay is read-only for feature and outcome history and fails closed when an exa
 
 Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`, then set `telegram_enabled = true` in `config.toml`. The daily static report is written atomically to `output/latest.html`.
 
+Email delivery uses Resend: set `RESEND_API_KEY` in `.env`, then `email_enabled = true`, `email_from`, and `email_to` in `config.toml`. The full report is rendered as a flat, inline-styled email (email clients cannot open the interactive HTML) and sent to every address in `email_to`. The default sender `onboarding@resend.dev` only delivers in testing — verify a domain in Resend and switch `email_from` to `brief@yourdomain.com` before relying on it. A missing credential warns and skips, exactly like Telegram.
+
 The morning Telegram message is a digest, not the whole report: a header, the picks with one line each, up to three on-chain flags, any degraded sources, and an optional link. Set `delivery.report_url` to wherever `latest.html` is reachable and it is appended to the message. Set `delivery.telegram_digest = false` to send the full report instead. A missing credential warns and skips delivery; it never loses the report that already rendered.
 
 The visual interface runs locally at `http://127.0.0.1:8765`. It filters the report, shows a live clock and scheduled-run countdown, monitors refresh state, and can start a new brief. It binds only to the local machine and exposes no wallet or trading action.

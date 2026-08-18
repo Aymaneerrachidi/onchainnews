@@ -34,6 +34,7 @@ from brief.models import (
 from brief.screen import allowed_chains, is_editorial_pick, is_live_cto, is_mover, mover_rank_key, screen
 from brief.sources.birdeye import BirdeyeSource
 from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
+from brief.sources.goplus import GoPlusSource, supports as goplus_supports
 from brief.sources.helius import HeliusSource
 from brief.sources.http import CachedHttpClient
 from brief.sources.jupiter import JupiterSource
@@ -178,12 +179,13 @@ async def build_brief(
             or ledger.collector_state("started_at")
         )
         collector_started_at = datetime.fromisoformat(collector_started_raw) if collector_started_raw else None
+        chains = allowed_chains(settings)
         dex = DexscreenerSource(
             http,
             str(urls.get("dexscreener_base_url", "https://api.dexscreener.com")),
             int(cache.get("discovery_ttl_seconds", 600)),
             int(cache.get("pairs_ttl_seconds", 60)),
-            chains=allowed_chains(settings),
+            chains=chains,
         )
         try:
             metas, tokens, ctos, degraded = await dex.universe()
@@ -212,13 +214,19 @@ async def build_brief(
             )
             if birdeye.configured:
                 try:
-                    ranked = await birdeye.top_by_volume(
-                        int(settings.get("birdeye", "max_tokens", 600)),
-                        float(settings.get("thresholds", "min_liquidity", 20000)),
-                        float(settings.get("thresholds", "min_market_cap", 150000)),
-                    )
+                    ranked: list[tuple[str, str]] = []
+                    for chain in chains:
+                        birdeye.chain = chain
+                        for mint in await birdeye.top_by_volume(
+                            int(settings.get("birdeye", "max_tokens", 600)),
+                            float(settings.get("thresholds", "min_liquidity", 20000)),
+                            float(settings.get("thresholds", "min_market_cap", 150000)),
+                        ):
+                            ranked.append((chain, mint))
                     known = {token.mint for token in tokens}
-                    ranked_tokens = await dex.token_pairs([mint for mint in ranked if mint not in known])
+                    ranked_tokens = await dex.token_pairs(
+                        [(chain, mint) for chain, mint in ranked if mint not in known]
+                    )
                     # The journal is the widest net in the report, so discovery
                     # is pre-filtered on its bar rather than the movers bar.
                     journal_section = settings.section("journal")
@@ -239,7 +247,8 @@ async def build_brief(
                     tokens = merge_token_snapshots([*tokens, *motion])
                     statuses.append(SourceStatus(
                         "Birdeye ranked discovery", True,
-                        f"{len(ranked):,} tokens ranked by 24h volume; {birdeye_added} cleared the motion gate",
+                        f"{len(ranked):,} tokens ranked by 24h volume across {len(chains)} chain(s); "
+                        f"{birdeye_added} cleared the motion gate",
                     ))
                 except Exception as exc:
                     log.warning("birdeye_discovery_failed error=%s", exc)
@@ -318,7 +327,6 @@ async def build_brief(
             ))
 
         token_by_mint = {token.mint: token for token in tokens}
-        chains = allowed_chains(settings)
         hard_pass_mints = [
             token.mint for token in tokens
             if token.chain_id.lower() in chains
@@ -331,28 +339,97 @@ async def build_brief(
             str(urls.get("rugcheck_base_url", "https://api.rugcheck.xyz/v1")),
             int(cache.get("safety_ttl_seconds", 3600)),
         )
-        rug_results = await _map_resilient(hard_pass_mints, rug.report)
-        safety: dict[str, SafetyReport] = {
-            mint: value for mint, value, _ in rug_results if value is not None
-        }
-        rug_failures = sum(error is not None for _, _, error in rug_results)
-        statuses.append(SourceStatus(
-            "RugCheck", rug_failures == 0,
-            f"partial: {rug_failures}/{len(rug_results)} token reports unavailable" if rug_failures else "open safety reports available",
-        ))
+        # Safety is answered by a different service per chain. RugCheck knows
+        # Solana; GoPlus knows the EVM chains and also answers questions Solana
+        # does not have, like whether a sale is taxed or can be blocked.
+        chain_of = {token.mint: token.chain_id.lower() for token in tokens}
+        solana_mints = [m for m in hard_pass_mints if chain_of.get(m) == "solana"]
+
+        # GoPlus is free and rate-limited, and most of the universe never
+        # reaches the record. Asking about all of it spent the budget before the
+        # coins that mattered were reached, so the market gates that need no
+        # safety data run first and only the plausible names are verified.
+        journal_section = settings.section("journal")
+        fresh_bar = float(journal_section.get("min_fresh_change_pct", 30))
+        old_bar = (float(journal_section.get("old_coin_multiple", 5)) - 1) * 100
+        min_journal_volume = float(journal_section.get("min_volume_24h", 50_000))
+
+        def could_be_reported(token: TokenSnapshot) -> bool:
+            if token.volume_24h < min_journal_volume:
+                return False
+            return token.price_change_24h >= min(fresh_bar, old_bar)
+
+        evm_mints: dict[str, list[str]] = {}
+        unchecked_chains: set[str] = set()
+        skipped = 0
+        for mint in hard_pass_mints:
+            chain = chain_of.get(mint, "")
+            if chain == "solana":
+                continue
+            if not goplus_supports(chain):
+                unchecked_chains.add(chain)
+                continue
+            token = token_by_mint.get(mint)
+            if token is not None and not could_be_reported(token):
+                skipped += 1
+                continue
+            evm_mints.setdefault(chain, []).append(mint)
+        if skipped:
+            log.info("goplus_prefilter skipped=%s of %s evm tokens", skipped, skipped + sum(len(v) for v in evm_mints.values()))
+
+        safety: dict[str, SafetyReport] = {}
+        if solana_mints:
+            rug_results = await _map_resilient(solana_mints, rug.report)
+            safety.update({m: v for m, v, _ in rug_results if v is not None})
+            rug_failures = sum(error is not None for _, _, error in rug_results)
+            statuses.append(SourceStatus(
+                "RugCheck (Solana)", rug_failures == 0,
+                f"partial: {rug_failures}/{len(rug_results)} token reports unavailable"
+                if rug_failures else f"{len(solana_mints)} Solana tokens checked",
+            ))
+
+        if evm_mints:
+            goplus = GoPlusSource(
+                http,
+                str(urls.get("goplus_base_url", "https://api.gopluslabs.io")),
+                int(cache.get("safety_ttl_seconds", 3600)),
+                requests_per_minute=int(settings.get("goplus", "requests_per_minute", 30)),
+            )
+            checked = 0
+            for chain, mints in evm_mints.items():
+                try:
+                    found = await goplus.reports(chain, mints)
+                    safety.update(found)
+                    checked += len(found)
+                except Exception as exc:
+                    log.warning("goplus_chain_failed chain=%s error=%s", chain, exc)
+            wanted = sum(len(v) for v in evm_mints.values())
+            statuses.append(SourceStatus(
+                "GoPlus (EVM)", checked == wanted,
+                f"{checked}/{wanted} tokens checked across {', '.join(sorted(evm_mints))}",
+            ))
+
+        if unchecked_chains:
+            # Said plainly rather than left implied: these coins are reported
+            # with no contract-level safety behind them.
+            statuses.append(SourceStatus(
+                "Contract safety", False,
+                f"no safety source covers {', '.join(sorted(unchecked_chains))}; "
+                "tokens there are labelled unverified",
+            ))
 
         enrichments: dict[str, Enrichment] = {mint: Enrichment() for mint in hard_pass_mints}
-        if helius.configured:
+        if helius.configured and solana_mints:
             try:
-                batch = await helius.enrich_batch(hard_pass_mints)
+                batch = await helius.enrich_batch(solana_mints)
                 enrichments.update(batch)
-                helius_failures = len(hard_pass_mints) - len(batch)
+                helius_failures = len(solana_mints) - len(batch)
             except Exception as exc:
                 log.warning("helius_batch_enrichment_failed error=%s", exc)
-                helius_failures = len(hard_pass_mints)
+                helius_failures = len(solana_mints)
             statuses.append(SourceStatus(
                 "Helius", helius_failures == 0,
-                f"partial: {helius_failures}/{len(hard_pass_mints)} token enrichments unavailable" if helius_failures else "batched authority cross-check available",
+                f"partial: {helius_failures}/{len(solana_mints)} token enrichments unavailable" if helius_failures else "batched authority cross-check available",
             ))
         else:
             statuses.append(SourceStatus("Helius", False, "not configured; holder and authority cross-checks unavailable"))
@@ -609,7 +686,12 @@ async def build_brief(
         )
         scanned_wallets = kol_tracker.scanned if kol_tracker.enabled else 0
         for candidate in journal_pool:
-            candidate.kol_wallets_scanned = scanned_wallets
+            # The tracked wallets are Solana wallets. Recording zero coverage on
+            # every other chain keeps the "nobody touched it" label off coins we
+            # never looked for them on.
+            candidate.kol_wallets_scanned = (
+                scanned_wallets if candidate.token.chain_id.lower() == "solana" else 0
+            )
             record = kol_activity.get(candidate.token.mint)
             if record:
                 candidate.kol_buyers = record.buyers
