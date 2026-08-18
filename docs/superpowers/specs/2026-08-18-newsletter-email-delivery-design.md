@@ -49,9 +49,11 @@ network.
   no `<summary>`, no external stylesheet, no dark background).
 - Renders the same `Brief` model the site snapshot renders from, so the email
   can never disagree with the site.
-- Content: date header, the read / picks, each candidate's dossier
-  always-expanded (badges, read line, metrics grid, warnings), the journal
-  table, footer with `report_url` link and a "not financial advice" line.
+- Content: date header, the read / picks (anchored to `render_html`'s
+  `picks = [*new_and_moving, *movers, *ctos]` so the email and site can never
+  disagree by construction), each candidate's dossier always-expanded (badges,
+  read line, metrics grid, warnings), the journal table, footer with
+  `report_url` link and a "not financial advice" line.
 - Subject built as `"{prefix} — {day} {Mon} {YYYY}"` (e.g. `Solana Brief — 18
   Aug 2026`).
 
@@ -63,14 +65,16 @@ class EmailDeliveryError(RuntimeError): ...
 async def send_email(settings, subject: str, html: str) -> None
 ```
 
-- Reads `RESEND_API_KEY` from env; missing → `EmailDeliveryError`.
-- `POST https://api.resend.com/emails` via httpx (existing dependency),
-  body `{"from": ..., "to": [..], "subject": ..., "html": ...}`,
-  `Authorization: Bearer <key>`.
+- Reads `RESEND_API_KEY` from env and `email_from`/`email_to` from
+  `settings.get("delivery", ...)`; missing key → `EmailDeliveryError`.
+- `POST https://api.resend.com/emails` via httpx (existing dependency) with
+  `timeout=15`, body `{"from": <email_from>, "to": [...], "subject": ...,
+  "html": ...}`, `Authorization: Bearer <key>`.
 - Status >= 400 → raise `EmailDeliveryError` with response body excerpt
   (mirrors `send_telegram`).
-- One API call per recipient in `email_to` (private use; no batch API
-  complexity in phase 1).
+- `send_email` loops internally over `email_to`, one API call per recipient
+  (private use; no batch API complexity in phase 1). A mid-loop failure
+  aborts the remaining recipients and propagates as `EmailDeliveryError`.
 
 ### 4. Run flow (`brief/main.py`, `run()`)
 
@@ -95,9 +99,11 @@ New test files, following existing `tests/` conventions and fixtures:
 - `test_render_email.py` — render from a fixture brief: contains date header,
   picks, expanded dossiers, no `<details>`/`<summary>`, footer link, escaped
   HTML, correct subject format.
-- `test_delivery_email.py` — mocked httpx transport: success posts to
-  `api.resend.com/emails` with bearer auth; HTTP 4xx raises
-  `EmailDeliveryError`; missing env key raises.
+- `test_delivery_email.py` — httpx `MockTransport` (ships with httpx; no new
+  dependency): success posts to `api.resend.com/emails` with bearer auth; HTTP
+  4xx raises `EmailDeliveryError`; missing env key raises. Must
+  `monkeypatch.delenv("RESEND_API_KEY")` itself — the conftest autouse
+  fixture only clears the Helius/Birdeye/X keys.
 
 ## Documentation
 
