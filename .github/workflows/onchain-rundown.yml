@@ -73,6 +73,13 @@ jobs:
           path: data
           key: brief-db-${{ runner.os }}-${{ github.run_id }}
 
+      - name: Notify failure
+        if: failure() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        run: |
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=ONCHAIN RUNDOWN FAILED: daily job ${GITHUB_RUN_ID}"
+
   pulse:
     if: github.event_name == 'workflow_dispatch' && (inputs.job == 'pulse' || inputs.job == 'both') || github.event.schedule == '11 * * * *'
     runs-on: ubuntu-latest
@@ -110,3 +117,10 @@ jobs:
         with:
           path: data
           key: brief-db-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Notify failure
+        if: failure() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        run: |
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=ONCHAIN RUNDOWN FAILED: pulse job ${GITHUB_RUN_ID}"
