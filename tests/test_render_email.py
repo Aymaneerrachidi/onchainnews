@@ -61,8 +61,8 @@ async def test_subject_prefix_and_date(tmp_path):
         brief = await build_brief(settings, ledger, commit=False, now=NOW)
         subject = email_subject(brief, settings)
         # The subject is read before anything is opened, so it leads with the
-        # day's headline rather than repeating the date twice.
-        assert subject.startswith("fomo onchain — ")
+        # day's headline while avoiding characters that rendered badly in Gmail.
+        assert subject.startswith("Fomo Onchain | ")
         assert brief.generated_at.strftime("%d %b") in subject
         if brief.runners:
             top = max(brief.runners, key=lambda c: c.run_multiple)

@@ -246,7 +246,7 @@ email_provider = "brevo"
 email_from = "ue06prog@gmail.com"
 email_from_name = "Fomo Onchain"
 email_to = ["ue06prog@gmail.com", "bryanquispe528@gmail.com"]
-email_subject_prefix = "fomo onchain"
+email_subject_prefix = "Fomo Onchain"
 
 # The daily journal: what ran today. Deliberately wider than the editorial
 # tracks. A coin enters through one of two doors -- created inside the fresh
