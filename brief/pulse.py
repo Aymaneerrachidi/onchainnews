@@ -4,6 +4,7 @@ import copy
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
@@ -18,6 +19,7 @@ from brief.delivery import TelegramDeliveryError, send_telegram, write_html
 from brief.engine import build_brief
 from brief.ledger import Ledger
 from brief.models import Brief, Candidate
+from brief.openai_images import OpenAIImageError, configured as openai_image_configured, generate_runner_background
 from brief.render.formatting import money, pct
 from brief.render.payload import build_payload
 from brief.x_poster import XPostError, configured as x_posting_configured, post_image
@@ -193,6 +195,32 @@ def _fit(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[: max(0, limit - 1)].rstrip() + "..."
 
 
+def _fit_font(text: str, size: int, max_width: int, *, bold: bool = True, min_size: int = 28):
+    font_size = size
+    font = _font(font_size, bold)
+    probe = ImageDrawProbe()
+    while probe.width(text, font) > max_width and font_size > min_size:
+        font_size -= 4
+        font = _font(font_size, bold)
+    return font
+
+
+class ImageDrawProbe:
+    def __init__(self) -> None:
+        from PIL import Image, ImageDraw
+
+        self._draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+
+    def width(self, text: str, font: Any) -> int:
+        bbox = self._draw.textbbox((0, 0), text, font=font)
+        return bbox[2] - bbox[0]
+
+
+def _safe_filename(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "-", value.strip())
+    return cleaned.strip(".-") or "token"
+
+
 async def _logo(candidate: Candidate, size: int):
     from PIL import Image, ImageDraw
 
@@ -210,86 +238,327 @@ async def _logo(candidate: Candidate, size: int):
                 return image
         except Exception:
             pass
-    image = Image.new("RGBA", (size, size), "#EEF1FF")
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     draw.ellipse((0, 0, size - 1, size - 1), fill="#EEF1FF", outline="#D6DAEA", width=2)
     initials = _fit(candidate.token.symbol.strip("$").upper(), 4)
-    font = _font(34, True)
+    font_size = 34
+    font = _font(font_size, True)
     bbox = draw.textbbox((0, 0), initials, font=font)
+    while (bbox[2] - bbox[0]) > size - 24 and font_size > 18:
+        font_size -= 2
+        font = _font(font_size, True)
+        bbox = draw.textbbox((0, 0), initials, font=font)
     draw.text(((size - (bbox[2] - bbox[0])) / 2, (size - (bbox[3] - bbox[1])) / 2 - 4), initials, fill="#17152B", font=font)
     return image
 
 
-async def render_signal_image(candidate: Candidate, passes: list[dict[str, Any]], settings: Settings, now: datetime) -> Path:
+def _draw_chain_badge(draw: Any, x: int, y: int) -> None:
+    draw.rounded_rectangle((x, y, x + 136, y + 42), radius=21, fill="#111735", outline="#AEBBFF", width=1)
+    draw.rounded_rectangle((x + 16, y + 10, x + 51, y + 15), radius=3, fill="#14F195")
+    draw.rounded_rectangle((x + 20, y + 19, x + 55, y + 24), radius=3, fill="#9945FF")
+    draw.rounded_rectangle((x + 16, y + 28, x + 51, y + 33), radius=3, fill="#14F195")
+    draw.text((x + 66, y + 10), "SOLANA", fill="#F7F8FF", font=_font(17, True))
+
+
+def _derived_start_market_cap(candidate: Candidate) -> float:
+    multiple = max(float(candidate.run_multiple or 1.0), 1.0)
+    return max(float(candidate.token.market_cap or 0.0) / multiple, 0.0)
+
+
+def _draw_reference_background(canvas: Any, *, ai: bool, template: bool) -> None:
+    from PIL import Image, ImageDraw, ImageFilter
+
+    width, height = canvas.size
+    if not ai and not template:
+        top = (98, 76, 255)
+        bottom = (205, 192, 255)
+        draw = ImageDraw.Draw(canvas)
+        for y in range(height):
+            t = y / height
+            color = tuple(int(top[i] * (1 - t) + bottom[i] * t) for i in range(3))
+            draw.line((0, y, width, y), fill=color)
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    glow = ImageDraw.Draw(overlay)
+    glow.ellipse((470, -120, 1140, 480), outline=(255, 255, 255, 80), width=6)
+    glow.ellipse((535, 112, 950, 445), outline=(255, 255, 255, 55), width=4)
+    glow.line((260, 1080, 420, height + 80), fill=(255, 255, 255, 120), width=2)
+    glow.line((260, 1080, 175, height + 70), fill=(255, 255, 255, 70), width=1)
+    glow.line((260, 1080, 515, height + 70), fill=(255, 255, 255, 70), width=1)
+    blurred = overlay.filter(ImageFilter.GaussianBlur(5))
+    canvas.alpha_composite(blurred)
+
+
+def _reference_gradient(width: int, height: int):
     from PIL import Image, ImageDraw
+
+    image = Image.new("RGBA", (width, height), "#6650FF")
+    draw = ImageDraw.Draw(image)
+    top = (99, 75, 255)
+    bottom = (208, 195, 255)
+    for y in range(height):
+        t = y / height
+        color = tuple(int(top[i] * (1 - t) + bottom[i] * t) for i in range(3))
+        draw.line((0, y, width, y), fill=color + (255,))
+    return image
+
+
+def _draw_fomo_lockup(draw: Any, x: int, y: int) -> None:
+    draw.rounded_rectangle((x, y + 13, x + 42, y + 43), radius=15, fill="#FFFFFF")
+    draw.rounded_rectangle((x + 28, y + 13, x + 70, y + 43), radius=15, fill="#FFFFFF")
+    draw.ellipse((x + 21, y + 16, x + 49, y + 44), fill="#6657FF")
+    draw.rectangle((x + 86, y + 4, x + 88, y + 54), fill=(255, 255, 255, 150))
+    draw.text((x + 104, y + 2), "fomo", fill="#FFFFFF", font=_font(42, True))
+
+
+def _draw_coin_medallion(canvas: Any, logo: Any, x: int, y: int, size: int) -> None:
+    from PIL import Image, ImageDraw, ImageFilter
+
+    layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    draw.ellipse((x - 22, y - 18, x + size + 22, y + size + 26), fill=(28, 23, 120, 75))
+    draw.ellipse((x - 16, y - 16, x + size + 16, y + size + 16), outline=(255, 255, 255, 215), width=7)
+    draw.ellipse((x - 4, y - 4, x + size + 4, y + size + 4), outline=(91, 72, 255, 230), width=8)
+    layer = layer.filter(ImageFilter.GaussianBlur(0.7))
+    canvas.alpha_composite(layer)
+    logo = logo.resize((size, size))
+    canvas.alpha_composite(logo, (x, y))
+
+
+def _draw_mock_trading_card(draw: Any, candidate: Candidate, passes: list[dict[str, Any]], x: int, y: int) -> None:
+    card_w, card_h = 500, 388
+    draw.rounded_rectangle((x, y, x + card_w, y + card_h), radius=26, fill="#090B18", outline="#7E76FF", width=3)
+    draw.rounded_rectangle((x + 22, y + 22, x + 132, y + 58), radius=18, fill="#1F2447")
+    draw.text((x + 38, y + 28), "Open", fill="#92A2FF", font=_font(18, True))
+    draw.rounded_rectangle((x + card_w - 120, y + 20, x + card_w - 28, y + 60), radius=12, fill="#5266FF")
+    draw.text((x + card_w - 100, y + 31), "Follow", fill="#FFFFFF", font=_font(18, True))
+    draw.text((x + 34, y + 86), f"${_fit(candidate.token.symbol.upper(), 12)}", fill="#FFFFFF", font=_font(26, True))
+    draw.text((x + card_w - 150, y + 84), money(candidate.token.market_cap), fill="#FFFFFF", font=_font(24, True))
+    draw.text((x + card_w - 150, y + 113), "Market cap", fill="#BFC3D9", font=_font(18))
+
+    chart = [
+        (x + 36, y + 238),
+        (x + 82, y + 218),
+        (x + 128, y + 230),
+        (x + 174, y + 186),
+        (x + 220, y + 204),
+        (x + 266, y + 176),
+        (x + 312, y + 184),
+        (x + 358, y + 148),
+        (x + 404, y + 158),
+        (x + 454, y + 126),
+    ]
+    for i in range(len(chart) - 1):
+        draw.line((chart[i], chart[i + 1]), fill="#16E97C", width=4)
+    for cx, cy in chart[1::2]:
+        draw.ellipse((cx - 6, cy - 6, cx + 6, cy + 6), fill="#FF6A31")
+
+    pnl = candidate.token.market_cap - _derived_start_market_cap(candidate)
+    draw.rounded_rectangle((x + 24, y + 270, x + card_w - 24, y + 352), radius=18, fill="#111421", outline="#22283F", width=1)
+    draw.text((x + 44, y + 288), f"{money(pnl)}", fill="#27F28B", font=_font(30, True))
+    draw.text((x + 44, y + 322), f"{candidate.run_multiple:.1f}x runner", fill="#D6D9EA", font=_font(18))
+    draw.text((x + 276, y + 294), f"{len(passes)} passes", fill="#FFFFFF", font=_font(22, True))
+    draw.text((x + 276, y + 322), f"{pct(candidate.token.price_change_1h, 0)} 1h", fill="#D6D9EA", font=_font(18))
+
+
+async def _render_locked_fomo_template(
+    candidate: Candidate,
+    passes: list[dict[str, Any]],
+    template: Path,
+    path: Path,
+    now: datetime,
+) -> Path:
+    from PIL import Image, ImageDraw, ImageFilter, ImageOps
+
+    width, height = 960, 1200
+    canvas = ImageOps.fit(Image.open(template).convert("RGBA"), (width, height))
+    draw = ImageDraw.Draw(canvas)
+
+    # Replace the large mutable text zone while preserving the original poster
+    # background language. The soft blur/gradient avoids ghosting from whatever
+    # values were in the source reference.
+    clean = Image.new("RGBA", (710, 700), (0, 0, 0, 0))
+    clean_draw = ImageDraw.Draw(clean)
+    for y in range(clean.height):
+        t = y / clean.height
+        rgb = (
+            int(88 * (1 - t) + 132 * t),
+            int(78 * (1 - t) + 96 * t),
+            255,
+        )
+        for x in range(clean.width):
+            fade = 1.0 if x < 560 else max(0.0, 1.0 - ((x - 560) / 150))
+            clean_draw.point((x, y), fill=rgb + (int(255 * fade),))
+    clean = clean.filter(ImageFilter.GaussianBlur(0.4))
+    canvas.alpha_composite(clean, (0, 0))
+    draw = ImageDraw.Draw(canvas)
+
+    _draw_fomo_lockup(draw, 32, 34)
+    _draw_chain_badge(draw, 760, 44)
+
+    start = money(_derived_start_market_cap(candidate))
+    end = money(candidate.token.market_cap)
+    ticker = _fit(candidate.token.symbol.upper(), 12)
+    draw.text((30, 126), f"{start} TO", fill="#FFFFFF", font=_fit_font(f"{start} TO", 112, 570, bold=True, min_size=58))
+    draw.text((28, 270), end, fill="#1422E7", font=_fit_font(end, 192, 570, bold=True, min_size=88))
+    draw.text((32, 515), f"ON {ticker}", fill="#FFFFFF", font=_fit_font(f"ON {ticker}", 82, 570, bold=True, min_size=46))
+
+    # Token medallion replaces the reference coin face.
+    coin_cover = Image.new("RGBA", (310, 310), (0, 0, 0, 0))
+    coin_draw = ImageDraw.Draw(coin_cover)
+    coin_draw.ellipse((0, 0, 309, 309), fill=(94, 80, 255, 175), outline=(255, 255, 255, 220), width=8)
+    coin_cover = coin_cover.filter(ImageFilter.GaussianBlur(0.7))
+    canvas.alpha_composite(coin_cover, (54, 752))
+    logo = await _logo(candidate, 244)
+    _draw_coin_medallion(canvas, logo, 86, 784, 244)
+    draw = ImageDraw.Draw(canvas)
+
+    # Replace the tilted app screenshot area with a clean measured mini-card.
+    card_x, card_y, card_w, card_h = 396, 584, 528, 536
+    draw.rounded_rectangle((card_x, card_y, card_x + card_w, card_y + card_h), radius=28, fill="#080A16", outline="#7E76FF", width=3)
+    draw.rounded_rectangle((card_x + 24, card_y + 24, card_x + 130, card_y + 60), radius=18, fill="#20254A")
+    draw.text((card_x + 42, card_y + 31), "Open", fill="#96A4FF", font=_font(18, True))
+    draw.rounded_rectangle((card_x + card_w - 124, card_y + 22, card_x + card_w - 26, card_y + 64), radius=12, fill="#5266FF")
+    draw.text((card_x + card_w - 104, card_y + 34), "Follow", fill="#FFFFFF", font=_font(18, True))
+    draw.text((card_x + 34, card_y + 84), f"${ticker}", fill="#FFFFFF", font=_font(30, True))
+    draw.text((card_x + 34, card_y + 119), "runner signal", fill="#AEB4D3", font=_font(18))
+    draw.text((card_x + card_w - 162, card_y + 82), money(candidate.token.market_cap), fill="#FFFFFF", font=_font(25, True))
+    draw.text((card_x + card_w - 162, card_y + 112), "Market cap", fill="#C9CDE1", font=_font(18))
+
+    chart_left, chart_top = card_x + 36, card_y + 166
+    chart_points = [
+        (chart_left, chart_top + 110),
+        (chart_left + 48, chart_top + 88),
+        (chart_left + 96, chart_top + 104),
+        (chart_left + 150, chart_top + 56),
+        (chart_left + 206, chart_top + 80),
+        (chart_left + 258, chart_top + 52),
+        (chart_left + 308, chart_top + 60),
+        (chart_left + 360, chart_top + 22),
+        (chart_left + 414, chart_top + 36),
+        (chart_left + 462, chart_top + 10),
+    ]
+    for i in range(len(chart_points) - 1):
+        draw.line((chart_points[i], chart_points[i + 1]), fill="#13E77D", width=4)
+    for cx, cy in chart_points[1::2]:
+        draw.ellipse((cx - 7, cy - 7, cx + 7, cy + 7), fill="#FF6B2F")
+
+    pnl = candidate.token.market_cap - _derived_start_market_cap(candidate)
+    draw.rounded_rectangle((card_x + 24, card_y + 306, card_x + card_w - 24, card_y + 392), radius=18, fill="#111421", outline="#262C44", width=1)
+    draw.text((card_x + 42, card_y + 326), money(pnl), fill="#26F28B", font=_font(32, True))
+    draw.text((card_x + 42, card_y + 363), f"{candidate.run_multiple:.1f}x runner", fill="#DADDEE", font=_font(18))
+    draw.text((card_x + 292, card_y + 326), f"{len(passes)} passes", fill="#FFFFFF", font=_font(23, True))
+    draw.text((card_x + 292, card_y + 363), f"{pct(candidate.token.price_change_1h, 0)} 1h", fill="#DADDEE", font=_font(18))
+
+    status = "Fading" if candidate.token.price_change_1h < 0 else "Running"
+    kol_count = len(candidate.kol_buyers)
+    flags = "; ".join(candidate.risk_labels[:2]) if candidate.risk_labels else "no displayed flags"
+    wallets = ", ".join(candidate.kol_buyers[:5]) if candidate.kol_buyers else "tracked wallets empty"
+    draw.rounded_rectangle((card_x + 24, card_y + 406, card_x + card_w - 24, card_y + 492), radius=16, fill="#0D1021", outline="#272E49", width=1)
+    draw.text((card_x + 42, card_y + 416), f"{status}  ·  {kol_count} KOL  ·  {money(candidate.token.volume_24h)} vol", fill="#FFFFFF", font=_font(20, True))
+    draw.text((card_x + 42, card_y + 442), _fit(flags, 55), fill="#BFC4DC", font=_font(15))
+    draw.text((card_x + 42, card_y + 466), _fit(wallets, 50), fill="#BFC4DC", font=_font(15))
+
+    draw.text((34, 1136), _fit(wallets, 42), fill="#FFFFFF", font=_font(18, True))
+    draw.text((34, 1162), f"CA: {candidate.token.mint}", fill="#FFFFFF", font=_font(16))
+    draw.text((760, 1162), now.strftime("%d %b %H:%M"), fill="#FFFFFF", font=_font(16))
+    canvas.convert("RGB").save(path, format="PNG", optimize=True)
+    return path
+
+
+async def render_signal_image(
+    candidate: Candidate,
+    passes: list[dict[str, Any]],
+    settings: Settings,
+    now: datetime,
+    *,
+    background: bytes | None = None,
+) -> Path:
+    from PIL import Image, ImageDraw, ImageOps
 
     raw_dir = str(settings.get("pulse", "image_dir", "output/pulse-images"))
     image_dir = Path(raw_dir)
     if not image_dir.is_absolute():
         image_dir = settings.root / image_dir
     image_dir.mkdir(parents=True, exist_ok=True)
-    path = image_dir / f"{candidate.token.symbol}-{candidate.token.mint[:8]}-{int(now.timestamp())}.png"
+    symbol = _safe_filename(candidate.token.symbol.strip("$"))
+    path = image_dir / f"{symbol}-{candidate.token.mint[:8]}-{int(now.timestamp())}.png"
 
     template_raw = str(settings.get("pulse", "image_template_path", "") or "")
     template = Path(template_raw) if template_raw else None
     if template and not template.is_absolute():
         template = settings.root / template
+    if template and template.exists() and background is None:
+        return await _render_locked_fomo_template(candidate, passes, template, path, now)
+
     width, height = 960, 1200
-    if template and template.exists():
-        canvas = Image.open(template).convert("RGB").resize((width, height))
+    using_ai_background = bool(background)
+    if background:
+        ai_canvas = ImageOps.fit(Image.open(BytesIO(background)).convert("RGB"), (width, height)).convert("RGBA")
+        canvas = Image.blend(_reference_gradient(width, height), ai_canvas, 0.38)
+    elif template and template.exists():
+        canvas = Image.open(template).convert("RGB").resize((width, height)).convert("RGBA")
     else:
-        canvas = Image.new("RGB", (width, height), "#EEF1FF")
+        canvas = _reference_gradient(width, height)
     draw = ImageDraw.Draw(canvas)
 
-    ink = "#17152B"
-    muted = "#666A7A"
-    blue = "#3657E3"
-    line = "#DDE1EC"
-    if not (template and template.exists()):
-        draw.rectangle((0, 0, width, height), fill="#EEF1FF")
-        draw.rectangle((0, 0, width, 470), fill="#4D5BF6")
-        draw.rectangle((0, 470, width, height), fill="#F8F9FF")
-    draw.rectangle((44, 48, width - 44, height - 48), outline="#FFFFFF", width=3)
-    draw.text((76, 74), "fomo onchain", fill="#FFFFFF" if not template else ink, font=_font(34, True))
+    _draw_reference_background(canvas, ai=using_ai_background, template=bool(template and template.exists()))
+    draw = ImageDraw.Draw(canvas)
+    _draw_fomo_lockup(draw, 34, 34)
+    _draw_chain_badge(draw, width - 202, 44)
 
-    logo = await _logo(candidate, 132)
-    canvas.paste(logo, (76, 170), logo)
-    draw.text((232, 168), f"${candidate.token.symbol}", fill="#FFFFFF" if not template else ink, font=_font(58, True))
-    draw.text((236, 236), _fit(candidate.token.name, 34), fill="#DDE3FF" if not template else muted, font=_font(26))
-    draw.text((76, 330), f"{candidate.run_multiple:.1f}x", fill="#FFFFFF" if not template else blue, font=_font(118, True))
-    draw.text((82, 438), "24h runner, sustained screen pass", fill="#DDE3FF" if not template else muted, font=_font(28))
+    start = money(_derived_start_market_cap(candidate)).replace("$", "$")
+    end = money(candidate.token.market_cap).replace("$", "$")
+    line_one = f"{start} TO"
+    line_two = end
+    line_three = f"ON {_fit(candidate.token.symbol.upper(), 12)}"
+    draw.text((30, 130), line_one, fill="#FFFFFF", font=_fit_font(line_one, 108, 650, bold=True, min_size=58))
+    draw.text((28, 274), line_two, fill="#1417DD", font=_fit_font(line_two, 190, 640, bold=True, min_size=82))
+    draw.text((34, 512), line_three, fill="#FFFFFF", font=_fit_font(line_three, 82, 620, bold=True, min_size=48))
 
-    stats = [
-        ("mcap", money(candidate.token.market_cap)),
-        ("vol", money(candidate.token.volume_24h)),
-        ("liq", money(candidate.token.liquidity_usd)),
-        ("1h", pct(candidate.token.price_change_1h, 0)),
-        ("passes", f"{len(passes)} / {settings.get('pulse', 'required_passes', 3)}"),
+    chip_y = 624
+    chips = [
+        (f"{candidate.run_multiple:.1f}x", "24h"),
+        (pct(candidate.token.price_change_1h, 0), "1h"),
+        (money(candidate.token.volume_24h), "vol"),
+        (money(candidate.token.liquidity_usd), "liq"),
     ]
-    y = 540
-    for index, (label, value) in enumerate(stats):
-        col = index % 2
-        row = index // 2
-        x = 76 + col * 410
-        yy = y + row * 112
-        draw.rounded_rectangle((x, yy, x + 360, yy + 86), radius=14, fill="#FFFFFF", outline=line, width=1)
-        draw.text((x + 22, yy + 16), value, fill=ink, font=_font(32, True))
-        draw.text((x + 24, yy + 54), label, fill=muted, font=_font(19))
+    for index, (value, label) in enumerate(chips):
+        x = 34 + (index % 2) * 188
+        y = chip_y + (index // 2) * 70
+        draw.rounded_rectangle((x, y, x + 164, y + 54), radius=16, fill=(10, 13, 38, 205), outline=(255, 255, 255, 130), width=1)
+        draw.text((x + 14, y + 7), value, fill="#FFFFFF", font=_font(24, True))
+        draw.text((x + 16, y + 32), label, fill="#E6E3FF", font=_font(15))
 
-    y = 900
-    lines = [candidate.read, *(candidate.dex_evidence[:1] if candidate.dex_evidence else [])]
-    if candidate.kol_buyers:
-        lines.append(f"Tracked wallets: {', '.join(candidate.kol_buyers[:5])}")
-    if candidate.risk_labels:
-        lines.append(f"Flags: {'; '.join(candidate.risk_labels[:2])}")
-    for index, line in enumerate(lines[:4]):
-        draw.text((76, y), _fit(line, 64), fill=ink if index == 0 else muted, font=_font(24 if index == 0 else 21))
-        y += 42
+    logo = await _logo(candidate, 214)
+    _draw_coin_medallion(canvas, logo, 76, 824, 214)
+    draw = ImageDraw.Draw(canvas)
+    _draw_mock_trading_card(draw, candidate, passes, 410, 645)
 
-    draw.text((76, 1100), f"CA: {candidate.token.mint}", fill=muted, font=_font(18))
-    draw.text((730, 1100), now.strftime("%d %b %H:%M"), fill=muted, font=_font(18))
-    canvas.save(path, format="PNG", optimize=True)
+    summary_box = (410, 1048, 910, 1140)
+    draw.rounded_rectangle(summary_box, radius=20, fill=(9, 11, 24, 218), outline=(255, 255, 255, 70), width=1)
+    status = "Fading" if candidate.token.price_change_1h < 0 else "Running"
+    kol_count = len(candidate.kol_buyers)
+    draw.text((432, 1062), f"{status}  +  {kol_count} KOL  +  {len(passes)} passes", fill="#FFFFFF", font=_font(24, True))
+    flags = "; ".join(candidate.risk_labels[:2]) if candidate.risk_labels else "no displayed flags"
+    wallets = ", ".join(candidate.kol_buyers[:5]) if candidate.kol_buyers else "tracked wallets empty"
+    draw.text((432, 1096), _fit(flags, 48), fill="#DADDF4", font=_font(18))
+    draw.text((432, 1118), _fit(wallets, 48), fill="#DADDF4", font=_font(18))
+
+    draw.text((34, 1150), f"CA: {candidate.token.mint}", fill="#FFFFFF", font=_font(17))
+    draw.text((765, 1150), now.strftime("%d %b %H:%M"), fill="#FFFFFF", font=_font(17))
+    canvas.convert("RGB").save(path, format="PNG", optimize=True)
     return path
+
+
+async def render_openai_signal_image(
+    candidate: Candidate,
+    passes: list[dict[str, Any]],
+    settings: Settings,
+    now: datetime,
+) -> Path:
+    background = await generate_runner_background(candidate, passes, settings)
+    return await render_signal_image(candidate, passes, settings, now, background=background)
 
 
 def post_text(candidate: Candidate, passes: list[dict[str, Any]], settings: Settings) -> str:
@@ -356,12 +625,20 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
     for candidate, passes in triggered[: int(settings.get("pulse", "max_posts_per_run", 3))]:
         trigger = PulseTrigger(candidate=candidate, passes=passes)
         try:
-            trigger.image_path = await render_signal_image(candidate, passes, settings, now)
+            if bool(settings.get("pulse", "openai_image_enabled", True)) and openai_image_configured():
+                try:
+                    trigger.image_path = await render_openai_signal_image(candidate, passes, settings, now)
+                except OpenAIImageError as exc:
+                    log.warning("pulse_openai_image_failed mint=%s error=%s", candidate.token.mint, exc)
+                    trigger.image_path = await render_signal_image(candidate, passes, settings, now)
+                    trigger.error = f"OpenAI image failed; fallback poster generated: {exc}"
+            else:
+                trigger.image_path = await render_signal_image(candidate, passes, settings, now)
             if bool(settings.get("pulse", "x_post_enabled", True)):
                 if x_posting_configured():
                     trigger.x_post_id = await post_image(settings, post_text(candidate, passes, settings), trigger.image_path)
                 else:
-                    trigger.error = "X posting credentials unset; image generated but X post skipped"
+                    trigger.error = trigger.error or "X posting credentials unset; image generated but X post skipped"
         except (OSError, XPostError, httpx.HTTPError) as exc:
             trigger.error = str(exc)
             log.warning("pulse_trigger_failed mint=%s error=%s", candidate.token.mint, exc)

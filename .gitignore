@@ -22,7 +22,8 @@ web/.playwright-mcp/
 .vercel/
 
 # Local reference material and installers, not project source
-/overlays/
+/overlays/*
+!/overlays/fomo-runner-template.jpg
 /brand details/
 *.exe
 *.crdownload
