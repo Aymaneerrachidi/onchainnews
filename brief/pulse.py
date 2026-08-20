@@ -179,9 +179,9 @@ def _font(size: int, bold: bool = False):
     from PIL import ImageFont
 
     names = (
-        ("C:/Windows/Fonts/calibrib.ttf", "C:/Windows/Fonts/calibri.ttf")
+        ("C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf", "C:/Windows/Fonts/calibrib.ttf")
         if bold else
-        ("C:/Windows/Fonts/calibri.ttf", "C:/Windows/Fonts/arial.ttf")
+        ("C:/Windows/Fonts/segoeui.ttf", "C:/Windows/Fonts/arial.ttf", "C:/Windows/Fonts/calibri.ttf")
     )
     for name in names:
         try:
@@ -189,6 +189,22 @@ def _font(size: int, bold: bool = False):
         except OSError:
             continue
     return ImageFont.load_default()
+
+
+def _display_font(size: int):
+    from PIL import ImageFont
+
+    for name in (
+        "C:/Windows/Fonts/impact.ttf",
+        "C:/Windows/Fonts/ARIALNB.TTF",
+        "C:/Windows/Fonts/bahnschrift.ttf",
+        "C:/Windows/Fonts/arialbd.ttf",
+    ):
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            continue
+    return _font(size, True)
 
 
 def _fit(text: str, limit: int) -> str:
@@ -202,6 +218,16 @@ def _fit_font(text: str, size: int, max_width: int, *, bold: bool = True, min_si
     while probe.width(text, font) > max_width and font_size > min_size:
         font_size -= 4
         font = _font(font_size, bold)
+    return font
+
+
+def _fit_display_font(text: str, size: int, max_width: int, *, min_size: int = 36):
+    font_size = size
+    font = _display_font(font_size)
+    probe = ImageDrawProbe()
+    while probe.width(text, font) > max_width and font_size > min_size:
+        font_size -= 4
+        font = _display_font(font_size)
     return font
 
 
@@ -522,14 +548,17 @@ async def _render_locked_fomo_template(
     canvas.alpha_composite(clean, (0, 116))
     draw = ImageDraw.Draw(canvas)
 
-    _draw_chain_badge(draw, 760, 44)
-
     start = money(_derived_start_market_cap(candidate))
     end = money(candidate.token.market_cap)
     ticker = _fit(candidate.token.symbol.upper(), 12)
-    draw.text((30, 126), f"{start} TO", fill="#FFFFFF", font=_fit_font(f"{start} TO", 112, 570, bold=True, min_size=58))
-    draw.text((28, 270), end, fill="#1422E7", font=_fit_font(end, 192, 570, bold=True, min_size=88))
-    draw.text((32, 515), f"ON {ticker}", fill="#FFFFFF", font=_fit_font(f"ON {ticker}", 82, 570, bold=True, min_size=46))
+    line_one = f"{start} TO"
+    line_three = f"ON {ticker}"
+    draw.text((30, 125), line_one, fill=(18, 14, 70, 55), font=_fit_display_font(line_one, 118, 585, min_size=62))
+    draw.text((28, 120), line_one, fill="#FFFFFF", font=_fit_display_font(line_one, 118, 585, min_size=62))
+    draw.text((30, 283), end, fill=(12, 12, 85, 58), font=_fit_display_font(end, 196, 610, min_size=90))
+    draw.text((28, 276), end, fill="#1520E8", font=_fit_display_font(end, 196, 610, min_size=90))
+    draw.text((34, 520), line_three, fill=(18, 14, 70, 58), font=_fit_display_font(line_three, 82, 390, min_size=38))
+    draw.text((32, 516), line_three, fill="#FFFFFF", font=_fit_display_font(line_three, 82, 390, min_size=38))
 
     # Token medallion replaces the reference coin face.
     coin_cover = Image.new("RGBA", (310, 310), (0, 0, 0, 0))
@@ -576,9 +605,21 @@ async def _render_locked_fomo_template(
     draw.text((card_x + 42, card_y + 442), _fit(flags, 55), fill="#BFC4DC", font=_font(15))
     draw.text((card_x + 42, card_y + 466), _fit(wallets, 50), fill="#BFC4DC", font=_font(15))
 
-    draw.text((34, 1136), _fit(wallets, 42), fill="#FFFFFF", font=_font(18, True))
-    draw.text((34, 1162), f"CA: {candidate.token.mint}", fill="#FFFFFF", font=_font(16))
-    draw.text((760, 1162), now.strftime("%d %b %H:%M"), fill="#FFFFFF", font=_font(16))
+    # Final readability pass: redraw the evidence block and footer using a
+    # clean UI font so the tiny metadata is legible on X compression.
+    draw.rounded_rectangle((card_x + 24, card_y + 406, card_x + card_w - 24, card_y + 492), radius=16, fill="#0D1021", outline="#272E49", width=1)
+    draw.text((card_x + 42, card_y + 416), f"{status}  /  {kol_count} KOL  /  {money(candidate.token.volume_24h)} vol", fill="#FFFFFF", font=_font(20, True))
+    draw.text((card_x + 42, card_y + 442), _fit(flags, 55), fill="#BFC4DC", font=_font(15))
+    draw.text((card_x + 42, card_y + 466), _fit(wallets, 50), fill="#BFC4DC", font=_font(15))
+
+    footer = (28, 1118, 932, 1186)
+    draw.rounded_rectangle(footer, radius=18, fill=(8, 10, 30, 218), outline=(255, 255, 255, 78), width=1)
+    draw.text((48, 1130), "TRACKED WALLETS", fill="#AEB6E9", font=_font(13, True))
+    draw.text((48, 1150), _fit(wallets, 46), fill="#FFFFFF", font=_font(18, True))
+    draw.text((386, 1130), "CONTRACT", fill="#AEB6E9", font=_font(13, True))
+    draw.text((386, 1151), _fit(candidate.token.mint, 42), fill="#FFFFFF", font=_font(16))
+    draw.text((778, 1130), "UPDATED", fill="#AEB6E9", font=_font(13, True))
+    draw.text((778, 1151), now.strftime("%d %b %H:%M"), fill="#FFFFFF", font=_font(16, True))
     canvas.convert("RGB").save(path, format="PNG", optimize=True)
     return path
 
@@ -622,7 +663,6 @@ async def render_signal_image(
     _draw_reference_background(canvas, ai=using_ai_background, template=bool(template and template.exists()))
     draw = ImageDraw.Draw(canvas)
     _draw_fomo_lockup(draw, 34, 34)
-    _draw_chain_badge(draw, width - 202, 44)
 
     start = money(_derived_start_market_cap(candidate)).replace("$", "$")
     end = money(candidate.token.market_cap).replace("$", "$")
