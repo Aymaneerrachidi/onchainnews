@@ -75,3 +75,50 @@ async def test_http_error_raises_and_aborts(tmp_path, monkeypatch):
     with pytest.raises(EmailDeliveryError, match="429"):
         await send_email(settings, "subject", "<p>body</p>", transport=transport)
     assert calls == 1, "failure on the first recipient must abort the rest"
+
+
+@pytest.mark.asyncio
+async def test_brevo_success_posts_one_request_for_all_recipients(tmp_path, monkeypatch):
+    monkeypatch.setenv("BREVO_API_KEY", "xkeysib-test")
+    settings = build_settings(
+        tmp_path,
+        extra=(
+            '\nemail_provider = "brevo"\n'
+            'email_from = "brief@example.com"\n'
+            'email_from_name = "fomo onchain"\n'
+            'email_to = ["me@example.com", "you@example.com"]\n'
+        ),
+    )
+    calls: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append({"url": str(request.url), "headers": request.headers, "body": request.read().decode()})
+        return httpx.Response(201, json={"messageId": "brevo-msg-1"})
+
+    count = await send_email(settings, "subject", "<p>body</p>", transport=httpx.MockTransport(handler))
+
+    assert count == 2
+    assert len(calls) == 1
+    call = calls[0]
+    assert call["url"] == "https://api.brevo.com/v3/smtp/email"
+    assert call["headers"]["api-key"] == "xkeysib-test"
+    body = json.loads(call["body"])
+    assert body["sender"] == {"name": "fomo onchain", "email": "brief@example.com"}
+    assert body["to"] == [{"email": "me@example.com"}, {"email": "you@example.com"}]
+    assert body["htmlContent"] == "<p>body</p>"
+
+
+@pytest.mark.asyncio
+async def test_brevo_missing_key_raises(tmp_path, monkeypatch):
+    monkeypatch.delenv("BREVO_API_KEY", raising=False)
+    settings = build_settings(
+        tmp_path,
+        extra=(
+            '\nemail_provider = "brevo"\n'
+            'email_from = "brief@example.com"\n'
+            'email_to = ["me@example.com"]\n'
+        ),
+    )
+
+    with pytest.raises(EmailDeliveryError, match="BREVO_API_KEY"):
+        await send_email(settings, "subject", "<p>body</p>")

@@ -239,14 +239,13 @@ telegram_digest = true
 # Optional link appended to the digest so the full report is one tap away.
 report_url = "https://onchainnews-rho.vercel.app"
 
-# Optional email delivery via Resend (https://resend.com). Requires
-# RESEND_API_KEY in .env. A missing credential warns and skips; it never
-# fails the run. The testing sender onboarding@resend.dev only delivers to
-# your own address while developing -- verify a domain in Resend before
-# it is relied upon, then set email_from = "brief@yourdomain.com".
+# Optional email delivery. Use Brevo for API-based free delivery to external
+# recipients without SMTP. Set BREVO_API_KEY in .env/GitHub secrets.
 email_enabled = true
-email_from = "onboarding@resend.dev"
-email_to = ["ue06prog@gmail.com"]
+email_provider = "brevo"
+email_from = "noreply@brevo.com"
+email_from_name = "fomo onchain"
+email_to = ["ue06prog@gmail.com", "bryanquispe528@gmail.com"]
 email_subject_prefix = "fomo onchain"
 
 # The daily journal: what ran today. Deliberately wider than the editorial

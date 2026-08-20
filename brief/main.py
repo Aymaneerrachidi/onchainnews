@@ -114,9 +114,11 @@ async def run(args: argparse.Namespace) -> int:
             console.print("[dim]Telegram disabled; set delivery.telegram_enabled=true after configuring .env.[/dim]")
         if settings.get("delivery", "email_enabled", False):
             recipients = list(settings.get("delivery", "email_to", []) or [])
-            if not os.getenv("RESEND_API_KEY") or not recipients:
+            provider = str(settings.get("delivery", "email_provider", "resend") or "resend").strip().lower()
+            required_key = "BREVO_API_KEY" if provider == "brevo" else "RESEND_API_KEY"
+            if not os.getenv(required_key) or not recipients:
                 # A missing credential must not lose the morning report that already rendered.
-                console.print("[yellow]Email enabled but RESEND_API_KEY/email_to unset; skipping delivery.[/yellow]")
+                console.print(f"[yellow]Email enabled but {required_key}/email_to unset; skipping delivery.[/yellow]")
             else:
                 try:
                     count = await send_email(settings, email_subject(brief, settings), render_email(brief, settings))
