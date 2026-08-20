@@ -20,7 +20,7 @@ from brief.ledger import Ledger
 from brief.models import Brief, Candidate
 from brief.render.formatting import money, pct
 from brief.render.payload import build_payload
-from brief.x_poster import XPostError, post_image
+from brief.x_poster import XPostError, configured as x_posting_configured, post_image
 
 log = logging.getLogger("brief.pulse")
 
@@ -358,10 +358,10 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
         try:
             trigger.image_path = await render_signal_image(candidate, passes, settings, now)
             if bool(settings.get("pulse", "x_post_enabled", True)):
-                if os.getenv("X_USER_ACCESS_TOKEN"):
+                if x_posting_configured():
                     trigger.x_post_id = await post_image(settings, post_text(candidate, passes, settings), trigger.image_path)
                 else:
-                    trigger.error = "X_USER_ACCESS_TOKEN unset; image generated but X post skipped"
+                    trigger.error = "X posting credentials unset; image generated but X post skipped"
         except (OSError, XPostError, httpx.HTTPError) as exc:
             trigger.error = str(exc)
             log.warning("pulse_trigger_failed mint=%s error=%s", candidate.token.mint, exc)
