@@ -115,6 +115,7 @@ uv run solana-brief replay 2026-08-06
 uv run solana-brief weekly
 uv run solana-brief watcher --once
 uv run solana-brief watcher
+uv run solana-brief pulse
 uv run solana-brief interface
 uv run solana-brief collector
 uv run solana-brief unretire <MINT>
@@ -153,14 +154,20 @@ RugCheck pool accounts, burn addresses, and configured exchange wallets are excl
 
 ## Between-brief watcher
 
-The watcher polls only active watchlist tokens. It sends Telegram messages for exactly four event classes:
+The watcher polls only active watchlist tokens. Its default interval is one hour. It sends Telegram messages for exactly four event classes:
 
 - Pool-balance proxy removal above the configured threshold, 10% by default.
 - Registry-cluster wallets beginning to reduce their supply share.
 - Holder growth changing from positive daily growth to an intraday decline.
 - Creator-linked supply outflow.
 
-It does not send price, volume, or recommendation alerts. Run one diagnostic cycle with `watcher --once`; the persistent command defaults to a five-minute interval. Telegram credentials are required for an actual alert delivery.
+It does not send price, volume, or recommendation alerts. Run one diagnostic cycle with `watcher --once`. Telegram credentials are required for an actual alert delivery.
+
+## Hourly runner pulse
+
+`uv run solana-brief pulse` runs one market check, refreshes `web/data/latest.json`, and records every runner that survives the journal screen into `web/data/pulse-state.json`. When the same mint passes 3 times inside 12 hours, it renders a clean 16:9 signal image in `output/pulse-images/` and sends a Telegram pulse. If `X_USER_ACCESS_TOKEN` is present, it uploads that image to X and posts it.
+
+The hourly pulse intentionally runs as a cheap Solana-only market check by default: smaller Birdeye ranked scan, no holder snapshots, no Helius enrichment, no tracked-wallet history, and no monitored-account X search. Those deep checks stay in the morning report; running them hourly would burn API credits fast. Edit `[pulse]` in `config.toml` if you want a different window, pass count, cooldown, image template path, or posting behavior. When you share the final image template, set `pulse.image_template_path` to that PNG/JPG and the token logo/stats will be rendered on top.
 
 ## Replay and tuning
 
@@ -192,6 +199,9 @@ For cron, with the host timezone matching `run.timezone`:
 ```
 
 On Windows, review and run `scripts/install-task.ps1` for the 06:45 daily job. Review and run `scripts/install-watcher-task.ps1` to register the watcher at logon and start it immediately.
+Run `scripts/install-pulse-task.ps1` to register the hourly runner pulse locally; it calls `scripts/run-pulse.ps1`, refreshes the live JSON, commits the pulse state, and pushes through the same Vercel flow.
+
+For no-laptop operation, the repo includes `.github/workflows/onchain-rundown.yml`. Add these repository secrets in GitHub Actions: `HELIUS_API_KEY`, `BIRDEYE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `RESEND_API_KEY`, optional `X_BEARER_TOKEN` for monitored-account evidence, and optional `X_USER_ACCESS_TOKEN` for posting images. The workflow runs the morning report at 04:45 UTC and the pulse every hour, commits `web/data/latest.json` plus `web/data/pulse-state.json`, and lets Vercel redeploy from `main`.
 
 The broad launch count comes from the continuous Helius collector, not Dexscreener's small trending sample. Run `scripts/install-launch-collector-startup.ps1` once to install the no-admin per-user startup shortcut. The collector listens to the official Pump program create instructions, writes them to `launch_events`, heals short disconnects from the latest 1,000 program transactions, and states the exact beginning of coverage in every report. Its first full rolling window is available after 24 hours of continuous collection; Dexscreener then supplies market data only for captured mints that established a tracked market.
 

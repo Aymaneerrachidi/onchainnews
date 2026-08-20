@@ -145,12 +145,37 @@ dex_dominance_pct = 80.0
 jupiter_price_impact_pct = 5.0
 jupiter_binary_search_steps = 14
 retired_reappearance_multiple = 1.5
-watcher_interval_seconds = 300
+watcher_interval_seconds = 3600
 watcher_pair_ttl_seconds = 30
 watcher_rug_ttl_seconds = 900
 watcher_holder_cache_seconds = 30
 watcher_cluster_sell_pct = 5.0
 watcher_creator_outflow_pp = 0.1
+
+[pulse]
+# Hourly market pulse. This is separate from the morning newsletter: it records
+# runner passes, refreshes the live JSON snapshot, and only alerts when the same
+# mint survives the runner screen repeatedly.
+window_hours = 12.0
+required_passes = 3
+repost_after_hours = 72.0
+min_gap_minutes = 45.0
+max_posts_per_run = 3
+state_path = "web/data/pulse-state.json"
+image_dir = "output/pulse-images"
+image_template_path = ""
+write_latest_json = true
+telegram_enabled = true
+x_post_enabled = true
+x_timeout_seconds = 30.0
+# The hourly pulse is meant to be cheap. The daily report still performs holder
+# snapshots and tracked-wallet flow unless those sections are disabled above.
+solana_only = true
+max_ranked_tokens = 250
+disable_helius_enrichment = true
+disable_holder_snapshots = true
+disable_kol_scan = true
+disable_x_scan = true
 
 [goplus]
 # Free contract security for the EVM chains. No key, so the only limit worth

@@ -21,16 +21,19 @@ from brief.render.formatting import money, pct, ratio
 from brief.render.html import report_picks
 
 
-# fomo brand, verbatim from the guidelines.
-BLUE = "#516AF6"       # primary
-BLUE_2 = "#4A36FF"     # secondary, reserved for tracked-wallet conviction
-NAVY = "#221D4B"
-PAPER = "#EAEDFF"
+# Quiet inbox palette. The web report can be louder; email needs to read like
+# an analyst note in Gmail, Apple Mail, and Outlook.
+BLUE = "#3657E3"
+BLUE_2 = "#5B36D6"
+NAVY = "#17152B"
+PAPER = "#F6F7FB"
 SURFACE = "#FFFFFF"
-LINE = "#D9DDF7"
-MUTED = "#6E6BA8"
-ALERT = "#FF4A2E"
-TRACK = "#E3E6FA"      # the unfilled part of a run bar
+SURFACE_2 = "#FAFAFD"
+LINE = "#E5E7F0"
+MUTED = "#666A7A"
+SOFT = "#EEF1FF"
+ALERT = "#D43D2A"
+TRACK = "#ECEEF6"
 
 # Aeonik cannot be delivered to an inbox, so this is the closest thing every
 # reader already has: SF on Apple, Segoe on Windows, Helvetica elsewhere.
@@ -116,7 +119,7 @@ def _split_labels(labels: list[str]) -> tuple[list[str], list[str]]:
 def _chip(text: str, background: str, color: str = SURFACE) -> str:
     return (
         f'<span style="display:inline-block;background:{background};'
-        f'padding:4px 9px;border-radius:20px;{_txt(10, 700, color, 1.0, 0.06, "uppercase")}">'
+        f'padding:4px 7px;border-radius:6px;{_txt(10, 700, color, 1.0)}">'
         f"{_e(text)}</span>"
     )
 
@@ -133,16 +136,14 @@ def _run_bar(share: float, color: str = BLUE, height: int = 8) -> str:
     rest = 100 - filled
     empty = (
         f'<td width="{rest}%" bgcolor="{TRACK}" '
-        f'style="background:{TRACK};font-size:0;line-height:{height}px;'
-        f'border-radius:0 {height}px {height}px 0">&nbsp;</td>'
+        f'style="background:{TRACK};font-size:0;line-height:{height}px">&nbsp;</td>'
         if rest > 0 else ""
     )
     return (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
         'border="0" style="border-collapse:separate;table-layout:fixed">'
         f'<tr><td width="{filled}%" bgcolor="{color}" '
-        f'style="background:{color};font-size:0;line-height:{height}px;'
-        f'border-radius:{height}px 0 0 {height}px">&nbsp;</td>{empty}</tr></table>'
+        f'style="background:{color};font-size:0;line-height:{height}px">&nbsp;</td>{empty}</tr></table>'
     )
 
 
@@ -152,8 +153,8 @@ def _section(title: str, note: str = "") -> str:
         if note else ""
     )
     return (
-        '<tr><td style="padding:34px 24px 12px">'
-        f'<div style="{_txt(12, 700, BLUE, 1.2, 0.14, "uppercase")}">{_e(title)}</div>'
+        '<tr><td style="padding:28px 28px 10px">'
+        f'<div style="{_txt(14, 700, NAVY, 1.25)}">{_e(title)}</div>'
         f"{caption}</td></tr>"
     )
 
@@ -177,19 +178,19 @@ def _hero(candidate: Candidate) -> str:
         if candidate.kol_buyers else ""
     )
     return (
-        '<tr><td style="padding:0 24px">'
+        '<tr><td style="padding:0 28px">'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{NAVY};border-radius:14px">'
+        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:8px">'
         '<tr><td style="padding:22px 22px 20px">'
         # Symbol and the number, the number given display weight.
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
         f'<td style="vertical-align:bottom">'
-        f'<div style="{_txt(26, 700, SURFACE, 1.05, -0.02)}">${_e(token.symbol)}</div>'
-        f'<div style="{_txt(13, 400, "#A7A5D4", 1.4)};padding-top:4px">'
+        f'<div style="{_txt(25, 700, NAVY, 1.05)}">${_e(token.symbol)}</div>'
+        f'<div style="{_txt(13, 400, MUTED, 1.4)};padding-top:4px">'
         f"{_e(_chain_name(token.chain_id))} &middot; {_e(_age(candidate))}</div></td>"
         f'<td align="right" style="vertical-align:bottom">'
-        f'<div style="{_txt(44, 700, SURFACE, 1.0, -0.03)}">{_e(_size(candidate))}</div>'
-        f'<div style="{_txt(10, 700, "#A7A5D4", 1.2, 0.14, "uppercase")};padding-top:2px">'
+        f'<div style="{_txt(40, 700, NAVY, 1.0)}">{_e(_size(candidate))}</div>'
+        f'<div style="{_txt(11, 500, MUTED, 1.2)};padding-top:2px">'
         "in 24 hours</div></td>"
         "</tr></table>"
         f'<div style="padding-top:16px">{_run_bar(1.0, BLUE)}</div>'
@@ -201,7 +202,7 @@ def _hero(candidate: Candidate) -> str:
         + _hero_stat("Holders", f"{candidate.safety.holder_count:,}" if candidate.safety.holder_count else "—")
         + _hero_stat("Last hour", pct(token.price_change_1h, 0), True)
         + "</tr></table>"
-        f'<div style="{_txt(14, 400, "#D5D3EE", 1.6)};padding-top:18px">'
+        f'<div style="{_txt(14, 400, NAVY, 1.6)};padding-top:18px">'
         + _e(candidate.read) + "</div>"
         + flag_line + kol
         + f'<div style="padding-top:18px">'
@@ -209,7 +210,7 @@ def _hero(candidate: Candidate) -> str:
         f'style="display:inline-block;background:{BLUE};color:{SURFACE};'
         f'padding:12px 22px;border-radius:8px;text-decoration:none;'
         f'{_txt(13, 700, SURFACE, 1.0)}">Open the chart</a></div>'
-        f'<div style="{_txt(11, 400, "#8A88BC", 1.6)};padding-top:14px;word-break:break-all">'
+        f'<div style="{_txt(11, 400, MUTED, 1.6)};padding-top:14px;word-break:break-all">'
         + _e(token.mint) + "</div>"
         "</td></tr></table></td></tr>"
     )
@@ -221,7 +222,7 @@ def _hero_stat(label: str, value: str, tinted: bool = False) -> str:
         colour = "#FF9C88"
     return (
         '<td width="25%" style="vertical-align:top;padding-right:8px">'
-        f'<div style="{_txt(10, 700, "#8A88BC", 1.2, 0.12, "uppercase")}">{_e(label)}</div>'
+        f'<div style="{_txt(11, 500, MUTED, 1.2)}">{_e(label)}</div>'
         f'<div style="{_txt(15, 700, colour, 1.3)};padding-top:5px">{_e(value)}</div></td>'
     )
 
@@ -248,9 +249,9 @@ def _runner_row(candidate: Candidate, share: float) -> str:
         if candidate.kol_buyers else ""
     )
     return (
-        '<tr><td style="padding:0 24px 10px">'
+        '<tr><td style="padding:0 28px 8px">'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{SURFACE};border-radius:12px;border-left:4px solid {accent}">'
+        f'style="background:{SURFACE};border:1px solid {LINE};border-left:3px solid {accent};border-radius:7px">'
         '<tr><td style="padding:16px 18px">'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
         '<td style="vertical-align:top">'
@@ -274,9 +275,9 @@ def _runner_row(candidate: Candidate, share: float) -> str:
 def _blocked_row(candidate: Candidate) -> str:
     reason = candidate.risk_labels[0] if candidate.risk_labels else "did not qualify"
     return (
-        '<tr><td style="padding:0 24px 6px">'
+        '<tr><td style="padding:0 28px 6px">'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{SURFACE};border-radius:10px"><tr>'
+        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:7px"><tr>'
         f'<td style="padding:12px 16px;vertical-align:top">'
         f'<span style="{_txt(13, 700, NAVY, 1.3)}">${_e(candidate.token.symbol)}</span>'
         f'<span style="{_txt(11, 400, MUTED, 1.3)}"> &middot; '
@@ -309,9 +310,9 @@ def _stat_band(brief: Brief) -> str:
         for label, value in cells
     )
     return (
-        '<tr><td style="padding:20px 24px 0">'
+        '<tr><td style="padding:18px 28px 0">'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{SURFACE};border-radius:12px"><tr>{tds}</tr></table></td></tr>'
+        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:8px"><tr>{tds}</tr></table></td></tr>'
     )
 
 
@@ -327,12 +328,12 @@ def render_email(brief: Brief, settings: Settings) -> str:
     body.append(
         '<tr><td style="padding:0">'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{NAVY}"><tr><td style="padding:30px 24px 28px">'
-        f'<div style="{_txt(28, 700, SURFACE, 1.0, -0.03)}">fomo <span style="color:{BLUE}">onchain</span></div>'
-        f'<div style="{_txt(13, 400, "#A7A5D4", 1.5)};padding-top:8px">'
+        f'style="background:{SURFACE};border-bottom:1px solid {LINE}"><tr><td style="padding:26px 28px 22px">'
+        f'<div style="{_txt(24, 700, NAVY, 1.0)}">fomo <span style="color:{BLUE}">onchain</span></div>'
+        f'<div style="{_txt(13, 400, MUTED, 1.5)};padding-top:8px">'
         "Everything that ran in the last 36 hours, ranked, with the risks on the row."
         "</div>"
-        f'<div style="{_txt(11, 700, "#8A88BC", 1.4, 0.12, "uppercase")};padding-top:14px">'
+        f'<div style="{_txt(12, 500, MUTED, 1.4)};padding-top:14px">'
         f"{_e(when)} &middot; {_e(window)}</div>"
         "</td></tr></table></td></tr>"
     )
@@ -358,9 +359,9 @@ def render_email(brief: Brief, settings: Settings) -> str:
     else:
         body.append(_section("Runners of the day"))
         body.append(
-            '<tr><td style="padding:0 24px">'
+            '<tr><td style="padding:0 28px">'
             f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-            f'style="background:{SURFACE};border-radius:12px"><tr>'
+            f'style="background:{SURFACE};border:1px solid {LINE};border-radius:8px"><tr>'
             f'<td style="padding:26px 20px;{_txt(14, 400, MUTED, 1.6)}">'
             "Nothing cleared the floors today. An empty report is a result, "
             "not an outage.</td></tr></table></td></tr>"
@@ -383,9 +384,9 @@ def render_email(brief: Brief, settings: Settings) -> str:
         body.append(_section("Worth a closer look"))
         for candidate in picks:
             body.append(
-                '<tr><td style="padding:0 24px 10px">'
+                '<tr><td style="padding:0 28px 8px">'
                 f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-                f'style="background:{SURFACE};border-radius:12px"><tr>'
+                f'style="background:{SURFACE};border:1px solid {LINE};border-radius:7px"><tr>'
                 f'<td style="padding:16px 18px">'
                 f"{_chip(candidate.track, BLUE)}"
                 f'<span style="{_txt(16, 700, NAVY, 1.3)};padding-left:8px">'
@@ -400,7 +401,7 @@ def render_email(brief: Brief, settings: Settings) -> str:
             )
     else:
         body.append(
-            '<tr><td style="padding:24px 24px 0">'
+            '<tr><td style="padding:24px 28px 0">'
             f'<div style="{_txt(12, 400, MUTED, 1.6)}">'
             "Nothing else cleared the bar for the editorial tracks today.</div></td></tr>"
         )
@@ -413,11 +414,11 @@ def render_email(brief: Brief, settings: Settings) -> str:
         if report_url else ""
     )
     body.append(
-        '<tr><td style="padding:30px 24px 0">'
+        '<tr><td style="padding:30px 28px 0">'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{NAVY};border-radius:14px"><tr>'
+        f'style="background:{SURFACE_2};border:1px solid {LINE};border-radius:8px"><tr>'
         f'<td style="padding:22px">'
-        f'<div style="{_txt(12, 400, "#A7A5D4", 1.7)}">'
+        f'<div style="{_txt(12, 400, MUTED, 1.7)}">'
         "Data, not advice. Everything here can go to zero. Coins are included "
         "because they moved, not because they are recommended."
         "</div>" + link +
@@ -440,9 +441,9 @@ def render_email(brief: Brief, settings: Settings) -> str:
         # Hidden line the inbox shows beside the subject.
         f'<div style="display:none;max-height:0;overflow:hidden;opacity:0">{_e(preheader)}</div>'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{PAPER}"><tr><td align="center" style="padding:0 0 36px">'
+        f'style="background:{PAPER}"><tr><td align="center" style="padding:18px 0 36px">'
         '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" '
-        'style="width:600px;max-width:600px">'
+        f'style="width:600px;max-width:600px;background:{PAPER}">'
         f"{rows}"
         "</table></td></tr></table></body></html>"
     )

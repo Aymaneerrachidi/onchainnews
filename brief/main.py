@@ -17,6 +17,7 @@ from brief.engine import build_brief
 from brief.interface import serve_interface
 from brief.ledger import open_ledger
 from brief.launch_collector import run_launch_collector
+from brief.pulse import run_pulse
 from brief.render.email import email_subject, render_email
 from brief.render.html import render_html
 from brief.render.payload import build_payload
@@ -52,6 +53,7 @@ def parser() -> argparse.ArgumentParser:
     watcher.add_argument("--once", action="store_true", help="run one polling cycle")
     watcher.add_argument("--interval", type=int, help="seconds between polls")
     watcher.add_argument("--max-cycles", type=int, help=argparse.SUPPRESS)
+    sub.add_parser("pulse", help="run one hourly runner pass check and optional X alert")
     collector = sub.add_parser("collector", help="continuously index new Pump.fun launches from Helius")
     collector.add_argument("--max-events", type=int, help=argparse.SUPPRESS)
     interface_parser = sub.add_parser("interface", help="serve and open the local visual brief interface")
@@ -260,6 +262,37 @@ async def watcher(args: argparse.Namespace) -> int:
         ledger.close()
 
 
+async def pulse(args: argparse.Namespace) -> int:
+    settings = load_settings(args.config)
+    logging.basicConfig(
+        level=getattr(logging, str(settings.get("run", "log_level", "INFO")).upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    ledger = open_ledger(settings)
+    console = Console()
+    try:
+        result = await run_pulse(settings, ledger)
+        console.print(f"[dim]Pulse checked {result.checked} runner(s). State: {result.state_path}[/dim]")
+        if result.latest_written:
+            console.print(f"[dim]Live site snapshot refreshed: {result.latest_written}[/dim]")
+        if not result.triggers:
+            console.print("[dim]No runner crossed the sustained-pass threshold.[/dim]")
+        for trigger in result.triggers:
+            status = f"posted to X as {trigger.x_post_id}" if trigger.x_post_id else (trigger.error or "image generated")
+            console.print(
+                f"[green]${trigger.candidate.token.symbol} sustained runner trigger:[/green] "
+                f"{len(trigger.passes)} pass(es), {status}"
+            )
+        return 0
+    except Exception as exc:
+        logging.getLogger("brief.pulse").exception("Pulse failed")
+        console.print(f"[bold red]Pulse failed:[/bold red] {exc}")
+        return 1
+    finally:
+        ledger.close()
+
+
 async def collector(args: argparse.Namespace) -> int:
     settings = load_settings(args.config)
     logging.basicConfig(
@@ -354,6 +387,8 @@ def cli() -> None:
         code = weekly(args)
     elif args.command == "watcher":
         code = asyncio.run(watcher(args))
+    elif args.command == "pulse":
+        code = asyncio.run(pulse(args))
     elif args.command == "collector":
         code = asyncio.run(collector(args))
     else:

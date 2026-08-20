@@ -2,7 +2,10 @@ $ErrorActionPreference = "Stop"
 $BriefRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $BriefRoot
 
-$Snapshot = "web/data/latest.json"
+$PublicFiles = @("web/data/latest.json")
+if (Test-Path -LiteralPath "web/data/pulse-state.json") {
+    $PublicFiles += "web/data/pulse-state.json"
+}
 & git fetch origin main --quiet
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Could not fetch origin/main; the local report remains available but Vercel was not updated."
@@ -15,14 +18,14 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-& git diff --quiet HEAD -- $Snapshot
+& git diff --quiet HEAD -- $PublicFiles
 if ($LASTEXITCODE -eq 0) {
     Write-Output "Public snapshot is unchanged; no Vercel deployment is needed."
     exit 0
 }
 
 $Stamp = Get-Date -Format "yyyy-MM-dd"
-& git commit --only -m "Daily brief $Stamp" -- $Snapshot
+& git commit --only -m "Public brief $Stamp" -- $PublicFiles
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Could not commit the public snapshot."
     exit 1
@@ -34,4 +37,4 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Output "Published $Snapshot; Vercel production deployment queued."
+Write-Output "Published $($PublicFiles -join ', '); Vercel production deployment queued."

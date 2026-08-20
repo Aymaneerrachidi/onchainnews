@@ -16,6 +16,7 @@ web/.playwright-mcp/
 /data/
 /output/*.html
 !/output/.gitkeep
+/output/pulse-images/
 
 # Vercel local project link
 .vercel/
