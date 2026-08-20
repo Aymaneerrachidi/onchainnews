@@ -221,35 +221,79 @@ def _safe_filename(value: str) -> str:
     return cleaned.strip(".-") or "token"
 
 
+async def _dex_logo_url(candidate: Candidate) -> str:
+    chain = str(candidate.token.chain_id or "solana").lower()
+    mint = str(candidate.token.mint or "")
+    if not chain or not mint:
+        return ""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(f"https://api.dexscreener.com/tokens/v1/{chain}/{mint}")
+        if response.status_code >= 400:
+            return ""
+        payload = response.json()
+        pairs = payload if isinstance(payload, list) else payload.get("pairs", []) if isinstance(payload, dict) else []
+        for pair in pairs:
+            if not isinstance(pair, dict):
+                continue
+            info = pair.get("info") or {}
+            url = str(info.get("imageUrl") or info.get("image") or "")
+            if url:
+                return url
+    except Exception:
+        return ""
+    return ""
+
+
 async def _logo(candidate: Candidate, size: int):
     from PIL import Image, ImageDraw
 
-    url = _image_url(candidate)
+    url = _image_url(candidate) or await _dex_logo_url(candidate)
     if url:
         try:
             async with httpx.AsyncClient(timeout=15) as client:
                 response = await client.get(url)
             if response.status_code < 400:
-                image = Image.open(BytesIO(response.content)).convert("RGBA").resize((size, size))
+                image = Image.open(BytesIO(response.content)).convert("RGBA")
+                image.thumbnail((size, size))
+                fitted = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+                fitted.alpha_composite(image, ((size - image.width) // 2, (size - image.height) // 2))
                 mask = Image.new("L", (size, size), 0)
                 draw = ImageDraw.Draw(mask)
                 draw.ellipse((0, 0, size - 1, size - 1), fill=255)
-                image.putalpha(mask)
-                return image
+                fitted.putalpha(mask)
+                return fitted
         except Exception:
             pass
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    draw.ellipse((0, 0, size - 1, size - 1), fill="#EEF1FF", outline="#D6DAEA", width=2)
+    for y in range(size):
+        t = y / max(1, size - 1)
+        color = (
+            int(24 * (1 - t) + 92 * t),
+            int(28 * (1 - t) + 73 * t),
+            int(83 * (1 - t) + 255 * t),
+            255,
+        )
+        draw.line((0, y, size, y), fill=color)
+    draw.ellipse((0, 0, size - 1, size - 1), outline=(255, 255, 255, 225), width=max(2, size // 22))
+    draw.ellipse((size * 0.12, size * 0.10, size * 0.88, size * 0.88), outline=(20, 241, 149, 150), width=max(2, size // 32))
+    draw.ellipse((size * 0.18, size * 0.14, size * 0.52, size * 0.34), fill=(255, 255, 255, 28))
     initials = _fit(candidate.token.symbol.strip("$").upper(), 4)
-    font_size = 34
+    font_size = max(22, int(size * 0.28))
     font = _font(font_size, True)
     bbox = draw.textbbox((0, 0), initials, font=font)
-    while (bbox[2] - bbox[0]) > size - 24 and font_size > 18:
+    while (bbox[2] - bbox[0]) > size - 26 and font_size > 18:
         font_size -= 2
         font = _font(font_size, True)
         bbox = draw.textbbox((0, 0), initials, font=font)
-    draw.text(((size - (bbox[2] - bbox[0])) / 2, (size - (bbox[3] - bbox[1])) / 2 - 4), initials, fill="#17152B", font=font)
+    draw.text(
+        ((size - (bbox[2] - bbox[0])) / 2 + 2, (size - (bbox[3] - bbox[1])) / 2 + 1),
+        initials,
+        fill=(0, 0, 0, 95),
+        font=font,
+    )
+    draw.text(((size - (bbox[2] - bbox[0])) / 2, (size - (bbox[3] - bbox[1])) / 2 - 2), initials, fill="#FFFFFF", font=font)
     return image
 
 
@@ -361,9 +405,95 @@ def _draw_mock_trading_card(draw: Any, candidate: Candidate, passes: list[dict[s
     draw.text((x + 276, y + 322), f"{pct(candidate.token.price_change_1h, 0)} 1h", fill="#D6D9EA", font=_font(18))
 
 
+async def _ohlcv_items(candidate: Candidate, settings: Settings, now: datetime) -> list[dict[str, float]]:
+    key = os.environ.get("BIRDEYE_API_KEY", "").strip()
+    if not key or str(candidate.token.chain_id).lower() != "solana":
+        return []
+    urls = settings.section("sources")
+    base_url = str(urls.get("birdeye_base_url", "https://public-api.birdeye.so")).rstrip("/")
+    age_hours = candidate.signals.age_hours if getattr(candidate, "signals", None) else None
+    hours = max(3.0, min(24.0, float(age_hours or 24.0)))
+    interval = "5m" if hours <= 8 else "15m"
+    time_to = int(now.timestamp())
+    time_from = time_to - int(hours * 3600)
+    params = {
+        "address": candidate.token.mint,
+        "type": interval,
+        "time_from": time_from,
+        "time_to": time_to,
+        "currency": "usd",
+        "mode": "range",
+        "padding": "false",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.get(
+                f"{base_url}/defi/v3/ohlcv",
+                params=params,
+                headers={"X-API-KEY": key, "x-chain": "solana"},
+            )
+        if response.status_code >= 400:
+            log.warning("pulse_chart_ohlcv_failed mint=%s status=%s", candidate.token.mint, response.status_code)
+            return []
+        payload = response.json()
+        items = ((payload.get("data") or {}).get("items") or []) if isinstance(payload, dict) else []
+    except Exception as exc:
+        log.warning("pulse_chart_ohlcv_failed mint=%s error=%s", candidate.token.mint, exc)
+        return []
+
+    parsed: list[dict[str, float]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        try:
+            parsed.append({
+                "o": float(item["o"]),
+                "h": float(item["h"]),
+                "l": float(item["l"]),
+                "c": float(item["c"]),
+            })
+        except (KeyError, TypeError, ValueError):
+            continue
+    return parsed[-80:]
+
+
+def _draw_real_chart(draw: Any, candles: list[dict[str, float]], box: tuple[int, int, int, int]) -> None:
+    left, top, right, bottom = box
+    if len(candles) < 2:
+        return
+    lows = [c["l"] for c in candles]
+    highs = [c["h"] for c in candles]
+    lo, hi = min(lows), max(highs)
+    if hi <= lo:
+        return
+    width = right - left
+    height = bottom - top
+
+    def y_for(value: float) -> float:
+        return bottom - ((value - lo) / (hi - lo)) * height
+
+    step = width / max(1, len(candles) - 1)
+    points: list[tuple[float, float]] = []
+    for index, candle in enumerate(candles):
+        x = left + index * step
+        open_y = y_for(candle["o"])
+        close_y = y_for(candle["c"])
+        high_y = y_for(candle["h"])
+        low_y = y_for(candle["l"])
+        up = candle["c"] >= candle["o"]
+        color = "#17F28A" if up else "#FF6A3D"
+        draw.line((x, high_y, x, low_y), fill=color, width=1)
+        if index % max(1, len(candles) // 26) == 0:
+            draw.rectangle((x - 2, min(open_y, close_y), x + 2, max(open_y, close_y) + 1), fill=color)
+        points.append((x, close_y))
+    for start, end in zip(points, points[1:]):
+        draw.line((start, end), fill="#18EA83", width=3)
+
+
 async def _render_locked_fomo_template(
     candidate: Candidate,
     passes: list[dict[str, Any]],
+    settings: Settings,
     template: Path,
     path: Path,
     now: datetime,
@@ -374,10 +504,9 @@ async def _render_locked_fomo_template(
     canvas = ImageOps.fit(Image.open(template).convert("RGBA"), (width, height))
     draw = ImageDraw.Draw(canvas)
 
-    # Replace the large mutable text zone while preserving the original poster
-    # background language. The soft blur/gradient avoids ghosting from whatever
-    # values were in the source reference.
-    clean = Image.new("RGBA", (710, 700), (0, 0, 0, 0))
+    # Replace the large mutable headline zone while preserving the original fomo
+    # mark and right-side art from the source reference.
+    clean = Image.new("RGBA", (710, 590), (0, 0, 0, 0))
     clean_draw = ImageDraw.Draw(clean)
     for y in range(clean.height):
         t = y / clean.height
@@ -390,10 +519,9 @@ async def _render_locked_fomo_template(
             fade = 1.0 if x < 560 else max(0.0, 1.0 - ((x - 560) / 150))
             clean_draw.point((x, y), fill=rgb + (int(255 * fade),))
     clean = clean.filter(ImageFilter.GaussianBlur(0.4))
-    canvas.alpha_composite(clean, (0, 0))
+    canvas.alpha_composite(clean, (0, 116))
     draw = ImageDraw.Draw(canvas)
 
-    _draw_fomo_lockup(draw, 32, 34)
     _draw_chain_badge(draw, 760, 44)
 
     start = money(_derived_start_market_cap(candidate))
@@ -426,22 +554,11 @@ async def _render_locked_fomo_template(
     draw.text((card_x + card_w - 162, card_y + 112), "Market cap", fill="#C9CDE1", font=_font(18))
 
     chart_left, chart_top = card_x + 36, card_y + 166
-    chart_points = [
-        (chart_left, chart_top + 110),
-        (chart_left + 48, chart_top + 88),
-        (chart_left + 96, chart_top + 104),
-        (chart_left + 150, chart_top + 56),
-        (chart_left + 206, chart_top + 80),
-        (chart_left + 258, chart_top + 52),
-        (chart_left + 308, chart_top + 60),
-        (chart_left + 360, chart_top + 22),
-        (chart_left + 414, chart_top + 36),
-        (chart_left + 462, chart_top + 10),
-    ]
-    for i in range(len(chart_points) - 1):
-        draw.line((chart_points[i], chart_points[i + 1]), fill="#13E77D", width=4)
-    for cx, cy in chart_points[1::2]:
-        draw.ellipse((cx - 7, cy - 7, cx + 7, cy + 7), fill="#FF6B2F")
+    chart_box = (chart_left, chart_top + 4, chart_left + 462, chart_top + 122)
+    candles = await _ohlcv_items(candidate, settings, now)
+    _draw_real_chart(draw, candles, chart_box)
+    if not candles:
+        draw.text((chart_left + 116, chart_top + 50), "chart unavailable", fill="#6F7696", font=_font(18, True))
 
     pnl = candidate.token.market_cap - _derived_start_market_cap(candidate)
     draw.rounded_rectangle((card_x + 24, card_y + 306, card_x + card_w - 24, card_y + 392), radius=18, fill="#111421", outline="#262C44", width=1)
@@ -489,7 +606,7 @@ async def render_signal_image(
     if template and not template.is_absolute():
         template = settings.root / template
     if template and template.exists() and background is None:
-        return await _render_locked_fomo_template(candidate, passes, template, path, now)
+        return await _render_locked_fomo_template(candidate, passes, settings, template, path, now)
 
     width, height = 960, 1200
     using_ai_background = bool(background)
