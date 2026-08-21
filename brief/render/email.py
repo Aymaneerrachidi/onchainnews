@@ -166,11 +166,156 @@ def _section(title: str, note: str = "") -> str:
     )
 
 
+def _clean_lore(value: str) -> str:
+    cleaned = " ".join(str(value or "").replace("-", " ").replace("_", " ").split())
+    return cleaned.strip()
+
+
+def _theme_title(lore: str, members: list[Candidate]) -> str:
+    cleaned = _clean_lore(lore)
+    haystack = " ".join([cleaned, *(c.token.symbol for c in members), *(c.token.name for c in members)]).lower()
+    if any(word in haystack for word in ("privacy", "zec", "monero")):
+        return "Privacy Meta"
+    if any(word in haystack for word in ("dog", "cat", "frog", "horse", "animal", "ape", "penguin")):
+        return "Animal Runners"
+    if "ore" in haystack and any(c.token.symbol.lower() == "ore" for c in members):
+        return "Ore Continues Outperforming"
+    if cleaned:
+        return f"{cleaned.title()} Meta"
+    return "More Cooks"
+
+
+def _descriptor(candidate: Candidate) -> str:
+    token = candidate.token
+    name = str(token.name or "").strip()
+    symbol = str(token.symbol or "").strip("$").strip()
+    lore = _clean_lore(candidate.lore)
+    bits: list[str] = []
+    if name and name.lower() != symbol.lower():
+        bits.append(name)
+    if lore and lore.lower() not in " ".join(bits).lower():
+        bits.append(lore)
+    if not bits:
+        bits.append(_chain_name(token.chain_id).lower())
+    return ", ".join(bits[:2]).lower()
+
+
+def _reason_bits(candidate: Candidate) -> list[str]:
+    bits: list[str] = []
+    if candidate.dex_evidence:
+        bits.extend(candidate.dex_evidence[:2])
+    if candidate.read:
+        bits.append(candidate.read)
+    risks, gaps = _split_labels(candidate.risk_labels)
+    if risks:
+        bits.append("flag: " + risks[0])
+    elif gaps:
+        bits.append("gap: " + gaps[0])
+    seen: set[str] = set()
+    unique: list[str] = []
+    for bit in bits:
+        text = " ".join(str(bit).split())
+        key = text.lower()
+        if text and key not in seen:
+            seen.add(key)
+            unique.append(text)
+    return unique[:3]
+
+
+def _theme_groups(brief: Brief, runners: list[Candidate]) -> list[tuple[str, list[Candidate]]]:
+    by_mint = {candidate.token.mint: candidate for candidate in runners}
+    used: set[str] = set()
+    groups: list[tuple[str, list[Candidate]]] = []
+
+    lore_groups = getattr(brief, "lore_groups", {}) or {}
+    for lore, members in sorted(lore_groups.items(), key=lambda item: (len(item[1]), max(c.run_multiple for c in item[1])), reverse=True):
+        kept = [by_mint[c.token.mint] for c in members if c.token.mint in by_mint and c.token.mint not in used]
+        if len(kept) < 2:
+            continue
+        kept.sort(key=lambda c: c.token.market_cap, reverse=True)
+        groups.append((_theme_title(lore, kept), kept[:5]))
+        used.update(c.token.mint for c in kept)
+
+    remaining = [candidate for candidate in runners if candidate.token.mint not in used]
+    if not groups and len(remaining) > 5:
+        lead = remaining[:3]
+        groups.append(("Top Cooks", lead))
+        used.update(c.token.mint for c in lead)
+        remaining = [candidate for candidate in runners if candidate.token.mint not in used]
+    if remaining:
+        groups.append(("More Cooks", remaining[:10]))
+    return groups
+
+
+def _lead_recap(candidate: Candidate) -> str:
+    token = candidate.token
+    return (
+        '<tr><td style="padding:28px 30px 0">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:24px;overflow:hidden"><tr>'
+        f'<td style="padding:25px 25px 23px">'
+        f'<div style="{_txt(13, 800, BLUE, 1.2, 0.10, "uppercase")}">Lead read</div>'
+        f'<div style="{_txt(30, 850, INK, 1.12, -0.035)};padding-top:10px">'
+        f'${_e(token.symbol)} running laps on everything</div>'
+        f'<div style="{_txt(16, 450, INK_2, 1.65)};padding-top:13px">'
+        f'Hit {_e(money(token.market_cap))} after a {_e(_size(candidate))} move; {_e(_descriptor(candidate))}.</div>'
+        f'<div style="{_txt(13, 500, MUTED, 1.55)};padding-top:12px">'
+        f'{_e(money(token.volume_24h))} volume / {_e(money(token.liquidity_usd))} liquidity / {_e(_age(candidate))}</div>'
+        f'<div style="padding-top:17px"><a href="{_e(token.url)}" target="_blank" '
+        f'style="display:inline-block;background:{INK};color:{SURFACE};border-radius:999px;'
+        f'padding:12px 18px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Open chart</a></div>'
+        '</td></tr></table></td></tr>'
+    )
+
+
+def _coin_recap_line(candidate: Candidate) -> str:
+    token = candidate.token
+    reasons = _reason_bits(candidate)
+    reason_html = "".join(
+        '<tr><td width="18" style="vertical-align:top;padding-top:7px">'
+        f'<div style="width:5px;height:5px;border-radius:999px;background:{BLUE};font-size:0;line-height:0">&nbsp;</div>'
+        '</td>'
+        f'<td style="{_txt(13, 450, MUTED, 1.58)};padding-top:3px">{_e(reason)}</td></tr>'
+        for reason in reasons
+    )
+    kol = f" / {len(candidate.kol_buyers)} KOL" if candidate.kol_buyers else ""
+    details = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:7px">'
+        f"{reason_html}</table>"
+        if reason_html
+        else ""
+    )
+    return (
+        '<tr><td style="padding:0 0 15px">'
+        f'<div style="{_txt(17, 750, INK, 1.35)}">'
+        f'<a href="{_e(token.url)}" target="_blank" style="color:{INK};text-decoration:none">${_e(token.symbol)}</a>'
+        f' <span style="color:{MUTED};font-weight:500">-&gt; hit</span> {_e(money(token.market_cap))}'
+        f'<span style="color:{MUTED};font-weight:500">, {_e(_descriptor(candidate))}</span></div>'
+        f'<div style="{_txt(12, 600, SOFT, 1.45)};padding-top:4px">'
+        f'{_e(_size(candidate))} / {_e(_age(candidate))} / {_e(money(token.volume_24h))} vol{_e(kol)}</div>'
+        f"{details}"
+        '</td></tr>'
+    )
+
+
+def _theme_section(title: str, members: list[Candidate]) -> str:
+    rows = "".join(_coin_recap_line(candidate) for candidate in members)
+    return (
+        '<tr><td style="padding:0 30px 14px">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:22px;overflow:hidden"><tr>'
+        f'<td style="padding:22px 22px 7px">'
+        f'<div style="{_txt(21, 850, INK, 1.2, -0.025)};padding-bottom:16px">{_e(title)}</div>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{rows}</table>'
+        '</td></tr></table></td></tr>'
+    )
+
+
 def _masthead(brief: Brief, runners: list[Candidate]) -> str:
     when = brief.generated_at.strftime("%d %b %Y")
     window = f"{brief.generated_at.strftime('%H:%M')} {brief.generated_at.tzname() or ''}".strip()
     lead = (
-        f"{len(runners)} runners cleared the desk today. The strongest tape is first; weak structure is called out on the row."
+        f"{len(runners)} coins made the recap. Grouped by what they are, not just where they ranked."
         if runners
         else "No runner cleared the desk today. That is still a useful morning read."
     )
@@ -181,7 +326,7 @@ def _masthead(brief: Brief, runners: list[Candidate]) -> str:
         '<tr><td style="padding:30px 30px 28px">'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
         '<td style="vertical-align:top">'
-        f'<div style="{_txt(13, 800, "#BFC7FF", 1.2, 0.12, "uppercase")}">Morning on-chain memo</div>'
+        f'<div style="{_txt(13, 800, "#BFC7FF", 1.2, 0.12, "uppercase")}">Daily Memecoin Recap</div>'
         f'<div style="{_txt(36, 850, SURFACE, 1.06, -0.035)};padding-top:12px">'
         'Fomo <span style="color:#8EA0FF">Onchain</span></div>'
         f'<div style="{_txt(11, 650, "#8F9BE4", 1.2, 0.08, "uppercase")};padding-top:7px">fomo onchain</div>'
@@ -193,7 +338,7 @@ def _masthead(brief: Brief, runners: list[Candidate]) -> str:
         "</td></tr></table>"
         f'<div style="height:1px;background:{LINE_DARK};line-height:1px;font-size:0;margin-top:26px">&nbsp;</div>'
         f'<div style="{_txt(12, 650, "#AAB3E8", 1.55)};padding-top:18px">'
-        "Built for a fast first read: what ran, why it mattered, and what looked fragile."
+        "Simple read: theme, coins, market cap hit, and the reason it mattered."
         "</div>"
         "</td></tr></table></td></tr>"
     )
@@ -375,15 +520,9 @@ def render_email(brief: Brief, settings: Settings) -> str:
     rows.append(_stat_band(brief, runners))
 
     if runners:
-        biggest = runners[0]
-        top_multiple = max(biggest.run_multiple, 1.0)
-        rows.append(_section("Biggest run", "Start here. One line for what happened, then the structure beneath it."))
-        rows.append(_hero(biggest))
-
-        rest = runners[1:]
-        if rest:
-            rows.append(_section("Runners of the day", "Fast scan. Bar length is the move relative to the top runner."))
-            rows.extend(_runner_row(candidate, candidate.run_multiple / top_multiple) for candidate in rest)
+        rows.append(_lead_recap(runners[0]))
+        rows.append(_section("Runners of the day", "Grouped like a trader recap: theme first, then the coins and why they mattered."))
+        rows.extend(_theme_section(title, members) for title, members in _theme_groups(brief, runners))
     else:
         rows.append(_section("Runners of the day"))
         rows.append(_empty_state())
