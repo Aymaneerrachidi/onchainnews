@@ -91,7 +91,10 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     fresh_window = float(section.get("fresh_window_hours", 24))
     if age <= fresh_window:
         return token.price_change_24h >= float(section.get("min_fresh_change_pct", 30))
-    return run_multiple(token) >= float(section.get("older_than_a_day_multiple", 5.0))
+    older_multiple = float(section.get("older_than_a_day_multiple", 5.0))
+    if older_multiple > 0:
+        return run_multiple(token) >= older_multiple
+    return token.price_change_24h >= float(section.get("min_daily_change_pct", 25.0))
 
 
 def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:

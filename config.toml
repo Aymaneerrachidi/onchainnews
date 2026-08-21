@@ -256,17 +256,18 @@ email_subject_prefix = "Fomo Onchain"
 [journal]
 enabled = true
 max_runners = 20
-min_volume_24h = 500000.0
-min_liquidity = 50000.0
+min_volume_24h = 250000.0
+min_liquidity = 40000.0
 # Nothing older than this reaches the record, whatever it did. The report is
 # about coins that launched and worked, so age is a wall rather than something
 # a large multiple can buy past.
-max_age_hours = 36
+max_age_hours = 30
 # Inside the wall the bar eases with age: a pair in its first day only has to be
 # up this much, while one in its second has to have done a real multiple.
 fresh_window_hours = 24
 min_fresh_change_pct = 30.0
-older_than_a_day_multiple = 5.0
+older_than_a_day_multiple = 0.0
+min_daily_change_pct = 25.0
 # Above this multiple, expect at least one tracked wallet to have been in it.
 # Measured on live data, 66 wallets touch only about one runner in seven, so
 # silence is the norm and flagging it at 5x accused nearly every coin. Set where
@@ -314,13 +315,13 @@ min_lore_group = 2
 # Publisher-grade recap gate. This is stricter than the analyst screen because
 # the public product should show organic runners only, not paid/adversarial flow.
 exclude_boosted = true
-require_socials = true
-require_social_resolves = true
-exclude_recycled = true
+require_socials = false
+require_social_resolves = false
+exclude_recycled = false
 min_lp_locked_pct = 80.0
 publisher_max_top10_pct = 25.0
 min_symbol_length = 3
-min_age_hours = 2.0
+min_age_hours = 0.0
 max_negative_1h_pct = 20.0
 blocked_symbol_terms = ["oil", "gas", "usa"]
 
