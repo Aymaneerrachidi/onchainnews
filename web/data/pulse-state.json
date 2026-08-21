@@ -1,256 +1,164 @@
 {
  "passes": {
-  "3EV3TUbdLZ2KbiMHvGDFbRkCkgiRcvptFRw4TWSipump": [
+  "4CwRX9ByUrEGuG8FxBKAsFpzFxMRmyEdVRBT8TZupump": [
    {
-    "change1h": 5.99,
-    "change24h": 465.0,
-    "holders": 850,
+    "chain": "solana",
+    "change1h": 10.44,
+    "change24h": 467.0,
+    "holders": 2236,
     "kolBuyers": [],
-    "liquidity": 31889.53,
-    "marketCap": 175101.0,
-    "mint": "3EV3TUbdLZ2KbiMHvGDFbRkCkgiRcvptFRw4TWSipump",
-    "name": "Gorilla in a Coupe",
-    "read": "$GIAC \u2014 14h-old pair at $175,101 market cap, +465% on the day, $294,000 of 24h volume (1.7x market cap), 42% of 654 six-hour trades were buys, LP 100% locked or burned, top 10 hold 15%.",
+    "liquidity": 35678.87,
+    "marketCap": 196022.0,
+    "mint": "4CwRX9ByUrEGuG8FxBKAsFpzFxMRmyEdVRBT8TZupump",
+    "name": "WHY NOT US?",
+    "read": "$US \u2014 17h-old pair at $196,022 market cap, +467% on the day, $365,422 of 24h volume (1.9x market cap), 62% of 4,900 six-hour trades were buys, LP 100% locked or burned, top 10 hold 24%.",
     "riskLabels": [],
-    "runMultiple": 5.65,
-    "symbol": "GIAC",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/9qmg9umhfds5izlav3vn4pm1ma6j3uhviwanwfvrqxpp",
-    "volume24h": 293999.63
+    "runMultiple": 5.67,
+    "symbol": "US",
+    "takenAt": "2026-08-21T20:33:51.182941+00:00",
+    "url": "https://dexscreener.com/solana/8fdvl5cd6dyq3hfbeqrxul5vcxqdqjk81kuirkx9erla",
+    "volume24h": 365421.53
    }
   ],
-  "3uQw7mq6aZWFsVRSY1yn31QKKu6wzX6n7JeWsXnQpump": [
+  "8FhAXv2tfXUpyMbJsHDHX9zfiEb9PERzFWSY9sgLpump": [
    {
-    "change1h": 40.76,
-    "change24h": 540.0,
-    "holders": 4785,
+    "chain": "solana",
+    "change1h": -5.55,
+    "change24h": 371.0,
+    "holders": 1957,
     "kolBuyers": [],
-    "liquidity": 47634.18,
-    "marketCap": 373331.0,
-    "mint": "3uQw7mq6aZWFsVRSY1yn31QKKu6wzX6n7JeWsXnQpump",
-    "name": "Bullpiss Coin",
-    "read": "$BULLPISS \u2014 1h-old pair at $373,331 market cap, +540% on the day, $701,562 of 24h volume (1.9x market cap), 83% of 11,640 six-hour trades were buys, LP 100% locked or burned, top 10 hold 10%.",
-    "riskLabels": [
-     "only 1.2h old"
-    ],
-    "runMultiple": 6.4,
-    "symbol": "BULLPISS",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/htfstmxju6yanzc9czqv6vvl7tquowhkigr1ttofadgn",
-    "volume24h": 701561.71
-   }
-  ],
-  "57JdLR1iHrgvgcaJbdDUUT2BuKTmPExgEp6SQWAD2uHd": [
-   {
-    "change1h": 289.0,
-    "change24h": 15558.0,
-    "holders": 1129,
-    "kolBuyers": [],
-    "liquidity": 34274.28,
-    "marketCap": 267903.0,
-    "mint": "57JdLR1iHrgvgcaJbdDUUT2BuKTmPExgEp6SQWAD2uHd",
-    "name": "MemeFund",
-    "read": "$MEMEFUND \u2014 2h-old pair at $267,903 market cap, +15558% on the day, $380,591 of 24h volume (1.4x market cap), 56% of 10,082 six-hour trades were buys, LP 0% locked or burned, top 10 hold 42%.",
-    "riskLabels": [
-     "top 10 hold 42%",
-     "no linked socials",
-     "only 2.3h old"
-    ],
-    "runMultiple": 156.58,
-    "symbol": "MEMEFUND",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/eh2myyxrgdkfmphx6d8fj2ol8kjpx8pmicns6bbdtx11",
-    "volume24h": 380591.27
-   }
-  ],
-  "5RvzePocfbTfpUitxtrPQkF5yDN6zBKDgAGDzP18pump": [
-   {
-    "change1h": 164.0,
-    "change24h": 164.0,
-    "holders": 2737,
-    "kolBuyers": [],
-    "liquidity": 32655.09,
-    "marketCap": 188654.0,
-    "mint": "5RvzePocfbTfpUitxtrPQkF5yDN6zBKDgAGDzP18pump",
-    "name": "The Jotchua Bull",
-    "read": "$BULLCHUA \u2014 1h-old pair at $188,654 market cap, +164% on the day, $283,654 of 24h volume (1.5x market cap), 83% of 3,991 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
-    "riskLabels": [
-     "only 0.6h old"
-    ],
-    "runMultiple": 2.6399999999999997,
-    "symbol": "BULLCHUA",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/cgykrmyslayazmvzvn4c643tcd7bheczjww2m8x9gtng",
-    "volume24h": 283653.5
-   }
-  ],
-  "6TpjRqHB5BBZH6gtKdqiHDD8u7noVqS85LhtwxySpump": [
-   {
-    "change1h": -56.58,
-    "change24h": 408.0,
-    "holders": 2383,
-    "kolBuyers": [],
-    "liquidity": 57955.21,
-    "marketCap": 488570.0,
-    "mint": "6TpjRqHB5BBZH6gtKdqiHDD8u7noVqS85LhtwxySpump",
-    "name": "Moderna Inc",
-    "read": "$MRNA \u2014 5h-old pair at $488,570 market cap, +408% on the day, $2,913,349 of 24h volume (6.0x market cap), 59% of 71,438 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
-    "riskLabels": [
-     "fading, down 57% in the last hour"
-    ],
-    "runMultiple": 5.08,
-    "symbol": "MRNA",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/bpy94cxfmdp5dzw79swwi3yp4xa8gjq3csdmdkushnsf",
-    "volume24h": 2913349.23
-   }
-  ],
-  "9KbvJ3RitJ8rFDAM6rEVKKJV8Y4sKsawnYJR4QKHpump": [
-   {
-    "change1h": -3.26,
-    "change24h": 277.0,
-    "holders": 3899,
-    "kolBuyers": [],
-    "liquidity": 44215.41,
-    "marketCap": 284221.0,
-    "mint": "9KbvJ3RitJ8rFDAM6rEVKKJV8Y4sKsawnYJR4QKHpump",
-    "name": "Sir Bullington",
-    "read": "$BULLTN \u2014 5h-old pair at $284,221 market cap, +277% on the day, $2,194,722 of 24h volume (7.7x market cap), 59% of 35,072 six-hour trades were buys, LP 100% locked or burned, top 10 hold 3%.",
-    "riskLabels": [],
-    "runMultiple": 3.77,
-    "symbol": "BULLTN",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/dayrerhvoshqqw2dst5mrkoc3ktt2xxcvfv1wkpaqzrf",
-    "volume24h": 2194721.57
-   }
-  ],
-  "9b6CWNzoTarGJ7KacCkegJt8Js3g9j52MpxQFmhEpump": [
-   {
-    "change1h": -3.11,
-    "change24h": 587.0,
-    "holders": 1807,
-    "kolBuyers": [],
-    "liquidity": 37625.29,
-    "marketCap": 222391.0,
-    "mint": "9b6CWNzoTarGJ7KacCkegJt8Js3g9j52MpxQFmhEpump",
-    "name": "Craig Newmark Philanthropies ",
-    "read": "$CRAIG  \u2014 8h-old pair at $222,391 market cap, +587% on the day, $874,251 of 24h volume (3.9x market cap), 52% of 5,495 six-hour trades were buys, LP 100% locked or burned, top 10 hold 24%.",
+    "liquidity": 33366.99,
+    "marketCap": 170198.0,
+    "mint": "8FhAXv2tfXUpyMbJsHDHX9zfiEb9PERzFWSY9sgLpump",
+    "name": "The Incinerator Slug",
+    "read": "$CHARLIE \u2014 5h-old pair at $170,198 market cap, +371% on the day, $448,020 of 24h volume (2.6x market cap), 57% of 8,032 six-hour trades were buys, LP 100% locked or burned, top 10 hold 20%.",
     "riskLabels": [
      "linked X account does not resolve"
     ],
-    "runMultiple": 6.87,
-    "symbol": "CRAIG ",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/2iybrvof4ojtbnc3vmwx15a5szkp7yjj1hcpiaxcap3q",
-    "volume24h": 874251.23
+    "runMultiple": 4.71,
+    "symbol": "CHARLIE",
+    "takenAt": "2026-08-21T20:33:51.182941+00:00",
+    "url": "https://dexscreener.com/solana/2pvoknxnrheshnj2hcq8vsxymyr8d4vcpgksm95njhfs",
+    "volume24h": 448020.18
    }
   ],
-  "B2LzKgXFkDCEnoNcfsAyFEgZWCehYvQMi1u5SgDtpump": [
+  "AC8jUD8j1neSZzW3oZgFZ1dQHhqdNoX4f9gV1SRHpump": [
    {
-    "change1h": -8.1,
-    "change24h": 893.0,
-    "holders": 6351,
+    "chain": "solana",
+    "change1h": 36.92,
+    "change24h": 207.0,
+    "holders": 4764,
     "kolBuyers": [],
-    "liquidity": 47571.51,
-    "marketCap": 313198.0,
-    "mint": "B2LzKgXFkDCEnoNcfsAyFEgZWCehYvQMi1u5SgDtpump",
-    "name": "hyperworld",
-    "read": "$HYPERWORLD \u2014 8h-old pair at $313,198 market cap, +893% on the day, $2,092,796 of 24h volume (6.7x market cap), 61% of 27,850 six-hour trades were buys, LP 100% locked or burned, top 10 hold 16%.",
-    "riskLabels": [],
-    "runMultiple": 9.93,
-    "symbol": "HYPERWORLD",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/9uudzgefj5td9eeozgfyy2riy4qepfquqqxpfuqsjnuz",
-    "volume24h": 2092795.62
-   }
-  ],
-  "CHVayd2v4ffoGcZiBDpFGrWW3J8haMQXafrArSi5pump": [
-   {
-    "change1h": 126.0,
-    "change24h": 1463.0,
-    "holders": 2460,
-    "kolBuyers": [],
-    "liquidity": 63116.39,
-    "marketCap": 653996.0,
-    "mint": "CHVayd2v4ffoGcZiBDpFGrWW3J8haMQXafrArSi5pump",
-    "name": "LONGDOG",
-    "read": "$LONGDOG \u2014 1h-old pair at $653,996 market cap, +1463% on the day, $489,148 of 24h volume (0.7x market cap), 62% of 16,073 six-hour trades were buys, LP 100% locked or burned, top 10 hold 13%.",
+    "liquidity": 38600.99,
+    "marketCap": 233532.0,
+    "mint": "AC8jUD8j1neSZzW3oZgFZ1dQHhqdNoX4f9gV1SRHpump",
+    "name": "Maneki Neko",
+    "read": "$MANEKI \u2014 1h-old pair at $233,532 market cap, +207% on the day, $564,578 of 24h volume (2.4x market cap), 80% of 8,728 six-hour trades were buys, LP 100% locked or burned, top 10 hold 3%.",
     "riskLabels": [
+     "ticker also used by 2 other recent mint(s)",
      "only 1.5h old"
     ],
-    "runMultiple": 15.63,
-    "symbol": "LONGDOG",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/9vnpkennyujto8hpcf96eqb1dnjd6w7b9k4iut6swjjw",
-    "volume24h": 489147.66
+    "runMultiple": 3.07,
+    "symbol": "MANEKI",
+    "takenAt": "2026-08-21T20:33:51.182941+00:00",
+    "url": "https://dexscreener.com/solana/fpckvvcqt4xpvobaexqbgikcogu9w2uaphvqp8c7mxzf",
+    "volume24h": 564578.32
    }
   ],
-  "E9aqL5mdwzJqFpoCaDiutUWJ78CjBRvfVU3vfgXtpump": [
+  "DLhzqAWwE2YkPLdYvvWNMZ71vxZJQD2FByMfWFHppump": [
    {
-    "change1h": 0.89,
-    "change24h": 596.0,
-    "holders": 3493,
+    "chain": "solana",
+    "change1h": 59.41,
+    "change24h": 607.0,
+    "holders": 3202,
     "kolBuyers": [],
-    "liquidity": 58782.17,
-    "marketCap": 523940.0,
-    "mint": "E9aqL5mdwzJqFpoCaDiutUWJ78CjBRvfVU3vfgXtpump",
-    "name": "Pigeon Pending",
-    "read": "$PNDNG \u2014 4h-old pair at $523,940 market cap, +596% on the day, $1,772,150 of 24h volume (3.4x market cap), 64% of 13,111 six-hour trades were buys, LP 100% locked or burned, top 10 hold 7%.",
-    "riskLabels": [],
-    "runMultiple": 6.96,
-    "symbol": "PNDNG",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/4eg4p2mwbf2fxk35wiyq5723ymkj32t6otvbd5olu7h4",
-    "volume24h": 1772150.28
-   }
-  ],
-  "EsgJiQxtVyEvaBLmK5VKMeCBPGTA5abCjhd9WC14mTU3": [
-   {
-    "change1h": 353.0,
-    "change24h": 353.0,
-    "holders": 235,
-    "kolBuyers": [],
-    "liquidity": 29412.18,
-    "marketCap": 159013.0,
-    "mint": "EsgJiQxtVyEvaBLmK5VKMeCBPGTA5abCjhd9WC14mTU3",
-    "name": "Sakadung Apple",
-    "read": "$SAKADUNG \u2014 0h-old pair at $159,013 market cap, +353% on the day, $79,815 of 24h volume (0.5x market cap), 49% of 3,115 six-hour trades were buys, LP 100% locked or burned, top 10 hold 26%.",
+    "liquidity": 45529.96,
+    "marketCap": 260091.0,
+    "mint": "DLhzqAWwE2YkPLdYvvWNMZ71vxZJQD2FByMfWFHppump",
+    "name": "The Pygmy Hippo",
+    "read": "$MAPLE \u2014 11h-old pair at $260,091 market cap, +607% on the day, $2,144,689 of 24h volume (8.2x market cap), 57% of 11,076 six-hour trades were buys, LP 100% locked or burned, top 10 hold 21%.",
     "riskLabels": [
-     "top 10 hold 26%",
-     "no linked socials",
-     "only 0.1h old"
+     "linked X account does not resolve"
     ],
-    "runMultiple": 4.529999999999999,
-    "symbol": "SAKADUNG",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/4c76kvtbwccmpgepci3lknv319ds1pjcb7wjgkv91jjq",
-    "volume24h": 79814.86
+    "runMultiple": 7.07,
+    "symbol": "MAPLE",
+    "takenAt": "2026-08-21T20:33:51.182941+00:00",
+    "url": "https://dexscreener.com/solana/7xa6ncmka8vk5y3gdaansvghjadkqudsghkupyuzbwh3",
+    "volume24h": 2144689.22
    }
   ],
-  "HiY4qx8j5QuVh5UFnKyFq1DvzzDNgFkgyyhEeDXhpump": [
+  "DVUHTCMoaxr6TwQ716nDS1jnqQpZ3cZW5Uyz3xZbbbf5": [
    {
-    "change1h": -32.43,
-    "change24h": 526.0,
-    "holders": 1767,
+    "chain": "solana",
+    "change1h": -0.62,
+    "change24h": 1079.0,
+    "holders": 2167,
     "kolBuyers": [],
-    "liquidity": 57033.06,
-    "marketCap": 498467.0,
-    "mint": "HiY4qx8j5QuVh5UFnKyFq1DvzzDNgFkgyyhEeDXhpump",
-    "name": "Kekius Odysseus",
-    "read": "$KEKODYSSEUS \u2014 2h-old pair at $498,467 market cap, +526% on the day, $1,369,251 of 24h volume (2.7x market cap), 52% of 7,469 six-hour trades were buys, LP 100% locked or burned, top 10 hold 10%.",
+    "liquidity": 290706.04,
+    "marketCap": 576535.0,
+    "mint": "DVUHTCMoaxr6TwQ716nDS1jnqQpZ3cZW5Uyz3xZbbbf5",
+    "name": "UOTF",
+    "read": "$UOTF \u2014 27h-old pair at $576,535 market cap, +1079% on the day, $13,325,447 of 24h volume (23.1x market cap), 50% of 8,222 six-hour trades were buys, LP 0% locked or burned, top 10 hold 37%.",
     "riskLabels": [
-     "only 2.1h old",
-     "fading, down 32% in the last hour"
+     "top 10 hold 37%",
+     "ticker also used by 5 other recent mint(s)",
+     "no linked socials"
     ],
-    "runMultiple": 6.26,
-    "symbol": "KEKODYSSEUS",
-    "takenAt": "2026-08-20T04:36:26.931996+00:00",
-    "url": "https://dexscreener.com/solana/fxnzpzqmxynfzmtvshyhyjjwvrpcqljbha5v1uvynqp1",
-    "volume24h": 1369250.61
+    "runMultiple": 11.79,
+    "symbol": "UOTF",
+    "takenAt": "2026-08-21T20:33:51.182941+00:00",
+    "url": "https://dexscreener.com/solana/exhbc3jptwezmmpzrseqkh8meavqtkugjkbtp5jvhx4s",
+    "volume24h": 13325446.95
+   }
+  ],
+  "ELbFy4v8vzJHjvmqCDw7CEzsYuN9TGkBt7Kz9Kawpump": [
+   {
+    "chain": "solana",
+    "change1h": 98.08,
+    "change24h": 560.0,
+    "holders": 5674,
+    "kolBuyers": [],
+    "liquidity": 41410.94,
+    "marketCap": 236166.0,
+    "mint": "ELbFy4v8vzJHjvmqCDw7CEzsYuN9TGkBt7Kz9Kawpump",
+    "name": "Kimchi",
+    "read": "$40M \u2014 1h-old pair at $236,166 market cap, +560% on the day, $1,480,893 of 24h volume (6.3x market cap), 56% of 31,449 six-hour trades were buys, LP 100% locked or burned, top 10 hold 12%.",
+    "riskLabels": [
+     "ticker also used by 1 other recent mint(s)",
+     "only 1.1h old"
+    ],
+    "runMultiple": 6.6,
+    "symbol": "40M",
+    "takenAt": "2026-08-21T20:33:51.182941+00:00",
+    "url": "https://dexscreener.com/solana/ct6arp861cvmvsaz4pse7zyts2ddexfz9yv2g6ajeu5q",
+    "volume24h": 1480892.88
+   }
+  ],
+  "GiAXHqgpNXcjMTRVDvUk2kr4ZnARePn8Zg7nCTTZpump": [
+   {
+    "chain": "solana",
+    "change1h": -38.79,
+    "change24h": 220.0,
+    "holders": 3946,
+    "kolBuyers": [],
+    "liquidity": 52964.72,
+    "marketCap": 319497.0,
+    "mint": "GiAXHqgpNXcjMTRVDvUk2kr4ZnARePn8Zg7nCTTZpump",
+    "name": "Rikacoin",
+    "read": "$RIKA \u2014 20h-old pair at $319,497 market cap, +220% on the day, $6,873,893 of 24h volume (21.5x market cap), 60% of 67,676 six-hour trades were buys, LP 100% locked or burned, top 10 hold 3%.",
+    "riskLabels": [
+     "thin pool, 130x its liquidity traded",
+     "fading, down 39% in the last hour"
+    ],
+    "runMultiple": 3.2,
+    "symbol": "RIKA",
+    "takenAt": "2026-08-21T20:33:51.182941+00:00",
+    "url": "https://dexscreener.com/solana/myctbntg5ryegzrqi6ursvcxdmcrs1qwbde4uqyrjoq",
+    "volume24h": 6873893.33
    }
   ]
  },
  "posted": {},
- "updatedAt": "2026-08-20T04:45:10.559051+00:00",
+ "updatedAt": "2026-08-21T20:33:51.182941+00:00",
  "version": 1
 }

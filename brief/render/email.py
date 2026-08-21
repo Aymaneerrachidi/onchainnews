@@ -12,7 +12,6 @@ import html
 from brief.config import Settings
 from brief.models import Brief, Candidate
 from brief.render.formatting import money, pct
-from brief.render.html import report_picks
 
 
 INK = "#111322"
@@ -526,23 +525,6 @@ def render_email(brief: Brief, settings: Settings) -> str:
     else:
         rows.append(_section("Runners of the day"))
         rows.append(_empty_state())
-
-    if brief.blocked_runners:
-        rows.append(_section("Ran, but disqualified", "Movement was there. Market structure was not."))
-        rows.extend(_blocked_row(candidate) for candidate in brief.blocked_runners[:8])
-
-    picks = report_picks(brief)
-    if runners:
-        picks = [candidate for candidate in picks if candidate.token.mint != runners[0].token.mint]
-    if picks:
-        rows.append(_section("Worth a closer look", "The quieter rows that still had a reason to exist."))
-        rows.extend(_pick_row(candidate) for candidate in picks)
-    else:
-        rows.append(
-            '<tr><td style="padding:24px 30px 0">'
-            f'<div style="{_txt(13, 450, MUTED, 1.7)}">Nothing else cleared the bar for the editorial tracks today.</div>'
-            "</td></tr>"
-        )
 
     rows.append(_footer(report_url))
 
