@@ -84,6 +84,8 @@ def save_state(path: Path, state: dict[str, Any]) -> None:
 
 def _pass_entry(candidate: Candidate, now: datetime) -> dict[str, Any]:
     token = candidate.token
+    txns_24h = getattr(token, "txns_24h", None)
+    trades_24h = getattr(txns_24h, "total", 0) if txns_24h is not None else 0
     return {
         "takenAt": _iso(now),
         "symbol": token.symbol,
@@ -94,6 +96,7 @@ def _pass_entry(candidate: Candidate, now: datetime) -> dict[str, Any]:
         "marketCap": token.market_cap,
         "liquidity": token.liquidity_usd,
         "volume24h": token.volume_24h,
+        "trades24h": trades_24h,
         "change24h": token.price_change_24h,
         "change1h": token.price_change_1h,
         "runMultiple": candidate.run_multiple,

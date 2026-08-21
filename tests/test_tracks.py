@@ -445,7 +445,7 @@ async def test_a_flag_labels_the_row_instead_of_hiding_the_coin(mover_settings):
 
 
 @pytest.mark.asyncio
-async def test_bundled_supply_is_the_one_thing_that_removes_a_runner(mover_settings):
+async def test_bundled_supply_is_kept_internal_not_published(mover_settings):
     ledger = Ledger(mover_settings.path("run", "database_path"))
     try:
         brief = await build_brief(mover_settings, ledger, commit=False, now=NOW)
@@ -453,7 +453,8 @@ async def test_bundled_supply_is_the_one_thing_that_removes_a_runner(mover_setti
         blocked = next(c for c in brief.blocked_runners if c.token.symbol == "BUNDLED")
         assert any("bundled supply" in label for label in blocked.risk_labels)
         html = render_html(brief)
-        assert "Ran, but disqualified" in html
+        assert "Ran, but disqualified" not in html
+        assert "$BUNDLED" not in html
     finally:
         ledger.close()
 

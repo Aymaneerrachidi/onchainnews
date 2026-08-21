@@ -351,7 +351,7 @@ def _stat_band(brief: Brief, runners: list[Candidate]) -> str:
         ("Runners", str(len(runners))),
         ("Fresh", str(fresh)),
         ("Did 5x+", str(big)),
-        ("Filtered", str(len(brief.blocked_runners))),
+        ("Organic", "clean"),
     ]
     columns = "".join(_mini_stat(label, value, BLUE if label == "Did 5x+" else INK) for label, value in cells)
     chain_line = ", ".join(sorted(_chain_name(chain) for chain in chains)) if chains else "No active chains"

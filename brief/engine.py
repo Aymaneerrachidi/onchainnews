@@ -220,7 +220,7 @@ async def build_brief(
                         for mint in await birdeye.top_by_volume(
                             int(settings.get("birdeye", "max_tokens", 600)),
                             float(settings.get("thresholds", "min_liquidity", 20000)),
-                            float(settings.get("thresholds", "min_market_cap", 150000)),
+                            float(settings.get("thresholds", "min_market_cap", 250000)),
                         ):
                             ranked.append((chain, mint))
                     known = {token.mint for token in tokens}
@@ -856,9 +856,11 @@ async def build_brief(
                 social,
                 float(len(candidate.x_interactions)),
                 float(len(candidate.kol_buyers)),
-                candidate.token.price_change_24h,
-                candidate.signals.turnover,
                 candidate.token.volume_24h,
+                float(candidate.token.txns_24h.total or candidate.token.txns_6h.total),
+                float(candidate.safety.holder_count or 0),
+                candidate.signals.turnover,
+                candidate.token.price_change_24h,
             )
 
         runners.sort(key=rundown_rank, reverse=True)
@@ -929,7 +931,7 @@ async def build_brief(
             "reused tickers are withheld by a transparent originality proxy."
         )
         selection_rule = (
-            f"Every track requires market cap at least ${float(settings.get('thresholds', 'min_market_cap', 150000)):,.0f}, "
+            f"Every track requires market cap at least ${float(settings.get('thresholds', 'min_market_cap', 250000)):,.0f}, "
             f"liquidity at least ${float(settings.get('thresholds', 'min_liquidity', 20000)):,.0f}, a passed safety gate, "
             "and an unreused ticker. NEW: created inside 24h with at least "
             f"{int(settings.get('editorial', 'min_strength_signals', 3))} strength and "

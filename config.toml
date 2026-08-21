@@ -20,7 +20,7 @@ archive_compress = true
 # yet, so its coins are reported and labelled unverified rather than dropped.
 # Tracked-wallet flow is Solana-only and is never held against another chain.
 chains = ["solana", "ethereum", "bsc", "base", "robinhood"]
-min_market_cap = 150000.0
+min_market_cap = 250000.0
 min_liquidity = 20000.0
 # Strength has to show up in the tape. Without these two floors a thin float
 # prices a handful of buys into a large notional cap and reaches the shortlist
@@ -177,7 +177,7 @@ x_timeout_seconds = 30.0
 # The hourly pulse is meant to be cheap. The daily report still performs holder
 # snapshots and tracked-wallet flow unless those sections are disabled above.
 solana_only = true
-max_ranked_tokens = 250
+max_ranked_tokens = 600
 disable_helius_enrichment = true
 disable_holder_snapshots = true
 disable_kol_scan = true
@@ -255,8 +255,9 @@ email_subject_prefix = "Fomo Onchain"
 # below remove a coin from the record entirely.
 [journal]
 enabled = true
-max_runners = 40
-min_volume_24h = 50000.0
+max_runners = 20
+min_volume_24h = 500000.0
+min_liquidity = 50000.0
 # Nothing older than this reaches the record, whatever it did. The report is
 # about coins that launched and worked, so age is a wall rather than something
 # a large multiple can buy past.
@@ -281,7 +282,7 @@ min_turnover_for_big_run = 0.15
 # Organic-market gate. A coin can be perfectly safe to hold and still be a bot
 # trading with itself, a bought trend slot, or the ninth mint wearing a ticker
 # that worked once. These remove it from the record rather than label it.
-max_volume_liquidity = 150.0      # 24h volume against pool depth
+max_volume_liquidity = 75.0       # 24h volume against pool depth
 max_turnover = 30.0               # 24h volume against market cap
 # Cadence was measured against a coin the client confirmed was normal: it ran
 # 219 trades a minute over the hour. Speed is a crowd. Dust is a bot, so only
@@ -291,11 +292,12 @@ min_average_trade_usd = 15.0      # dust prints are spam, not demand
 # real coins share a name with something forgettable. Boosts are Dexscreener's
 # advertising product and honest teams buy them, so they are not a signal either.
 # Venues per chain. Empty, or a chain that is absent, means every venue there.
-# Solana is restricted to PumpSwap on request; the EVM chains are left open
-# because their liquidity is spread across many routers.
-venues = { solana = ["pumpswap"] }
-min_holders = 200                 # a real distribution, not a handful of wallets
-min_trades_24h = 300              # a real tape, not a dozen prints
+# Leave venues open. Strong runners often migrate or route through Raydium,
+# Meteora or other Solana pools; the quality gate decides what is publishable.
+venues = {}
+min_holders = 1000                # a real distribution, not a handful of wallets
+require_holder_count = true
+min_trades_24h = 1000             # a real tape, not a dozen prints
 # The insta-x-then-dead shape. An even day trades a quarter of its volume in the
 # last six hours, so a few percent means the move finished hours ago.
 min_recent_volume_share = 0.08
@@ -309,6 +311,18 @@ bundle_top10_pct = 50.0
 caution_top10_pct = 25.0
 thin_liquidity_ratio = 60.0
 min_lore_group = 2
+# Publisher-grade recap gate. This is stricter than the analyst screen because
+# the public product should show organic runners only, not paid/adversarial flow.
+exclude_boosted = true
+require_socials = true
+require_social_resolves = true
+exclude_recycled = true
+min_lp_locked_pct = 80.0
+publisher_max_top10_pct = 25.0
+min_symbol_length = 3
+min_age_hours = 2.0
+max_negative_1h_pct = 20.0
+blocked_symbol_terms = ["oil", "gas", "usa"]
 
 # Tracked wallets. `min_buyers_to_flag` independent buyers on one coin is the
 # crowd-forming signal; realised SOL per mint is reconstructed from each

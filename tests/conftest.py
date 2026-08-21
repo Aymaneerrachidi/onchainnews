@@ -33,7 +33,7 @@ fixture_path = "{fixture}"
 
 [thresholds]
 chains = ["solana"]
-min_market_cap = 150000.0
+min_market_cap = 250000.0
 min_liquidity = 20000.0
 min_volume_24h = 25000.0
 min_turnover_24h = 0.15

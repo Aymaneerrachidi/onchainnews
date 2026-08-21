@@ -136,6 +136,83 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     return reasons
 
 
+def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: datetime) -> list[str]:
+    """Creator-facing quality gate.
+
+    The journal used to be a broad record of anything that moved, with softer
+    issues shown as labels. That is useful for an analyst, but too loose for a
+    public creator recap. This gate keeps paid boosts, weak distribution,
+    dead socials and already-fading moves out of the published runner set.
+    """
+    section = settings.section("journal")
+    reasons: list[str] = []
+    token = candidate.token
+    report = candidate.safety
+    enrichment = candidate.enrichment
+
+    if bool(section.get("exclude_boosted", False)) and token.active_boosts:
+        reasons.append("active Dexscreener boost; paid placement is not organic discovery")
+
+    min_liquidity = float(section.get("min_liquidity", 0) or 0)
+    if min_liquidity and token.liquidity_usd < min_liquidity:
+        reasons.append(f"liquidity below publisher floor (${token.liquidity_usd:,.0f} < ${min_liquidity:,.0f})")
+
+    if bool(section.get("require_holder_count", False)):
+        min_holders = int(section.get("min_holders", 0) or 0)
+        if report.holder_count is None:
+            reasons.append("holder count unavailable")
+        elif min_holders and report.holder_count < min_holders:
+            reasons.append(f"only {report.holder_count:,} holders, below publisher floor")
+
+    min_lp = float(section.get("min_lp_locked_pct", 0) or 0)
+    if min_lp:
+        if report.lp_locked_or_burned_pct is None:
+            reasons.append("LP lock/burn status unavailable")
+        elif report.lp_locked_or_burned_pct < min_lp:
+            reasons.append(f"LP only {report.lp_locked_or_burned_pct:.0f}% locked or burned")
+
+    max_top10 = float(section.get("publisher_max_top10_pct", 0) or 0)
+    if max_top10:
+        if report.top10_pct is None:
+            reasons.append("top-10 concentration unavailable")
+        elif report.top10_pct > max_top10:
+            reasons.append(f"top 10 hold {report.top10_pct:.0f}%, above publisher ceiling")
+
+    if bool(section.get("require_socials", False)) and not token.socials:
+        reasons.append("no linked social context")
+    if bool(section.get("require_social_resolves", False)) and enrichment.social_resolves is False:
+        reasons.append("linked X account does not resolve")
+
+    min_symbol = int(section.get("min_symbol_length", 0) or 0)
+    if min_symbol and len(str(token.symbol or "").strip()) < min_symbol:
+        reasons.append(f"ticker is under {min_symbol} characters")
+
+    blocked_terms = [
+        str(term).casefold()
+        for term in (section.get("blocked_symbol_terms", []) or [])
+        if str(term).strip()
+    ]
+    label = f"{token.symbol} {token.name}".casefold()
+    for term in blocked_terms:
+        if re.search(rf"(^|[^a-z0-9]){re.escape(term)}([^a-z0-9]|$)", label):
+            reasons.append(f"blocked low-signal theme term: {term}")
+            break
+
+    if bool(section.get("exclude_recycled", False)) and candidate.recycled_label_count:
+        reasons.append(f"ticker/name reused by {candidate.recycled_label_count} other recent mint(s)")
+
+    age = _age_hours(token, now)
+    min_age = float(section.get("min_age_hours", 0) or 0)
+    if min_age and age is not None and age < min_age:
+        reasons.append(f"only {age:.1f}h old; too early for publisher recap")
+
+    max_fade = float(section.get("max_negative_1h_pct", 0) or 0)
+    if max_fade and token.price_change_1h <= -abs(max_fade):
+        reasons.append(f"fading {token.price_change_1h:.0f}% in the last hour")
+
+    return reasons
+
+
 def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
     """Signs the move was manufactured rather than bought by a crowd.
 
@@ -351,13 +428,15 @@ def mark_lore_freshness(candidates: list[Candidate], ledger, now: datetime, sett
 
 
 def journal_rank_key(candidate: Candidate) -> tuple[float, ...]:
-    """Biggest run first, then the real trading behind it."""
+    """Organic attention first: volume, trades and holders beat raw percent."""
     token = candidate.token
     return (
         float(len(candidate.kol_buyers)),
-        token.price_change_24h,
-        candidate.signals.turnover,
         token.volume_24h,
+        float(token.txns_24h.total or token.txns_6h.total),
+        float(candidate.safety.holder_count or 0),
+        candidate.signals.turnover,
+        token.price_change_24h,
     )
 
 
@@ -372,7 +451,11 @@ def build_journal(
             continue
         candidate.run_multiple = run_multiple(candidate.token)
         candidate.faded_from_peak = faded_from_peak(candidate.token)
-        disqualifying = rug_or_bundle(candidate, settings) + inorganic_reasons(candidate, settings)
+        disqualifying = (
+            rug_or_bundle(candidate, settings)
+            + inorganic_reasons(candidate, settings)
+            + publisher_quality_reasons(candidate, settings, now)
+        )
         if disqualifying:
             candidate.risk_labels = disqualifying
             blocked.append(candidate)

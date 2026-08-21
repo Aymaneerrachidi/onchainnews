@@ -43,7 +43,7 @@ def render_digest(brief: Brief, report_url: str = "") -> str:
     big = sum(1 for c in runners if c.run_multiple >= 5)
     body = [
         f"RUNNERS TODAY - {when}",
-        f"{len(runners)} ran | {fresh} launched today | {big} did 5x+ | {len(brief.blocked_runners)} disqualified",
+        f"{len(runners)} organic runners | {fresh} launched today | {big} did 5x+",
         "",
     ]
     if runners:

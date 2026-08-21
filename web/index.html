@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -255,8 +255,8 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
 
   <header class="masthead">
     <div class="dateline">
-      <span id="dateline">Loading edition…</span>
-      <span>Solana · On-chain · X signals · Daily</span>
+      <span id="dateline">Loading editionâ€¦</span>
+      <span>Solana Â· On-chain Â· X signals Â· Daily</span>
     </div>
     <h1 class="wordmark">Onchain <em>News</em></h1>
     <div class="subhead">
@@ -274,7 +274,7 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
     <p class="note" id="rule">Every highlighted coin states why it cleared the tape, what monitored accounts did on X, and which facts remain unverified.</p>
     <div class="controls" id="chain-bar" role="group" aria-label="Filter by chain"></div>
     <div class="controls">
-      <input id="q" type="search" placeholder="Filter by ticker, name, flag or lore…" autocomplete="off" aria-label="Filter runners">
+      <input id="q" type="search" placeholder="Filter by ticker, name, flag or loreâ€¦" autocomplete="off" aria-label="Filter runners">
       <button class="chip" id="f-new" aria-pressed="false">Launched today</button>
       <button class="chip" id="f-kol" aria-pressed="false">X matched</button>
       <button class="chip" id="f-clean" aria-pressed="false">No flags</button>
@@ -301,19 +301,12 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
     <div class="head"><h2>Shared lore</h2><span class="count" id="lore-count">n/a</span></div>
     <div id="lore-list"></div>
   </section>
-
-  <section id="blocked">
-    <div class="head"><h2>Ran, but disqualified</h2><span class="count" id="blocked-count">n/a</span></div>
-    <p class="note">These moved today and are recorded for completeness. Each one is either unsafe to hold or shows a manufactured market — wash trading, bot cadence, bundled supply, too few holders, or a move that was already over — so it is kept out of the runner list.</p>
-    <ul class="list" id="blocked-list"></ul>
-  </section>
-
   <section id="method">
     <div class="head"><h2>How a coin gets in</h2></div>
     <div class="method">
-      <div><h4>Two doors</h4><p>Created inside the last 24 hours and up at least 30%, or any age doing a 5x or better. Floors of $150k market cap and $50k daily volume apply to both.</p></div>
-      <div><h4>Risk is shown, not hidden</h4><p>Failing one check does not remove a coin. Concentration, thin pools, paid boosts, recycled tickers and fades are printed on the row so the judgement stays yours.</p></div>
-      <div><h4>Only rugs are removed</h4><p>A live mint or freeze authority, unlocked liquidity, bundled supply or a manufactured tape. Those are listed separately rather than silently dropped.</p></div>
+      <div><h4>Organic first</h4><p>Discovery starts from high-volume/high-trade tokens, then ranks by real volume, trade count and holder count before percent move.</p></div>
+      <div><h4>No paid placement</h4><p>Active Dexscreener boosts are excluded from the automatic recap. Boosted coins can be researched manually, but they are not called organic runners.</p></div>
+      <div><h4>Publisher gate</h4><p>LP lock, top-10 concentration, holder count, social validity, recent fade and wash-trading shape must all clear before a coin appears.</p></div>
     </div>
     <div class="sources" id="sources"></div>
   </section>
@@ -343,7 +336,7 @@ let DATA = null, SORT = "editorial", FILTERS = { new: false, kol: false, clean: 
 let CHAIN = "all";
 const CHAIN_NAMES = { solana: "Solana", ethereum: "Ethereum", bsc: "BNB Chain",
   base: "Base", robinhood: "Robinhood" };
-const chainName = (c) => CHAIN_NAMES[String(c || "").toLowerCase()] || (c || "—");
+const chainName = (c) => CHAIN_NAMES[String(c || "").toLowerCase()] || (c || "â€”");
 
 
 function stamp(r) {
@@ -385,17 +378,17 @@ function rowHTML(r, i) {
       item.likes ? `${item.likes.toLocaleString()} likes` : "",
       item.reposts ? `${item.reposts.toLocaleString()} reposts` : "",
       item.replies ? `${item.replies.toLocaleString()} replies` : "",
-    ].filter(Boolean).join(" · ");
+    ].filter(Boolean).join(" Â· ");
     const posted = new Date(item.createdAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
     return `<li class="x-item">
       <div class="x-meta"><a href="${esc(item.url)}" target="_blank" rel="noreferrer"><b>@${esc(item.handle)}</b> ${esc(item.interaction)}</a>
-        <span>${esc(posted)} · <i class="confidence ${esc(item.confidence)}">${esc(item.confidence)}</i></span></div>
+        <span>${esc(posted)} Â· <i class="confidence ${esc(item.confidence)}">${esc(item.confidence)}</i></span></div>
       <p class="x-copy">${esc(item.summary)}</p>
-      <small class="x-engagement">Matched on ${esc(item.matchedOn)}${engagement ? " · " + esc(engagement) : ""}</small>
+      <small class="x-engagement">Matched on ${esc(item.matchedOn)}${engagement ? " Â· " + esc(engagement) : ""}</small>
     </li>`;
   }).join("")}</ul>` : `<p class="no-x">No verified monitored-account match was found in this 24-hour window.</p>`;
   const wallets = r.kolBuyers?.length
-    ? `${r.kolBuyers.map((name) => `${esc(name)}${r.kolHolders.includes(name) ? " ◆" : ""}`).join(", ")}<br><span class="${r.kolRealisedSol >= 0 ? "up" : "dn"}">Realised ${r.kolRealisedSol >= 0 ? "+" : ""}${r.kolRealisedSol.toFixed(1)} SOL</span>`
+    ? `${r.kolBuyers.map((name) => `${esc(name)}${r.kolHolders.includes(name) ? " â—†" : ""}`).join(", ")}<br><span class="${r.kolRealisedSol >= 0 ? "up" : "dn"}">Realised ${r.kolRealisedSol >= 0 ? "+" : ""}${r.kolRealisedSol.toFixed(1)} SOL</span>`
     : "No tracked on-chain wallet bought this token.";
   const search = [r.symbol, r.name, r.mint, r.lore, ...risks, ...x.map((item) => `${item.handle} ${item.summary}`)].join(" ").toLowerCase();
   return `
@@ -405,7 +398,7 @@ function rowHTML(r, i) {
   data-kol="${x.length > 0}" data-clean="${risks.length === 0}">
   <header class="coin-top">
     <span class="coin-rank">${String(i + 1).padStart(2, "0")}</span>
-    <div class="coin-name"><b>$${esc(r.symbol)}</b><span>${esc(r.name)} · ${age(r.ageHours)} old · ${esc(r.dex)}</span></div>
+    <div class="coin-name"><b>$${esc(r.symbol)}</b><span>${esc(r.name)} Â· ${age(r.ageHours)} old Â· ${esc(r.dex)}</span></div>
     <div class="coin-move"><b>${sized(r.runMultiple, r.change24h)}</b><span>${money(r.marketCap)} mcap</span></div>
   </header>
   <div class="coin-tags">
@@ -426,10 +419,10 @@ function rowHTML(r, i) {
     ${xRows}
   </section>
   <div class="coin-bottom">
-    <div><span class="mini-title">Tracked wallets · ◆ still holding</span><p class="wallet-names">${wallets}</p></div>
-    <div><span class="mini-title">Risks and caveats</span><p class="risk-copy">${risks.length ? risks.map(esc).join(" · ") : "No automated flags raised."}</p></div>
+    <div><span class="mini-title">Tracked wallets Â· â—† still holding</span><p class="wallet-names">${wallets}</p></div>
+    <div><span class="mini-title">Risks and caveats</span><p class="risk-copy">${risks.length ? risks.map(esc).join(" Â· ") : "No automated flags raised."}</p></div>
   </div>
-  <nav class="sources-row" aria-label="Sources for ${esc(r.symbol)}">${sources.map((source) => `<a href="${esc(source.url)}" target="_blank" rel="noreferrer">${esc(source.label)} ↗</a>`).join("")}</nav>
+  <nav class="sources-row" aria-label="Sources for ${esc(r.symbol)}">${sources.map((source) => `<a href="${esc(source.url)}" target="_blank" rel="noreferrer">${esc(source.label)} â†—</a>`).join("")}</nav>
 </article>`;
 }
 
@@ -488,7 +481,7 @@ function render(d) {
   DATA = d;
   const when = new Date(d.generatedAt);
   const fmt = when.toLocaleString([], { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
-  $("#dateline").textContent = `${fmt} · ${d.timezone}`;
+  $("#dateline").textContent = `${fmt} Â· ${d.timezone}`;
   $("#stamp").textContent = `Generated ${fmt}`;
   const hours = (Date.now() - when.getTime()) / 36e5;
   $("#freshness").textContent = hours < 1 ? "Updated just now" : hours < 24 ? `Updated ${Math.round(hours)}h ago` : `Snapshot ${Math.round(hours / 24)}d old`;
@@ -501,7 +494,7 @@ function render(d) {
     ["5x or better", s.bigMultiples, false],
     ["X matched", s.xMatched ?? 0, false],
     ["Shared lores", s.loreGroups, false],
-    ["Disqualified", s.disqualified, true],
+    ["Wallets tracked", s.walletsTracked ?? 0, false],
   ].map(([l, v, hot], i) => `<div class="stat ${hot ? "hot" : ""} rv" style="animation-delay:${i * 50}ms"><span>${l}</span><b>${v}</b></div>`).join("");
 
   const t = d.runners.slice(0, 14).map((r) =>
@@ -513,7 +506,7 @@ function render(d) {
   $("#wallet-count").textContent = String(s.walletsTracked).padStart(2, "0");
   $("#conviction").innerHTML = d.kolConviction.length ? d.kolConviction.map((c) => `
     <li><b>$${esc(c.symbol)}</b><span class="val">${c.buyers.length} buyers</span>
-      <span>${esc(c.buyers.slice(0, 8).join(", "))}${c.buyers.length > 8 ? "…" : ""}</span>
+      <span>${esc(c.buyers.slice(0, 8).join(", "))}${c.buyers.length > 8 ? "â€¦" : ""}</span>
       <small>${c.holders.length ? "Still holding: " + esc(c.holders.join(", ")) : "All positions closed"}</small></li>`).join("")
     : `<li class="empty">No coin was bought by enough tracked wallets today.</li>`;
   $("#profit").innerHTML = d.kolProfit.length ? d.kolProfit.map((p) => `
@@ -525,14 +518,9 @@ function render(d) {
   $("#lore-count").textContent = String(d.loreGroups.length).padStart(2, "0");
   $("#lore-list").innerHTML = d.loreGroups.length ? d.loreGroups.map((g) => `
     <div class="lore-item"><b>${esc(g.name)}</b>
-      <p>${g.members.map((m) => "$" + esc(m)).join(" · ")} <span style="color:var(--muted)">(${g.members.length})</span></p></div>`).join("")
+      <p>${g.members.map((m) => "$" + esc(m)).join(" Â· ")} <span style="color:var(--muted)">(${g.members.length})</span></p></div>`).join("")
     : `<p class="empty">No two runners shared a narrative today.</p>`;
 
-  $("#blocked-count").textContent = String(d.disqualified.length).padStart(2, "0");
-  $("#blocked-list").innerHTML = d.disqualified.length ? d.disqualified.map((b) => `
-    <li><b>$${esc(b.symbol)}</b><span class="val up">${sized(b.runMultiple, b.change24h)}</span>
-      <span style="color:var(--red)">${esc(b.reasons.join(" · "))}</span></li>`).join("")
-    : `<li class="empty">No runner was disqualified today.</li>`;
 
   $("#sources").innerHTML = d.sources.map((x) =>
     `<div class="src ${x.ok ? "" : "down"}"><b></b><div>${esc(x.name)}<br><span>${esc(x.detail)}</span></div></div>`).join("");

@@ -16,7 +16,7 @@ The third door is the one that earns its keep. The tracked-wallet scan runs duri
 
 A Dexscreener boost is that company's advertising product and plenty of honest teams buy one, so it is not treated as evidence of anything.
 
-Everything above $150,000 market cap and $50,000 of 24-hour volume that clears one of those doors is recorded, ranked by size of run. This is deliberately the opposite of an editorial cut: a coin is *not* dropped for failing a safety check. It is shown with the problem written on its row.
+Everything above $250,000 market cap that clears the organic-runner gate is recorded for the public recap, ranked by real volume, trades and holder count before raw percent move. Paid boosts, weak holder distribution, dead socials, unlocked LP, high concentration, wash-trading shapes and hard fades are excluded rather than shown to the client.
 
 Only conditions that make a coin uninvestable at any price remove it from the record, and those are listed separately under "ran, but disqualified":
 

@@ -81,7 +81,7 @@ async def test_below_minimum_only_appears_in_filtered_appendix(settings):
     try:
         brief = await build_brief(settings, ledger, commit=False, now=NOW)
         prominent = brief.new_and_moving + brief.ctos + brief.follow_ups
-        assert all(c.token.market_cap >= 150000 for c in prominent)
+        assert all(c.token.market_cap >= 250000 for c in prominent)
         dust = next(item for item in brief.excluded if item.token.mint == "MINTB")
         assert "market cap below" in dust.reasons[0]
         control = next(item for item in brief.excluded if item.token.mint == "MINTC")

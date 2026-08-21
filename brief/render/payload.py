@@ -34,6 +34,7 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "turnover": signal.turnover,
         "ageHours": signal.age_hours,
         "buyRatio6h": signal.buy_imbalance_6h,
+        "trades24h": token.txns_24h.total,
         "trades6h": token.txns_6h.total,
         "top10Pct": candidate.safety.top10_pct,
         "holders": candidate.safety.holder_count,
@@ -82,10 +83,10 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
 def journal_rule(brief: Brief) -> str:
     """How a coin got into the journal, in the journal's own terms."""
     return (
-        "Two doors: created inside the last 24 hours and up at least 30%, or any age doing a 5x "
-        "or better. Both require $150,000 market cap and $50,000 of 24-hour volume. Safety problems "
-        "are labelled on the row; only a live mint or freeze authority, unlocked liquidity, bundled "
-        "supply or a manufactured tape removes a coin from the record."
+        "Organic-runner gate: ranked discovery by volume first, then Dexscreener pair data, RugCheck "
+        "safety, holder count, LP status, top-10 concentration, trade count, social validity and boost "
+        "status. Paid boosts, weak holder distribution, dead socials, unlocked LP, high concentration, "
+        "wash-trading shapes and fading moves are excluded from the public recap."
     )
 
 
@@ -110,23 +111,10 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
             "kolFlagged": len(brief.kol_flagged),
             "xMatched": sum(bool(candidate.x_interactions) for candidate in brief.runners),
             "loreGroups": len(brief.lore_groups),
-            "disqualified": len(brief.blocked_runners),
             "walletsTracked": brief.kol_wallet_count,
         },
         "runners": runners,
         "chains": sorted({c.token.chain_id for c in brief.runners}),
-        "disqualified": [
-            {
-                "chain": candidate.token.chain_id,
-                "symbol": candidate.token.symbol,
-                "mint": candidate.token.mint,
-                "url": candidate.token.url,
-                "change24h": candidate.token.price_change_24h,
-                "runMultiple": candidate.run_multiple,
-                "reasons": candidate.risk_labels,
-            }
-            for candidate in brief.blocked_runners
-        ],
         "loreGroups": [
             {
                 "name": name,

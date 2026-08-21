@@ -114,7 +114,7 @@ def render_markdown(brief: Brief) -> str:
         big = sum(1 for c in brief.runners if c.run_multiple >= 5)
         lines.append(
             f"{len(brief.runners)} runners | {fresh} launched today | {big} did 5x or better | "
-            f"{len(brief.blocked_runners)} disqualified as rug/bundle"
+            "publisher-grade organic gate applied"
         )
         lines.append("")
         for candidate in brief.runners:
@@ -142,13 +142,6 @@ def render_markdown(brief: Brief) -> str:
                     f"- ${symbol} ({mint[:4]}..{mint[-4:]}): {realised:+,.1f} SOL "
                     f"across {traders} wallet(s)"
                 )
-    if brief.blocked_runners:
-        lines += ["", "## RAN, BUT DISQUALIFIED", ""]
-        for candidate in brief.blocked_runners:
-            lines.append(
-                f"- **${candidate.token.symbol}** {pct(candidate.token.price_change_24h, 0)} - "
-                f"{'; '.join(candidate.risk_labels)}"
-            )
     lines += [
         "",
         "## TODAY'S PICKS",

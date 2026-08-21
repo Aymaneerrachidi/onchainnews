@@ -196,25 +196,6 @@ def _lore_section(brief: Brief) -> str:
 </section>"""
 
 
-def _blocked_section(brief: Brief) -> str:
-    rows = "".join(
-        f"""
-<li class="searchable" data-search="{_e(candidate.token.symbol)} {_e(candidate.token.mint)}">
-  <b>${_e(candidate.token.symbol)}</b>
-  <data>{_e(pct(candidate.token.price_change_24h, 0))}</data>
-  <span>{_e("; ".join(candidate.risk_labels))}</span>
-</li>"""
-        for candidate in brief.blocked_runners
-    ) or '<li class="empty-state">No runner was disqualified today.</li>'
-    return f"""
-<section id="blocked" class="report-section reveal">
-  <header class="section-header"><h2>Ran, but disqualified</h2><output>{len(brief.blocked_runners):02d}</output></header>
-  <p class="coverage-note">These moved today and are recorded for completeness. Each one can be taken from its holders or was never distributed, so it is kept out of the runner list.</p>
-  <ul class="filtered-list">{rows}</ul>
-</section>"""
-
-
-
 def _kol_detail(candidate: Candidate) -> str:
     if not candidate.kol_buyers:
         return '<p class="quiet">None of the tracked wallets bought this.</p>'
@@ -394,7 +375,7 @@ footer{{display:grid;grid-template-columns:1fr auto;padding:1.2rem 1.4rem;backgr
     <div><span>5X OR BETTER</span><output>{sum(1 for c in brief.runners if c.run_multiple >= 5)}</output></div>
     <div><span>KOL FLAGGED</span><output>{len(brief.kol_flagged) if brief.kol_wallet_count else '--'}</output></div>
     <div><span>SHARED LORES</span><output>{len(brief.lore_groups)}</output></div>
-    <div class="critical"><span>DISQUALIFIED</span><output>{len(brief.blocked_runners)}</output></div>
+    <div><span>WALLETS TRACKED</span><output>{brief.kol_wallet_count or '--'}</output></div>
   </section>
   <section id="picks" class="report-section reveal">
     <header class="section-header"><h2>The read</h2><output>{len(picks):02d}</output></header>
@@ -415,7 +396,6 @@ footer{{display:grid;grid-template-columns:1fr auto;padding:1.2rem 1.4rem;backgr
     <div><h3>Interesting means</h3><p>{_e(brief.interesting_definition)}</p></div>
     <div class="selection-rule"><h3>The cut</h3><p>{_e(brief.selection_rule)}</p></div>
   </aside>
-  {_blocked_section(brief)}
   <section id="screening" class="report-section reveal"><header class="section-header"><h2>Why the rest did not make the brief</h2><output>{len(brief.launches_last_24h) - len(shortlist):02d}</output></header><p class="coverage-note">{_e(brief.discovery_note)} Individual rejected names stay out of the client view.</p><ul class="filtered-list">{screening}</ul></section>
   <section id="scorecard" class="report-section reveal"><header class="section-header"><h2>30d outcome scorecard</h2><output>{sc.featured_count:02d}</output></header><div class="outcome-row"><div><span>FEATURED</span><output>{sc.featured_count}</output></div><div><span>72H Q1</span><output>{_e(pct(sc.featured_q1_72h))}</output></div><div><span>72H MEDIAN</span><output>{_e(pct(sc.featured_median_72h))}</output></div><div><span>72H Q3</span><output>{_e(pct(sc.featured_q3_72h))}</output></div><div><span>72H UP</span><output>{_e(pct(sc.featured_up_pct_72h, 0))}</output></div><div><span>LOSS &gt;90%</span><output>{_e(pct(sc.featured_crash_pct_72h, 0))}</output></div></div></section>
   <section class="report-section reveal"><header class="section-header"><h2>Data quality</h2><output>{len(brief.quality_alerts):02d}</output></header><ul class="quality-list">{quality}</ul></section>
