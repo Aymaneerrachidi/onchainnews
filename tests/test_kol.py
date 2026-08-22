@@ -209,6 +209,65 @@ async def test_kol_wallet_transactions_include_ata_balance_changes():
     assert filters["blockTime"]["gte"] == 1786000000
 
 
+@pytest.mark.asyncio
+async def test_kol_wallet_transactions_paginate_the_complete_window():
+    """A busy wallet's 24-hour history must not stop after the first 100 rows."""
+    from brief.sources.helius import HeliusSource
+
+    requests = []
+
+    class FakeHttp:
+        async def post_json(self, url, *, family, limit, ttl, json_body, params=None, headers=None):
+            options = dict(json_body["params"][1])
+            requests.append(options)
+            if len(requests) == 1:
+                return {
+                    "result": {
+                        "data": [{"signature": "first", "blockTime": 1786000200}],
+                        "paginationToken": "page-2",
+                    }
+                }
+            return {"result": {"data": [{"signature": "second", "blockTime": 1786000100}]}}
+
+    source = HeliusSource(FakeHttp(), "https://helius.test", "key", 60)
+    transactions = await source.wallet_transactions(
+        "WALLET", limit=100, max_pages=10, since_unix=1786000000,
+    )
+
+    assert [transaction["signature"] for transaction in transactions] == ["first", "second"]
+    assert "paginationToken" not in requests[0]
+    assert requests[1]["paginationToken"] == "page-2"
+    assert requests[1]["filters"]["blockTime"]["gte"] == 1786000000
+    assert source.wallet_history_pages["WALLET"] == 2
+
+
+@pytest.mark.asyncio
+async def test_kol_wallet_transactions_reject_incomplete_page_ceiling():
+    """Partial wallet history is worse than missing data because it creates false KOL claims."""
+    from brief.sources.helius import HeliusSource
+    from brief.sources.http import SourceError
+
+    calls = 0
+
+    class FakeHttp:
+        async def post_json(self, url, *, family, limit, ttl, json_body, params=None, headers=None):
+            nonlocal calls
+            calls += 1
+            return {
+                "result": {
+                    "data": [{"signature": f"tx-{calls}"}],
+                    "paginationToken": f"page-{calls + 1}",
+                }
+            }
+
+    source = HeliusSource(FakeHttp(), "https://helius.test", "key", 60)
+    with pytest.raises(SourceError, match="exceeded 2 pages"):
+        await source.wallet_transactions("WALLET", max_pages=2, since_unix=1786000000)
+
+    assert calls == 2
+    assert "WALLET" not in source.wallet_history_pages
+
+
 def test_kol_activity_promotes_unknown_mints_for_market_checks(tmp_path):
     """Tracked-wallet flow is discovery, not an automatic pass."""
     from brief.engine import kol_discovery_mints

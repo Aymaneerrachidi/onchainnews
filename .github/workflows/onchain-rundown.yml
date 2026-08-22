@@ -39,6 +39,7 @@ jobs:
   daily:
     if: github.event_name == 'workflow_dispatch' && (inputs.job == 'daily' || inputs.job == 'both') || github.event.schedule == '45 4 * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
@@ -84,6 +85,7 @@ jobs:
   pulse:
     if: github.event_name == 'workflow_dispatch' && (inputs.job == 'pulse' || inputs.job == 'both') || github.event.schedule == '11 * * * *'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:

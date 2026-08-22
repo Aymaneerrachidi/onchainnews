@@ -184,6 +184,9 @@ openai_image_format = "png"
 openai_image_timeout_seconds = 120.0
 write_latest_json = true
 telegram_enabled = true
+# Email is event-driven: an empty hourly scan sends nothing. A mint must first
+# survive `required_passes`, and `repost_after_hours` suppresses duplicates.
+email_enabled = true
 x_post_enabled = false
 x_timeout_seconds = 30.0
 # The hourly pulse is meant to be cheap. The daily report still performs holder
@@ -450,7 +453,12 @@ min_buyers_to_flag = 2
 min_trade_sol = 0.05
 # Helius free tier answers a burst of heavy wallet-history calls with 429s, so
 # this work is paced and budgeted separately from the holder snapshots.
-max_transactions_per_wallet = 100
+# Full transaction details are limited to 100 rows per Helius page. The daily
+# run follows paginationToken until the complete 24-hour range is exhausted.
+transactions_page_size = 100
+# Safety ceiling only. A wallet that exceeds it is marked incomplete and wholly
+# excluded rather than silently using a partial history.
+max_transaction_pages_per_wallet = 100
 concurrency = 1
 request_interval_seconds = 1.5
 requests_per_minute = 18

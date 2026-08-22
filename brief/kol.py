@@ -215,7 +215,10 @@ class KolTracker:
             if address and address not in self.wallets:
                 self.wallets[address] = label or f"{address[:4]}...{address[-4:]}"
         section = settings.section("kol")
-        self.max_transactions = int(section.get("max_transactions_per_wallet", 40))
+        self.page_size = int(
+            section.get("transactions_page_size", section.get("max_transactions_per_wallet", 100))
+        )
+        self.max_pages = int(section.get("max_transaction_pages_per_wallet", 100) or 100)
         self.concurrency = int(section.get("concurrency", 2))
         self.window_hours = float(section.get("window_hours", 24))
         # Helius free tier answers a burst of heavy wallet-history calls with
@@ -238,6 +241,8 @@ class KolTracker:
             self.cache_path = path if path.is_absolute() else settings.root / path
         self.scanned = 0
         self.failed = 0
+        self.pages_scanned = 0
+        self.transactions_scanned = 0
 
     @property
     def enabled(self) -> bool:
@@ -266,7 +271,8 @@ class KolTracker:
                 try:
                     transactions = await self.helius.wallet_transactions(
                         address,
-                        limit=self.max_transactions,
+                        limit=self.page_size,
+                        max_pages=self.max_pages,
                         since_unix=int(cutoff.timestamp()),
                         requests_per_minute=self.requests_per_minute,
                     )
@@ -274,6 +280,10 @@ class KolTracker:
                     self.failed += 1
                     log.warning("kol_scan_failed wallet=%s error=%s", label, exc)
                     return
+            self.pages_scanned += int(
+                getattr(self.helius, "wallet_history_pages", {}).get(address, 0) or 0
+            )
+            self.transactions_scanned += len(transactions)
             flows: dict[str, MintFlow] = {}
             for transaction in transactions:
                 stamp = transaction.get("blockTime")
@@ -339,8 +349,9 @@ class KolTracker:
                 reverse=True,
             )
         log.info(
-            "kol_scan wallets=%s scanned=%s failed=%s mints=%s",
-            len(self.wallets), self.scanned, self.failed, len(activity),
+            "kol_scan wallets=%s scanned=%s failed=%s pages=%s transactions=%s mints=%s",
+            len(self.wallets), self.scanned, self.failed, self.pages_scanned,
+            self.transactions_scanned, len(activity),
         )
         self._write_cache(now, activity)
         return activity
@@ -352,7 +363,8 @@ class KolTracker:
         payload = {
             "wallets": list(self.wallets.items()),
             "window_hours": self.window_hours,
-            "max_transactions": self.max_transactions,
+            "page_size": self.page_size,
+            "max_pages": self.max_pages,
             "min_trade_sol": self.min_trade_sol,
         }
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -372,6 +384,8 @@ class KolTracker:
             age = now.astimezone(timezone.utc) - created.astimezone(timezone.utc)
             if age.total_seconds() < 0 or age.total_seconds() > self.cache_ttl_seconds:
                 return None
+            self.pages_scanned = int(data.get("pages_scanned") or 0)
+            self.transactions_scanned = int(data.get("transactions_scanned") or 0)
             return {
                 mint: self._record_from_json(mint, raw)
                 for mint, raw in (data.get("activity") or {}).items()
@@ -390,6 +404,8 @@ class KolTracker:
                 "created_at": now.astimezone(timezone.utc).isoformat(),
                 "key": self._cache_key(),
                 "wallet_count": len(self.wallets),
+                "pages_scanned": self.pages_scanned,
+                "transactions_scanned": self.transactions_scanned,
                 "activity": {
                     mint: self._record_to_json(record)
                     for mint, record in activity.items()

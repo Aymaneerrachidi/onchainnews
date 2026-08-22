@@ -909,9 +909,12 @@ async def build_brief(
             try:
                 kol_activity = await kol_tracker.activity(now)
                 statuses.append(SourceStatus(
-                    "KOL wallet flow", True,
+                    "KOL wallet flow", kol_tracker.failed == 0,
                     f"{kol_tracker.scanned}/{len(kol_tracker.wallets)} wallets scanned; "
-                    f"activity in {len(kol_activity)} mints",
+                    f"{kol_tracker.pages_scanned} complete history pages and "
+                    f"{kol_tracker.transactions_scanned:,} transactions read; "
+                    f"activity in {len(kol_activity)} mints"
+                    + (f"; {kol_tracker.failed} wallet(s) incomplete and excluded" if kol_tracker.failed else ""),
                 ))
             except Exception as exc:
                 log.warning("kol_tracking_failed error=%s", exc)

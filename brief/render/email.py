@@ -8,6 +8,7 @@ inline-styled so the report reads like a polished morning memo everywhere.
 from __future__ import annotations
 
 import html
+from datetime import datetime
 
 from brief.config import Settings
 from brief.models import Brief, Candidate
@@ -86,6 +87,14 @@ def email_subject(brief: Brief, settings: Settings) -> str:
         return f"{prefix} | quiet tape | {date}"
     top = max(runners, key=lambda c: c.run_multiple)
     return f"{prefix} | ${top.token.symbol} {top.run_multiple:.0f}x and {len(runners) - 1} more | {date}"
+
+
+def pulse_email_subject(items: list[tuple[Candidate, int]], settings: Settings) -> str:
+    """A compact, recognisable subject for a confirmed hourly runner alert."""
+    prefix = str(settings.get("delivery", "email_subject_prefix", "Fomo Onchain"))
+    first = items[0][0]
+    extra = f" +{len(items) - 1}" if len(items) > 1 else ""
+    return f"{prefix} runner alert | ${first.token.symbol}{extra}"
 
 
 def _age(candidate: Candidate) -> str:
@@ -622,6 +631,99 @@ def _footer(report_url: str) -> str:
         "A coin appears because it moved through the filters. It can still rug, fade, or go to zero."
         "</div>"
         f"{link}</td></tr></table></td></tr>"
+    )
+
+
+def _pulse_masthead(
+    items: list[tuple[Candidate, int]],
+    generated_at: datetime,
+    window_hours: float,
+) -> str:
+    when = generated_at.strftime("%d %b %Y")
+    clock = f"{generated_at.strftime('%H:%M')} {generated_at.tzname() or ''}".strip()
+    noun = "runner" if len(items) == 1 else "runners"
+    return (
+        '<tr><td style="padding:0 14px">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{NIGHT};border-radius:26px;overflow:hidden"><tr>'
+        '<td style="padding:30px 30px 28px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        '<td style="vertical-align:top">'
+        f'<div style="{_txt(13, 800, "#BFC7FF", 1.2, 0.12, "uppercase")}">Confirmed runner alert</div>'
+        f'<div style="{_txt(36, 850, SURFACE, 1.06, -0.035)};padding-top:12px">'
+        'Fomo <span style="color:#8EA0FF">Onchain</span></div>'
+        f'<div style="{_txt(16, 450, "#D7DCF8", 1.6)};padding-top:14px">'
+        f'{len(items)} new {noun} survived repeated scans. No email is sent on an empty hour.</div>'
+        '</td><td align="right" style="vertical-align:top;white-space:nowrap;padding-left:18px">'
+        f'<div style="{_txt(13, 750, SURFACE, 1.2)}">{_e(when)}</div>'
+        f'<div style="{_txt(12, 500, "#AAB3E8", 1.4)};padding-top:6px">{_e(clock)}</div>'
+        '</td></tr></table>'
+        f'<div style="height:1px;background:{LINE_DARK};line-height:1px;font-size:0;margin-top:26px">&nbsp;</div>'
+        f'<div style="{_txt(12, 650, "#AAB3E8", 1.55)};padding-top:18px">'
+        f'Confirmation window: {_e(f"{window_hours:g}")} hours. Each pass is separated by the configured scan gap.'
+        '</div></td></tr></table></td></tr>'
+    )
+
+
+def _pulse_runner(candidate: Candidate, pass_count: int) -> str:
+    token = candidate.token
+    kol = f"{len(candidate.kol_buyers)} tracked wallets" if candidate.kol_buyers else "hourly market confirmation"
+    return (
+        '<tr><td style="padding:18px 30px 0">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:22px;overflow:hidden"><tr>'
+        f'<td width="6" bgcolor="{BLUE}" style="background:{BLUE};font-size:0;line-height:0">&nbsp;</td>'
+        '<td style="padding:23px 23px 22px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        '<td style="vertical-align:top;padding-right:16px">'
+        f'<div style="{_txt(29, 850, INK, 1.05, -0.03)}">${_e(token.symbol)}</div>'
+        f'<div style="{_txt(13, 550, MUTED, 1.5)};padding-top:7px">'
+        f'{_e(token.name)} / {_e(_age(candidate))} / {_e(kol)}</div></td>'
+        '<td align="right" style="vertical-align:top;white-space:nowrap">'
+        f'<div style="{_txt(29, 850, BLUE, 1.0, -0.03)}">{pass_count} passes</div>'
+        f'<div style="{_txt(11, 750, MUTED, 1.2, 0.08, "uppercase")};padding-top:7px">sustained signal</div>'
+        '</td></tr></table>'
+        f'<div style="{_txt(15, 450, INK_2, 1.65)};padding-top:19px">{_e(candidate.read)}</div>'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:20px"><tr>'
+        f'{_mini_stat("Market cap", money(token.market_cap))}'
+        f'{_mini_stat("24h volume", money(token.volume_24h))}'
+        f'{_mini_stat("Liquidity", money(token.liquidity_usd))}'
+        f'{_mini_stat("Run", f"{candidate.run_multiple:.1f}x", BLUE)}'
+        '</tr></table>'
+        f'<div style="padding-top:20px"><a href="{_e(token.url)}" target="_blank" '
+        f'style="display:inline-block;background:{INK};color:{SURFACE};border-radius:999px;'
+        f'padding:13px 19px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Open chart</a>'
+        f'<div style="{_txt(11, 500, MUTED, 1.55)};padding-top:12px;word-break:break-all">CA: {_e(token.mint)}</div>'
+        '</div></td></tr></table></td></tr>'
+    )
+
+
+def render_pulse_email(
+    items: list[tuple[Candidate, int]],
+    settings: Settings,
+    generated_at: datetime,
+) -> str:
+    """Render only confirmed runners; callers must skip delivery when empty."""
+    if not items:
+        raise ValueError("pulse email requires at least one confirmed runner")
+    report_url = str(settings.get("delivery", "report_url", "") or "")
+    window_hours = float(settings.get("pulse", "window_hours", 12.0))
+    rows = [_pulse_masthead(items, generated_at, window_hours)]
+    rows.extend(_pulse_runner(candidate, passes) for candidate, passes in items)
+    rows.append(_footer(report_url))
+    preheader = ", ".join(f"${candidate.token.symbol} confirmed in {passes} passes" for candidate, passes in items)
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<meta name="x-apple-disable-message-reformatting">'
+        '<title>Fomo Onchain runner alert</title></head>'
+        f'<body style="margin:0;padding:0;background:{PAPER};-webkit-font-smoothing:antialiased">'
+        f'<div style="display:none;max-height:0;overflow:hidden;opacity:0">{_e(preheader)}</div>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{PAPER}">'
+        '<tr><td align="center" style="padding:22px 0 42px">'
+        '<table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" '
+        f'style="width:640px;max-width:640px;background:{PAPER}">{"".join(rows)}'
+        '</table></td></tr></table></body></html>'
     )
 
 

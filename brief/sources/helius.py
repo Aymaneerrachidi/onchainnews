@@ -109,6 +109,9 @@ class HeliusSource:
         self.requests_per_minute = requests_per_minute
         self.holder_page_limit = holder_page_limit
         self.max_holder_pages = max_holder_pages
+        # Per-owner diagnostics for the KOL scan. Each owner is scanned by one
+        # coroutine, so these counters remain safe while wallets run in parallel.
+        self.wallet_history_pages: dict[str, int] = {}
 
     @property
     def configured(self) -> bool:
@@ -264,6 +267,7 @@ class HeliusSource:
         owner: str,
         *,
         limit: int = 60,
+        max_pages: int = 100,
         ttl: int = 300,
         requests_per_minute: int | None = None,
         since_unix: int | None = None,
@@ -282,22 +286,44 @@ class HeliusSource:
         }
         if since_unix is not None:
             filters["blockTime"] = {"gte": int(since_unix)}
-        result = await self._rpc(
-            "getTransactionsForAddress",
-            [owner, {
+        page_size = max(1, min(100, int(limit)))
+        transactions: list[dict[str, Any]] = []
+        pagination_token: str | None = None
+        seen_tokens: set[str] = set()
+        pages = 0
+        while True:
+            options: dict[str, Any] = {
                 "transactionDetails": "full",
                 "encoding": "jsonParsed",
                 "maxSupportedTransactionVersion": 0,
                 "sortOrder": "desc",
-                "limit": limit,
+                "limit": page_size,
                 "filters": filters,
-            }],
-            ttl=ttl,
-            family="helius-kol",
-            requests_per_minute=requests_per_minute,
-        )
-        data = (result or {}).get("data") if isinstance(result, dict) else None
-        return [item for item in (data or []) if isinstance(item, dict)]
+            }
+            if pagination_token:
+                options["paginationToken"] = pagination_token
+            result = await self._rpc(
+                "getTransactionsForAddress",
+                [owner, options],
+                ttl=ttl,
+                family="helius-kol",
+                requests_per_minute=requests_per_minute,
+            )
+            pages += 1
+            data = (result or {}).get("data") if isinstance(result, dict) else None
+            transactions.extend(item for item in (data or []) if isinstance(item, dict))
+            next_token = str((result or {}).get("paginationToken") or "") if isinstance(result, dict) else ""
+            if not next_token:
+                self.wallet_history_pages[owner] = pages
+                return transactions
+            if next_token in seen_tokens:
+                raise SourceError(f"wallet transaction pagination repeated for {owner}")
+            seen_tokens.add(next_token)
+            if max_pages > 0 and pages >= max_pages:
+                raise SourceError(
+                    f"wallet transaction pagination exceeded {max_pages} pages for {owner}"
+                )
+            pagination_token = next_token
 
     async def trace_wallet(self, owner: str, *, ttl: int) -> WalletTrace:
         result = await self._rpc(

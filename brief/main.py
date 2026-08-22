@@ -17,8 +17,8 @@ from brief.engine import build_brief
 from brief.interface import serve_interface
 from brief.ledger import open_ledger
 from brief.launch_collector import run_launch_collector
-from brief.pulse import run_pulse
-from brief.render.email import email_subject, render_email
+from brief.pulse import load_state, run_pulse, save_state
+from brief.render.email import email_subject, pulse_email_subject, render_email, render_pulse_email
 from brief.render.html import render_html
 from brief.render.payload import build_payload
 from brief.render.telegram import render_telegram
@@ -283,6 +283,35 @@ async def pulse(args: argparse.Namespace) -> int:
             console.print(f"[dim]Live site snapshot refreshed: {result.latest_written}[/dim]")
         if not result.triggers:
             console.print("[dim]No runner crossed the sustained-pass threshold.[/dim]")
+        elif bool(settings.get("pulse", "email_enabled", True)):
+            recipients = list(settings.get("delivery", "email_to", []) or [])
+            provider = str(settings.get("delivery", "email_provider", "resend") or "resend").strip().lower()
+            required_key = "BREVO_API_KEY" if provider == "brevo" else "RESEND_API_KEY"
+            if not os.getenv(required_key) or not recipients:
+                console.print(
+                    f"[yellow]Hourly email enabled but {required_key}/email_to unset; delivery skipped.[/yellow]"
+                )
+            else:
+                items = [(trigger.candidate, len(trigger.passes)) for trigger in result.triggers]
+                generated_at = datetime.now(ZoneInfo(str(settings.get("run", "timezone", "UTC"))))
+                try:
+                    count = await send_email(
+                        settings,
+                        pulse_email_subject(items, settings),
+                        render_pulse_email(items, settings, generated_at),
+                    )
+                    console.print(f"[dim]Hourly runner alert delivered ({count} recipient(s)).[/dim]")
+                except EmailDeliveryError as exc:
+                    # Release the trigger claim so the next hourly run retries
+                    # instead of silently losing a confirmed runner alert.
+                    state = load_state(result.state_path)
+                    posted = state.setdefault("posted", {})
+                    for trigger in result.triggers:
+                        posted.pop(trigger.candidate.token.mint, None)
+                    save_state(result.state_path, state)
+                    logging.getLogger("brief.delivery").error("Hourly email failed: %s", exc)
+                    console.print("[bold red]Hourly email failed; trigger will retry next run.[/bold red]")
+                    return 1
         for trigger in result.triggers:
             status = f"posted to X as {trigger.x_post_id}" if trigger.x_post_id else (trigger.error or "image generated")
             console.print(

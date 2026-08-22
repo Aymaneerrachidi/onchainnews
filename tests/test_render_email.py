@@ -7,7 +7,7 @@ import pytest
 
 from brief.engine import build_brief
 from brief.ledger import Ledger
-from brief.render.email import email_subject, render_email
+from brief.render.email import email_subject, pulse_email_subject, render_email, render_pulse_email
 from tests.conftest import build_settings
 
 NOW = datetime(2026, 8, 6, 6, 45, tzinfo=ZoneInfo("Europe/Paris"))
@@ -118,6 +118,36 @@ def test_brief_older_than_a_week_still_renders_an_empty_email(tmp_path):
     settings = build_settings(tmp_path)
     body = render_email(brief, settings)
     assert "Nothing cleared the floors today" in body
+
+
+def test_hourly_email_contains_only_confirmed_runner_alert_content(tmp_path):
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    settings.values["pulse"] = {"window_hours": 12.0}
+    candidate = _tape(
+        "PULSE", mcap=850_000, vol24=1_900_000, vol6=700_000,
+        liq=110_000, trades6=2_200, buys6=1_200,
+    )
+    candidate.run_multiple = 4.2
+    candidate.read = "$PULSE kept volume and liquidity through three hourly checks."
+    items = [(candidate, 3)]
+
+    subject = pulse_email_subject(items, settings)
+    body = render_pulse_email(items, settings, NOW)
+
+    assert subject == "Fomo Onchain runner alert | $PULSE"
+    assert "Confirmed runner alert" in body
+    assert "3 passes" in body
+    assert "$PULSE" in body
+    assert "CA:" in body and candidate.token.mint in body
+    assert "No email is sent on an empty hour" in body
+
+
+def test_hourly_email_refuses_an_empty_alert(tmp_path):
+    settings = build_settings(tmp_path)
+    with pytest.raises(ValueError, match="at least one"):
+        render_pulse_email([], settings, NOW)
 
 
 def test_email_recaps_observed_movers_with_caveats(tmp_path):
