@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ONCHAIN NEWS | Coins That Ran and Why</title>
-<meta name="description" content="A daily Solana rundown showing the contract, the tape, monitored X activity and the evidence behind every highlighted coin.">
+<meta name="description" content="A daily multi-chain memecoin rundown showing peak market caps, contracts, KOL activity, social context and risks.">
 <meta name="theme-color" content="#221D4B">
 <meta property="og:title" content="ONCHAIN NEWS | Coins That Ran and Why">
-<meta property="og:description" content="Every highlighted Solana coin with its CA, market evidence, monitored X activity and risks.">
+<meta property="og:description" content="Every highlighted runner with its peak, current state, contract, market evidence, KOL activity and risks.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
 <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,700&display=swap" rel="stylesheet">
@@ -156,6 +156,8 @@ section{border-bottom:1px solid var(--line);scroll-margin-top:1rem}
 .coin-tag{border:1px solid var(--line);font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;padding:.18rem .35rem}
 .coin-tag.x{background:var(--red);border-color:var(--red);color:#fff}
 .coin-tag.wallet{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.coin-tag.questionable{background:#FFD9D2;border-color:var(--red);color:#8B2416}
+.coin-tag.tier{background:var(--paper-3);border-color:var(--amber);color:var(--amber);font-weight:700}
 .ca{display:flex;align-items:center;gap:.55rem;margin:.65rem 1.1rem 0;padding:.5rem .6rem;background:var(--paper-3);border:1px solid rgba(36,35,31,.28)}
 .ca b{font-size:.56rem;letter-spacing:.1em;color:var(--muted)}
 .ca code{font:600 .67rem var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
@@ -256,7 +258,7 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
   <header class="masthead">
     <div class="dateline">
       <span id="dateline">Loading editionâ€¦</span>
-      <span>Solana Â· On-chain Â· X signals Â· Daily</span>
+      <span>Multi-chain Â· On-chain Â· X signals Â· Daily</span>
     </div>
     <h1 class="wordmark">Onchain <em>News</em></h1>
     <div class="subhead">
@@ -305,8 +307,8 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
     <div class="head"><h2>How a coin gets in</h2></div>
     <div class="method">
       <div><h4>Organic first</h4><p>Discovery starts from high-volume/high-trade tokens, then ranks by real volume, trade count and holder count before percent move.</p></div>
-      <div><h4>No paid placement</h4><p>Active Dexscreener boosts are excluded from the automatic recap. Boosted coins can be researched manually, but they are not called organic runners.</p></div>
-      <div><h4>Publisher gate</h4><p>LP lock, top-10 concentration, holder count, social validity, recent fade and wash-trading shape must all clear before a coin appears.</p></div>
+      <div><h4>Promotion is evidence</h4><p>Paid boosts never create a runner by themselves. They remain visible as promotion evidence and lower confidence when organic participation is weak.</p></div>
+      <div><h4>Three separate reads</h4><p>Run strength, organic quality and manipulation risk are scored independently. A huge suspicious run stays visible, but is labelled questionable.</p></div>
     </div>
     <div class="sources" id="sources"></div>
   </section>
@@ -328,10 +330,10 @@ const money = (n) => {
   return "$" + Math.round(n);
 };
 const pct = (n) => (n === null || n === undefined) ? "n/a" : (n >= 0 ? "+" : "") + Math.round(n) + "%";
-const sized = (m, c) => m >= 2 ? m.toFixed(1) + "x" : pct(c);
+const sized = (m, c) => Number(m) >= 2 ? Number(m).toFixed(1) + "x" : pct(c);
 const age = (h) => h === null || h === undefined ? "n/a" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d";
-const displayCap = (r) => Math.max(Number(r.marketCap) || 0, Number(r.observedPeakMarketCap) || 0);
-const capLabel = (r) => Number(r.observedPeakMarketCap) > Number(r.marketCap) ? "peak" : "mcap";
+const displayCap = (r) => Math.max(Number(r.marketCap) || 0, Number(r.peakMarketCap) || 0, Number(r.observedPeakMarketCap) || 0);
+const capLabel = (r) => displayCap(r) > Number(r.marketCap) ? "peak" : "mcap";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let DATA = null, SORT = "editorial", FILTERS = { new: false, kol: false, clean: false };
@@ -342,7 +344,9 @@ const chainName = (c) => CHAIN_NAMES[String(c || "").toLowerCase()] || (c || "â
 
 
 function stamp(r) {
-  if (r.faded !== null && r.faded !== undefined) return "Fading";
+  if (r.roundTrip) return "Round trip";
+  if (r.recapCategory === "questionable") return "Questionable";
+  if (r.drawdownFromPeakPct >= 20) return "Fading";
   if (r.kolBuyers.length >= 3) return "KOL crowd";
   if (r.ageHours !== null && r.ageHours <= 6) return "Fresh";
   return "";
@@ -378,6 +382,7 @@ function fallbackDexEvidence(r) {
 function rowHTML(r, i) {
   const risks = r.riskLabels || [];
   const x = r.xInteractions || [];
+  const news = r.newsEvidence || [];
   const dex = r.dexEvidence?.length ? r.dexEvidence : fallbackDexEvidence(r);
   const sources = r.sources?.length ? r.sources : [
     { label: "Dexscreener", url: r.url },
@@ -397,25 +402,36 @@ function rowHTML(r, i) {
       <small class="x-engagement">Matched on ${esc(item.matchedOn)}${engagement ? " Â· " + esc(engagement) : ""}</small>
     </li>`;
   }).join("")}</ul>` : `<p class="no-x">No verified monitored-account match was found in this 24-hour window.</p>`;
+  const newsRows = news.length ? `<ul class="why-list">${news.slice(0, 4).map((item) =>
+    `<li>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(item.source || "News")}</a>: ` : ""}${esc(item.summary || "Coverage matched this token.")}</li>`
+  ).join("")}</ul>` : `<p class="no-x">No contract/ticker-specific news match was verified.</p>`;
   const wallets = r.kolBuyers?.length
     ? `${r.kolBuyers.map((name) => `${esc(name)}${r.kolHolders.includes(name) ? " â—†" : ""}`).join(", ")}<br><span class="${r.kolRealisedSol >= 0 ? "up" : "dn"}">Realised ${r.kolRealisedSol >= 0 ? "+" : ""}${r.kolRealisedSol.toFixed(1)} SOL</span>`
     : "No tracked on-chain wallet bought this token.";
-  const search = [r.symbol, r.name, r.mint, r.lore, ...risks, ...x.map((item) => `${item.handle} ${item.summary}`)].join(" ").toLowerCase();
+  const walletFlow = r.providerEvidence?.gmgn?.walletFlow || {};
+  const walletCount = Math.max(r.kolBuyers?.length || 0, Number(walletFlow.kolCount) || 0);
+  const search = [r.symbol, r.name, r.mint, r.lore, r.runnerTier, r.recapCategory, ...risks, ...x.map((item) => `${item.handle} ${item.summary}`), ...news.map((item) => item.summary || "")].join(" ").toLowerCase();
   return `
 <article class="coin-card row rv" style="animation-delay:${Math.min(i * 45, 600)}ms"
   data-q="${esc(search)}" data-chain="${esc(String(r.chain || "").toLowerCase())}"
   data-new="${r.ageHours !== null && r.ageHours <= 24}"
-  data-kol="${x.length > 0}" data-clean="${risks.length === 0}">
+  data-kol="${x.length > 0 || walletCount > 0}" data-clean="${r.recapCategory !== "questionable"}">
   <header class="coin-top">
     <span class="coin-rank">${String(i + 1).padStart(2, "0")}</span>
     <div class="coin-name"><b>$${esc(r.symbol)}</b><span>${esc(r.name)} Â· ${age(r.ageHours)} old Â· ${esc(r.dex)}</span></div>
-    <div class="coin-move"><b>${sized(r.runMultiple, r.change24h)}</b><span>${money(displayCap(r))} ${capLabel(r)}</span></div>
+    <div class="coin-move"><b>${sized(r.peakMultiple || r.runMultiple, r.change24h)}</b><span>${money(displayCap(r))} ${capLabel(r)}</span></div>
   </header>
   <div class="coin-tags">
+    ${r.runnerTier ? `<span class="coin-tag tier">${esc(({S: "$1M+", A: "$500K-$1M", B: "$250K-$500K"})[r.runnerTier] || r.runnerTier)}</span>` : ""}
+    ${r.recapCategory === "questionable" ? `<span class="coin-tag questionable">Ran, but questionable</span>` : ""}
+    ${r.roundTrip ? `<span class="coin-tag questionable">Round trip</span>` : ""}
+    <span class="coin-tag">Start ${money(r.startMarketCap)}</span>
+    <span class="coin-tag">Now ${money(r.marketCap)}</span>
+    ${Number(r.drawdownFromPeakPct) >= 5 ? `<span class="coin-tag">${Math.round(r.drawdownFromPeakPct)}% off peak</span>` : ""}
     <span class="coin-tag">${money(r.volume24h)} volume</span>
-    <span class="coin-tag">${r.turnover.toFixed(1)}x turnover</span>
+    <span class="coin-tag">${Number(r.turnover || 0).toFixed(1)}x turnover</span>
     ${x.length ? `<span class="coin-tag x">${x.length} X match${x.length === 1 ? "" : "es"}</span>` : ""}
-    ${r.kolBuyers?.length ? `<span class="coin-tag wallet">${r.kolBuyers.length} wallets</span>` : ""}
+    ${walletCount ? `<span class="coin-tag wallet">${walletCount} KOL wallets</span>` : ""}
     ${r.lore ? `<span class="coin-tag">${esc(r.lore)}</span>` : ""}
   </div>
   <div class="ca"><b>CA</b><code title="${esc(r.mint)}">${esc(r.mint)}</code><button class="copy" type="button" data-ca="${esc(r.mint)}">Copy</button></div>
@@ -428,6 +444,10 @@ function rowHTML(r, i) {
     <p class="x-lead">${esc(r.catalyst || "No social catalyst has been verified.")}</p>
     ${xRows}
   </section>
+  <section class="evidence">
+    <h3>News and narrative evidence</h3>
+    ${newsRows}
+  </section>
   <div class="coin-bottom">
     <div><span class="mini-title">Tracked wallets Â· â—† still holding</span><p class="wallet-names">${wallets}</p></div>
     <div><span class="mini-title">Risks and caveats</span><p class="risk-copy">${risks.length ? risks.map(esc).join(" Â· ") : "No automated flags raised."}</p></div>
@@ -437,8 +457,8 @@ function rowHTML(r, i) {
 }
 
 function paint() {
-  const rows = [...DATA.runners];
-  if (SORT === "x") rows.sort((a, b) => (b.xInteractions?.length || 0) - (a.xInteractions?.length || 0) || b.runMultiple - a.runMultiple);
+  const rows = [...(DATA.displayRows || DATA.runners)];
+  if (SORT === "x") rows.sort((a, b) => (b.xInteractions?.length || 0) - (a.xInteractions?.length || 0) || (b.peakMultiple || b.runMultiple) - (a.peakMultiple || a.runMultiple));
   else if (SORT === "fresh") rows.sort((a, b) => (a.ageHours ?? 1e9) - (b.ageHours ?? 1e9));
   $("#rows").innerHTML = rows.length ? rows.map(rowHTML).join("")
     : `<p class="empty">Nothing ran today that cleared the floors. An empty page is a result, not an outage.</p>`;
@@ -450,12 +470,12 @@ function buildChainBar() {
   const bar = document.querySelector("#chain-bar");
   if (!bar || !DATA) return;
   const counts = {};
-  for (const r of DATA.runners || []) {
+  for (const r of DATA.displayRows || DATA.runners || []) {
     const c = String(r.chain || "").toLowerCase();
     counts[c] = (counts[c] || 0) + 1;
   }
   const chains = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-  const total = (DATA.runners || []).length;
+  const total = (DATA.displayRows || DATA.runners || []).length;
   bar.innerHTML =
     `<button class="chip" data-chain="all" aria-pressed="${CHAIN === "all"}">All chains ${total}</button>` +
     chains.map((c) =>
@@ -489,6 +509,10 @@ function applyFilters() {
 
 function render(d) {
   DATA = d;
+  const catalog = new Map([...(d.runners || []), ...(d.blockedRunners || [])].map((row) => [row.mint, row]));
+  DATA.displayRows = d.recap?.all?.length
+    ? d.recap.all.map((recap) => Object.assign(catalog.get(recap.mint) || {}, { recapCategory: recap.category })).filter((row) => row.mint)
+    : (d.runners || []);
   const when = new Date(d.generatedAt);
   const fmt = when.toLocaleString([], { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   $("#dateline").textContent = `${fmt} Â· ${d.timezone}`;
@@ -499,16 +523,16 @@ function render(d) {
 
   const s = d.summary;
   $("#stats").innerHTML = [
-    ["Runners today", s.runners, false],
-    ["Launched today", s.launchedToday, false],
-    ["5x or better", s.bigMultiples, false],
-    ["X matched", s.xMatched ?? 0, false],
-    ["Shared lores", s.loreGroups, false],
+    ["$1M+", s.tierS ?? 0, true],
+    ["$500K–$1M", s.tierA ?? 0, false],
+    ["$250K–$500K", s.tierB ?? 0, false],
+    ["Questionable", s.questionable ?? 0, false],
+    ["Round trips", s.roundTrips ?? 0, false],
     ["Wallets tracked", s.walletsTracked ?? 0, false],
   ].map(([l, v, hot], i) => `<div class="stat ${hot ? "hot" : ""} rv" style="animation-delay:${i * 50}ms"><span>${l}</span><b>${v}</b></div>`).join("");
 
-  const t = d.runners.slice(0, 14).map((r) =>
-    `<span><b>$${esc(r.symbol)}</b> <em class="${r.change24h >= 0 ? "up" : "dn"}">${sized(r.runMultiple, r.change24h)}</em> ${money(displayCap(r))} ${capLabel(r)}</span>`).join("");
+  const t = DATA.displayRows.slice(0, 14).map((r) =>
+    `<span><b>$${esc(r.symbol)}</b> <em class="${r.change24h >= 0 ? "up" : "dn"}">${sized(r.peakMultiple || r.runMultiple, r.change24h)}</em> ${money(displayCap(r))} ${capLabel(r)}</span>`).join("");
   $("#ticker").innerHTML = t ? t + t : "<span>No runners in this window</span>";
 
   paint();
