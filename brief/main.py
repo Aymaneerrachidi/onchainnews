@@ -33,6 +33,7 @@ def parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="fetch, screen, render, and deliver today's brief")
     run.add_argument("--dry-run", action="store_true", help="do not update feature/return history")
     run.add_argument("--no-telegram", action="store_true", help="skip Telegram even when configured")
+    run.add_argument("--no-email", action="store_true", help="skip email even when configured")
     sub.add_parser("status", help="show ledger statistics")
     prune = sub.add_parser("prune", help="delete archived HTTP bodies older than the retention window")
     prune.add_argument("--days", type=int, help="override run.archive_retention_days")
@@ -112,7 +113,9 @@ async def run(args: argparse.Namespace) -> int:
                 console.print("[yellow]Telegram delivery failed; the web report will still publish.[/yellow]")
         elif not args.no_telegram:
             console.print("[dim]Telegram disabled; set delivery.telegram_enabled=true after configuring .env.[/dim]")
-        if settings.get("delivery", "email_enabled", False):
+        if settings.get("delivery", "email_enabled", False) and args.no_email:
+            console.print("[dim]Email disabled for this run by --no-email.[/dim]")
+        elif settings.get("delivery", "email_enabled", False):
             recipients = list(settings.get("delivery", "email_to", []) or [])
             provider = str(settings.get("delivery", "email_provider", "resend") or "resend").strip().lower()
             required_key = "BREVO_API_KEY" if provider == "brevo" else "RESEND_API_KEY"

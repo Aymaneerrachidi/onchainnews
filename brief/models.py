@@ -132,6 +132,16 @@ class Signals:
 
 
 @dataclass(slots=True)
+class KolWalletFlow:
+    name: str
+    bought: bool = False
+    sold: bool = False
+    holding: bool = False
+    realised_sol: float = 0.0
+    sol_spent: float = 0.0
+
+
+@dataclass(slots=True)
 class Candidate:
     token: TokenSnapshot
     signals: Signals
@@ -160,6 +170,7 @@ class Candidate:
     kol_holders: list[str] = field(default_factory=list)
     kol_realised_sol: float = 0.0
     kol_sol_spent: float = 0.0
+    kol_flows: list[KolWalletFlow] = field(default_factory=list)
     # How many wallets the scan actually covered; 0 means it did not run,
     # in which case silence from them proves nothing.
     kol_wallets_scanned: int = 0
@@ -173,6 +184,9 @@ class Candidate:
     dex_evidence: list[str] = field(default_factory=list)
     x_interactions: list["XInteraction"] = field(default_factory=list)
     catalyst: str = ""
+    scores: dict[str, float] = field(default_factory=dict)
+    score_components: dict[str, dict[str, float | str | None]] = field(default_factory=dict)
+    classification: str = ""
 
 
 @dataclass(slots=True)

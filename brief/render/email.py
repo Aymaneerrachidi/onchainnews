@@ -80,7 +80,7 @@ def _chain_name(chain: str) -> str:
 
 def email_subject(brief: Brief, settings: Settings) -> str:
     prefix = str(settings.get("delivery", "email_subject_prefix", "Fomo Onchain"))
-    runners = brief.runners
+    runners = _newsletter_recap_candidates(brief, settings)
     date = brief.generated_at.strftime("%d %b")
     if not runners:
         return f"{prefix} | quiet tape | {date}"
@@ -113,6 +113,68 @@ def _split_labels(labels: list[str]) -> tuple[list[str], list[str]]:
     risks = [label for label in labels if not _is_unknown(label)]
     gaps = [label for label in labels if _is_unknown(label)]
     return risks, gaps
+
+
+def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candidate]:
+    """Coins that deserve recap coverage, not only the clean public winners.
+
+    `brief.runners` is intentionally strict. The client-facing newsletter needs
+    the wider tape: coins that ran, why they mattered, and why some did not
+    clear the organic-quality gate. This keeps the recap useful without turning
+    questionable moves into endorsements.
+    """
+    limit = int(settings.get("delivery", "newsletter_observed_limit", 14) or 14)
+    min_score = float(settings.get("delivery", "newsletter_min_observed_runner_score", 25) or 25)
+    max_manip = float(settings.get("delivery", "newsletter_max_observed_manipulation", 70) or 70)
+    min_volume = float(settings.get("delivery", "newsletter_min_observed_volume", 250_000) or 250_000)
+    min_mcap = float(settings.get("delivery", "newsletter_min_observed_market_cap", 250_000) or 250_000)
+    excluded_risk_terms = [
+        str(term).strip().lower()
+        for term in settings.get("delivery", "newsletter_excluded_risk_terms", []) or []
+        if str(term).strip()
+    ]
+
+    chosen: list[Candidate] = list(brief.runners)
+    seen = {candidate.token.mint for candidate in chosen}
+    observed: list[Candidate] = []
+    for candidate in brief.blocked_runners:
+        if candidate.token.mint in seen:
+            continue
+        if candidate.token.volume_24h < min_volume or candidate.token.market_cap < min_mcap:
+            continue
+        if candidate.scores.get("runner", 0.0) < min_score:
+            continue
+        if candidate.scores.get("manipulation", 100.0) > max_manip:
+            continue
+        labels = " | ".join(candidate.risk_labels).lower()
+        if excluded_risk_terms and any(term in labels for term in excluded_risk_terms):
+            continue
+        observed.append(candidate)
+
+    observed.sort(
+        key=lambda candidate: (
+            candidate.scores.get("runner", 0.0),
+            candidate.run_multiple,
+            candidate.token.volume_24h,
+        ),
+        reverse=True,
+    )
+    for candidate in observed:
+        if len(chosen) >= limit:
+            break
+        chosen.append(candidate)
+        seen.add(candidate.token.mint)
+
+    chosen.sort(
+        key=lambda candidate: (
+            candidate.token.chain_id.lower() == "solana",
+            candidate.scores.get("runner", 0.0),
+            candidate.run_multiple,
+            candidate.token.volume_24h,
+        ),
+        reverse=True,
+    )
+    return chosen
 
 
 def _chip(text: str, background: str, color: str = SURFACE) -> str:
@@ -221,6 +283,37 @@ def _reason_bits(candidate: Candidate) -> list[str]:
     return unique[:3]
 
 
+def _name_list(names: list[str], limit: int = 4) -> str:
+    if not names:
+        return ""
+    shown = names[:limit]
+    suffix = f" +{len(names) - limit}" if len(names) > limit else ""
+    return ", ".join(shown) + suffix
+
+
+def _kol_wallet_recap(candidate: Candidate) -> str:
+    if candidate.kol_flows:
+        buyers = [flow.name for flow in candidate.kol_flows if flow.bought]
+        holders = [flow.name for flow in candidate.kol_flows if flow.holding]
+        sellers = [flow.name for flow in candidate.kol_flows if flow.sold and not flow.holding]
+        best = max(candidate.kol_flows, key=lambda flow: flow.realised_sol)
+        bits: list[str] = []
+        if buyers:
+            bits.append(f"bought: {_name_list(buyers)}")
+        if holders:
+            bits.append(f"still holding: {_name_list(holders)}")
+        if sellers:
+            bits.append(f"closed/sold: {_name_list(sellers)}")
+        if abs(candidate.kol_realised_sol) >= 0.1:
+            bits.append(f"realised {candidate.kol_realised_sol:+.1f} SOL")
+        if best.realised_sol > 0.1:
+            bits.append(f"best wallet {best.name} +{best.realised_sol:.1f} SOL")
+        return "Tracked wallets — " + "; ".join(bits)
+    if candidate.kol_wallets_scanned:
+        return f"Tracked wallets — none of {candidate.kol_wallets_scanned} scanned wallets touched it"
+    return ""
+
+
 def _theme_groups(brief: Brief, runners: list[Candidate]) -> list[tuple[str, list[Candidate]]]:
     by_mint = {candidate.token.mint: candidate for candidate in runners}
     used: set[str] = set()
@@ -270,6 +363,15 @@ def _lead_recap(candidate: Candidate) -> str:
 def _coin_recap_line(candidate: Candidate) -> str:
     token = candidate.token
     reasons = _reason_bits(candidate)
+    kol_recap = _kol_wallet_recap(candidate)
+    kol_html = (
+        '<tr><td width="18" style="vertical-align:top;padding-top:7px">'
+        f'<div style="width:5px;height:5px;border-radius:999px;background:{VIOLET};font-size:0;line-height:0">&nbsp;</div>'
+        '</td>'
+        f'<td style="{_txt(13, 650, VIOLET, 1.58)};padding-top:3px">{_e(kol_recap)}</td></tr>'
+        if kol_recap
+        else ""
+    )
     reason_html = "".join(
         '<tr><td width="18" style="vertical-align:top;padding-top:7px">'
         f'<div style="width:5px;height:5px;border-radius:999px;background:{BLUE};font-size:0;line-height:0">&nbsp;</div>'
@@ -280,8 +382,8 @@ def _coin_recap_line(candidate: Candidate) -> str:
     kol = f" / {len(candidate.kol_buyers)} KOL" if candidate.kol_buyers else ""
     details = (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:7px">'
-        f"{reason_html}</table>"
-        if reason_html
+        f"{kol_html}{reason_html}</table>"
+        if kol_html or reason_html
         else ""
     )
     return (
@@ -348,10 +450,10 @@ def _stat_band(brief: Brief, runners: list[Candidate]) -> str:
     fresh = sum(1 for c in runners if c.signals.age_hours is not None and c.signals.age_hours <= 24)
     big = sum(1 for c in runners if c.run_multiple >= 5)
     cells = [
-        ("Runners", str(len(runners))),
+        ("Recap coins", str(len(runners))),
+        ("Clean", str(len(brief.runners))),
         ("Fresh", str(fresh)),
         ("Did 5x+", str(big)),
-        ("Organic", "clean"),
     ]
     columns = "".join(_mini_stat(label, value, BLUE if label == "Did 5x+" else INK) for label, value in cells)
     chain_line = ", ".join(sorted(_chain_name(chain) for chain in chains)) if chains else "No active chains"
@@ -512,7 +614,7 @@ def _footer(report_url: str) -> str:
 
 def render_email(brief: Brief, settings: Settings) -> str:
     report_url = str(settings.get("delivery", "report_url", "") or "")
-    runners = sorted(brief.runners, key=lambda candidate: candidate.run_multiple, reverse=True)
+    runners = _newsletter_recap_candidates(brief, settings)
     rows: list[str] = []
 
     rows.append(_masthead(brief, runners))

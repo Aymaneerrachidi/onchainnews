@@ -15,12 +15,11 @@ archive_compress = true
 # fixture_path = "tests/fixtures/run.json" # Uncomment for deterministic offline runs.
 
 [thresholds]
-# Five chains. Contract safety is answered per chain: RugCheck covers Solana,
-# GoPlus covers Ethereum, BNB Chain and Base. Nothing covers Robinhood Chain
-# yet, so its coins are reported and labelled unverified rather than dropped.
-# Tracked-wallet flow is Solana-only and is never held against another chain.
-chains = ["solana", "ethereum", "bsc", "base", "robinhood"]
-min_market_cap = 250000.0
+# Client product is Solana memecoin tape only. Other chains can show large
+# percentages, but they do not have the same wallet/Kolscan/on-chain context and
+# polluted the morning read.
+chains = ["solana"]
+min_market_cap = 200000.0
 min_liquidity = 20000.0
 # Strength has to show up in the tape. Without these two floors a thin float
 # prices a handful of buys into a large notional cap and reaches the shortlist
@@ -71,8 +70,8 @@ max_claim_age_days = 7
 min_strength_signals = 2
 
 # Ranked discovery across the whole Solana universe. Dexscreener's public feeds
-# only surface trending metas, takeovers, profiles and boosts — about four
-# hundred tokens — which is too narrow to answer "what is strongest today".
+# only surface trending metas, takeovers, profiles and boosts â€” about four
+# hundred tokens â€” which is too narrow to answer "what is strongest today".
 # Requires BIRDEYE_API_KEY; without it discovery falls back to Dexscreener.
 [birdeye]
 enabled = true
@@ -100,14 +99,14 @@ keyed_ttl_seconds = 900
 # and not used by the daily journal, so it runs on a small watchlist.
 [holders]
 enabled = true
-watchlist_limit = 2
+watchlist_limit = 1
 snapshot_cache_seconds = 60
 holder_page_limit = 1000
-max_holder_pages = 25
+max_holder_pages = 12
 helius_requests_per_minute = 100
 cluster_top_holders = 100
-history_concurrency = 4
-max_wallet_history_calls_per_run = 1000
+history_concurrency = 2
+max_wallet_history_calls_per_run = 120
 wallet_trace_cache_days = 30
 acquisition_cache_days = 90
 sniper_window_minutes = 10
@@ -172,7 +171,7 @@ openai_image_format = "png"
 openai_image_timeout_seconds = 120.0
 write_latest_json = true
 telegram_enabled = true
-x_post_enabled = true
+x_post_enabled = false
 x_timeout_seconds = 30.0
 # The hourly pulse is meant to be cheap. The daily report still performs holder
 # snapshots and tracked-wallet flow unless those sections are disabled above.
@@ -245,8 +244,33 @@ email_enabled = true
 email_provider = "brevo"
 email_from = "ue06prog@gmail.com"
 email_from_name = "Fomo Onchain"
-email_to = ["ue06prog@gmail.com", "bryanquispe528@gmail.com"]
+email_to = ["ue06prog@gmail.com"]
 email_subject_prefix = "Fomo Onchain"
+# Newsletter recap breadth. Clean runners always appear. These settings add
+# strong observed movers that did not clear the strict organic publisher gate,
+# with their caveats shown inline, so the email reads like a real market recap.
+newsletter_observed_limit = 25
+newsletter_min_observed_runner_score = 25.0
+newsletter_max_observed_manipulation = 70.0
+newsletter_min_observed_volume = 250000.0
+newsletter_min_observed_market_cap = 200000.0
+newsletter_excluded_risk_terms = [
+  "rugcheck has already marked",
+  "rugged",
+  "scam",
+  "honeypot",
+  "mint authority still live",
+  "freeze authority still live",
+  "liquidity neither locked nor burned",
+  "bundled supply",
+  "manufactured tape",
+  "blacklist",
+  "selling is penalised",
+  "recycled ticker/name",
+  "move on only 0.",
+  "move with no linked social context",
+  "tracked-wallet confirmation was too thin",
+]
 
 # The daily journal: what ran today. Deliberately wider than the editorial
 # tracks. A coin enters through one of two doors -- created inside the fresh
@@ -255,7 +279,15 @@ email_subject_prefix = "Fomo Onchain"
 # below remove a coin from the record entirely.
 [journal]
 enabled = true
-max_runners = 20
+max_runners = 25
+target_min_runners = 6
+include_intraday_pulse_runners = true
+intraday_min_peak_market_cap = 200000.0
+intraday_min_volume_24h = 250000.0
+intraday_min_liquidity = 40000.0
+intraday_min_trades_24h = 1000
+intraday_min_runner_score = 25.0
+intraday_max_manipulation = 55.0
 min_volume_24h = 250000.0
 min_liquidity = 40000.0
 # Nothing older than this reaches the record, whatever it did. The report is
@@ -274,6 +306,16 @@ min_daily_change_pct = 25.0
 # absence is genuinely odd, and reported on the row rather than treated as proof.
 # Lower this as more wallets are added and coverage improves.
 expect_tracked_wallets_above = 10.0
+# Tracked wallets are confirmation, not a hard gate. A real organic runner can
+# be missed by our wallet set; absence should be reported/weighted, not used to
+# zero the newsletter.
+require_wallet_touch_for_publish = false
+gate_editorial_tracks = true
+wallet_touch_required_above_multiple = 1.8
+wallet_touch_required_min_mcap = 200000.0
+wallet_touch_required_min_buyers = 2
+wallet_touch_required_min_participants = 3
+wallet_touch_required_min_realised_sol = 50.0
 # A feed sometimes reports a nonsense 24h change when a pool is reseeded. Such
 # a number tops every ranking, so a big run must be corroborated by turnover.
 max_credible_multiple = 1000.0
@@ -289,9 +331,9 @@ max_turnover = 30.0               # 24h volume against market cap
 # 219 trades a minute over the hour. Speed is a crowd. Dust is a bot, so only
 # the average trade size decides.
 min_average_trade_usd = 15.0      # dust prints are spam, not demand
-# A reused ticker is shown on the row, not treated as disqualifying: plenty of
-# real coins share a name with something forgettable. Boosts are Dexscreener's
-# advertising product and honest teams buy them, so they are not a signal either.
+# A reused ticker is still blocked for the public recap unless strong KOL flow
+# confirms it. Boosts are Dexscreener's advertising product: they are a caveat
+# and a small score penalty, not a death sentence.
 # Venues per chain. Empty, or a chain that is absent, means every venue there.
 # Leave venues open. Strong runners often migrate or route through Raydium,
 # Meteora or other Solana pools; the quality gate decides what is publishable.
@@ -314,16 +356,52 @@ thin_liquidity_ratio = 60.0
 min_lore_group = 2
 # Publisher-grade recap gate. This is stricter than the analyst screen because
 # the public product should show organic runners only, not paid/adversarial flow.
-exclude_boosted = true
+exclude_boosted = false
 require_socials = false
 require_social_resolves = false
-exclude_recycled = false
+exclude_recycled = true
 min_lp_locked_pct = 80.0
 publisher_max_top10_pct = 25.0
 min_symbol_length = 3
-min_age_hours = 0.0
+min_age_hours = 0.5
 max_negative_1h_pct = 20.0
+extreme_multiple = 10.0
+extreme_min_volume_24h = 1000000.0
+extreme_min_holders = 3000
+extreme_min_turnover = 0.75
+extreme_min_recent_volume_share = 0.15
+strong_kol_wallets = 3
+min_organic_confirmations = 6
+organic_min_buy_ratio = 0.42
+organic_max_buy_ratio = 0.72
 blocked_symbol_terms = ["oil", "gas", "usa"]
+
+# If clean runners are fewer than target_min_runners, fill with the best
+# caveated names that are not rug/bundle/wash/LP-pull shapes.
+fill_with_caveated_runners = true
+fill_min_runner_score = 25.0
+fill_min_organic_score = 40.0
+fill_max_manipulation = 55.0
+fill_min_age_hours = 0.5
+fill_hard_block_terms = [
+  "rugcheck has already marked",
+  "rugged",
+  "scam",
+  "honeypot",
+  "mint authority still live",
+  "freeze authority still live",
+  "liquidity neither locked nor burned",
+  "lp only 0%",
+  "bundled supply",
+  "manufactured tape",
+  "wash-trading shape",
+  "market cap traded",
+  "blacklist",
+  "selling is penalised",
+  "move with no linked social context",
+  "move on only 0.",
+  "of trades are buys",
+]
 
 # Tracked wallets. `min_buyers_to_flag` independent buyers on one coin is the
 # crowd-forming signal; realised SOL per mint is reconstructed from each
@@ -334,13 +412,22 @@ window_hours = 24
 min_buyers_to_flag = 2
 # Helius free tier answers a burst of heavy wallet-history calls with 429s, so
 # this work is paced and budgeted separately from the holder snapshots.
-max_transactions_per_wallet = 40
-concurrency = 2
-request_interval_seconds = 1.0
-requests_per_minute = 30
+max_transactions_per_wallet = 100
+concurrency = 1
+request_interval_seconds = 1.5
+requests_per_minute = 18
+cache_path = "data/kol-flow-cache.json"
+cache_ttl_seconds = 21600
 # 0 scans every wallet. Lower it if the Helius budget is tight; the list is
 # ordered by reported PnL, so a partial scan keeps the strongest wallets.
-max_wallets_per_run = 0
+max_wallets_per_run = 125
+# KOL flow is a discovery source, not a pass. Mints found here are resolved via
+# Dexscreener, then re-checked by the normal RugCheck/Helius/journal gates.
+max_mints_enriched = 80
+min_buyers_to_enrich = 1
+min_participants_to_enrich = 2
+min_realised_sol_to_enrich = 5.0
+
 # Kolscan leaderboard, deduplicated across the daily, weekly and monthly
 # boards (111 listed entries -> 66 unique wallets). `tiers` records which
 # boards the wallet appeared on and `pnl_sol` its best reported figure;
@@ -412,4 +499,55 @@ wallets = [
   { address = "GJA1HEbxGnqBhBifH9uQauzXSB53to5rhDrzmKxhSU65", name = "Latuche", tiers = "daily", pnl_sol = 38.25 },
   { address = "A8i6J8B1DgVdQaoeyrCmc18473EzYocEtZGavHT4sXzw", name = "Mike", tiers = "daily", pnl_sol = 34.55 },
   { address = "5YRgrP3mjGzrzirYYN5HAQH19cTYREYwGxW6XRJQUzij", name = "slingoor", tiers = "daily", pnl_sol = 29.33 },
+  { address = "G3g1CKqKWSVEVURZDNMazDBv7YAhMNTjhJBVRTiKZygk", name = "Insyder", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 1 },
+  { address = "BjYxVF81MgahqgahDTUEGzxzP7bZrA4p5Dg67Y4e3bXZ", name = "0xBossman", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 2 },
+  { address = "7K7itu678xAaUcuPQ2f3c2DcjirRjBY4HMTW1dx6hiL6", name = "DRT ðŸ‚", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 3 },
+  { address = "8rvAsDKeAcEjEkiZMug9k8v1y8mW6gQQiMobd89Uy7qR", name = "Casino", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 4 },
+  { address = "Dgehc8YMv6dHsiPJVoumvq4pSBkMVvrTgTUg7wdcYJPJ", name = "omar", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 5 },
+  { address = "Dv32u9mvSXGVNshf7xM7afuMoPRifQxzuzEjfmfMysZY", name = "deecayz âŒâ—¨-â—¨", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 6 },
+  { address = "F5jWYuiDLTiaLYa54D88YbpXgEsA6NKHzWy4SN4bMYjt", name = "mercy", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 7 },
+  { address = "ALauG4FwEYDgSXd5Hen6kvuWSCdUi2fYNSNqM1Ci31wE", name = "Thurston (zapped arc)", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 8 },
+  { address = "Cv4JVc25RZ7JV8HhEXrnxJjzebMBCqN5prB5ec43aJSz", name = "juicyfruity", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 9 },
+  { address = "EbSjMKQ4GiAxawit6LuHBjDqhC5gYGQhbH2YpBerJiCJ", name = "Crypto Chef", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 10 },
+  { address = "A5uxHmjTVyBd1Aj4BFUAekujpPjaWnCrLSRJhjAyvjH4", name = "Owl", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 11 },
+  { address = "DtjYbZntc2mEm1UrZHNcKguak6h6QM4S5xobnwFgg92Y", name = "Files", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 12 },
+  { address = "DxwDRWxQXDaVZquH3YvCVBQ75nUf16FttQ4q88okn5mc", name = "Sebi", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 13 },
+  { address = "CM1dn5LZ21o6PQv3NQpQeEFPGGo9dNpSQ4eWQctmp17g", name = "racks", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 14 },
+  { address = "4NtyFqqRzvHWsTmJZoT26H9xtL7asWGTxpcpCxiKax9a", name = "Inside Calls", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 15 },
+  { address = "EP5mvfhGv6x1XR33Fd8eioiYjtRXAawafPmkz9xBpDvG", name = "Zemrics", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 16 },
+  { address = "37Y6bz7AXpHHRzMHGMqGRxv8JMuHQCS2FFHrPZkUeRt2", name = "Laanie", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 17 },
+  { address = "DrJ6SnDXkEsPeGdmSs93v5rwWumv5QMvAGSZjAyWSd5o", name = "Iced", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 18 },
+  { address = "3LUfv2u5yzsDtUzPdsSJ7ygPBuqwfycMkjpNreRR2Yww", name = "Domy", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 19 },
+  { address = "8DGbkGgQewL9mx4aXzZCUChr7hBVXvPK9fYqSqc7Ajpn", name = "Ban", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 20 },
+  { address = "Bu8iZsGvS5dwuY3GiEDjUSDayEME7LthH4x7TRGTnMXA", name = "printer", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 21 },
+  { address = "951wq3qDowjKHaycrNaiRB5WpovYVKXnqhnrcKPh46zt", name = "jrus", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 22 },
+  { address = "6SYhd67FqypKyNqd5iFikRhrmKAKcCwwurSYUAMNSH4r", name = "Dragon", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 23 },
+  { address = "9pgKiUsNHXMe5p4DoGwzT9i6of7XympnNJ5TgbrZVqk6", name = "staticc", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 24 },
+  { address = "5ruP877fu8sBshx9inDeHsVLjnJtgVBTbjnbupeDHYHH", name = "Sanity", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 25 },
+  { address = "EA4MXkyF8C2NzY8fw2acJPuarmoU271KRCCAYpLzMBJr", name = "Grimace", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 26 },
+  { address = "FSAmbD6jm6SZZQadSJeC1paX3oTtAiY9hTx1UYzVoXqj", name = "Zil", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 27 },
+  { address = "Aa5LycwALUjaGeLyqe7y2jLZX3QetYnZqyvW2bLpwc2Q", name = "Nuotrix", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 28 },
+  { address = "86AEJExyjeNNgcp7GrAvCXTDicf5aGWgoERbXFiG1EdD", name = "Publix", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 29 },
+  { address = "CATk62cYqDFXTh3rsRbS1ibCyzBeovc2KXpXEaxEg3nB", name = "Coasty", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 30 },
+  { address = "4ud45nGBqtBptQPyoVtcLCCCs1Evh1zLsVVLMmDQn2JW", name = "Bronsi", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 31 },
+  { address = "8WN7tkp8WcZEYX2cSXJQY8u3q5QHEtykrZqJmFP7NYcf", name = "Netti", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 32 },
+  { address = "5sNnKuWKUtZkdC1eFNyqz3XHpNoCRQ1D1DfHcNHMV7gn", name = "cryptovillain26", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 33 },
+  { address = "GP9PyTwGybX3q3tC5dMRKeuq8Dr15uPVvn3Z9fKbempH", name = "Sweep", tiers = "kolscan-daily", pnl_sol = 0.0, rank = 35 },
 ]
+
+[dune]
+enabled = true
+base_url = "https://api.dune.com/api/v1"
+# Adam Tehc / PumpFun Alpha Wallets: Top Pump Fun Wallet (by profit).
+# Dune query results are used only to expand the tracked-wallet set. They are
+# not a pass signal by themselves because the public leaderboard can be bot
+# heavy and has extreme outliers.
+alpha_wallet_query_id = 4032586
+alpha_wallet_fetch_limit = 250
+alpha_wallets_to_add = 25
+alpha_wallet_skip_top_n = 25
+alpha_wallet_active_days = 30
+alpha_min_profit_usd = 10000.0
+alpha_max_profit_usd = 25000000.0
+requests_per_minute = 12
+cache_ttl_seconds = 3600

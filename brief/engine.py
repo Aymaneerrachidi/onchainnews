@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 from brief.config import Settings
 from brief.holders import HolderSnapshotter, analyze_changes, collapse_clusters, unavailable_finding
+from brief.intraday import candidate_from_pass, hard_blocked_pass, load_pulse_passes, pass_crosses_intraday_floor
 from brief.intelligence import (
     anomaly_findings,
     cex_provenance_finding,
@@ -18,7 +19,7 @@ from brief.intelligence import (
     migration_detail,
     pool_liquidity_proxy,
 )
-from brief.journal import build_journal, assign_lore
+from brief.journal import build_journal, assign_lore, journal_rank_key
 from brief.kol import KolTracker
 from brief.ledger import Ledger, iso
 from brief.models import (
@@ -32,8 +33,10 @@ from brief.models import (
     TokenSnapshot,
 )
 from brief.screen import allowed_chains, is_editorial_pick, is_live_cto, is_mover, mover_rank_key, screen
+from brief.scoring import score_candidates
 from brief.sources.birdeye import BirdeyeSource
 from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
+from brief.sources.dune import DuneSource
 from brief.sources.goplus import GoPlusSource, supports as goplus_supports
 from brief.sources.helius import HeliusSource
 from brief.sources.http import CachedHttpClient
@@ -49,6 +52,40 @@ from brief.sources.x import XSource
 
 
 log = logging.getLogger("brief.engine")
+
+
+def kol_discovery_mints(kol_activity: dict[str, object], settings: Settings) -> list[str]:
+    """Mints worth sending back through market/safety discovery.
+
+    Tracked-wallet activity is not enough to publish a coin. It is, however, a
+    discovery source: if good wallets bought or realised SOL on a mint that
+    Dexscreener's feeds did not surface, the mint still deserves the normal
+    Dex/RugCheck/Helius gates.
+    """
+    section = settings.section("kol")
+    max_mints = int(section.get("max_mints_enriched", 80) or 80)
+    min_buyers = int(section.get("min_buyers_to_enrich", 1) or 1)
+    min_participants = int(section.get("min_participants_to_enrich", 2) or 2)
+    min_realised = float(section.get("min_realised_sol_to_enrich", 0) or 0)
+
+    rows: list[tuple[float, str]] = []
+    for mint, record in kol_activity.items():
+        buyers = len(getattr(record, "buyers", []) or [])
+        holders = len(getattr(record, "holders", []) or [])
+        participants = getattr(record, "participants", 0)
+        realised = float(getattr(record, "realised_sol", 0) or 0)
+        spent = float(getattr(record, "sol_spent", 0) or 0)
+        qualifies = (
+            buyers >= min_buyers
+            or participants >= min_participants
+            or realised >= min_realised > 0
+        )
+        if not qualifies:
+            continue
+        score = buyers * 1000 + holders * 250 + participants * 100 + max(realised, 0) * 10 + spent
+        rows.append((score, mint))
+    rows.sort(reverse=True)
+    return [mint for _, mint in rows[:max_mints]]
 
 
 async def _map_resilient(items: list[str], fn, concurrency: int = 12):
@@ -303,11 +340,31 @@ async def build_brief(
             holder_page_limit=int(settings.get("holders", "holder_page_limit", 1000)),
             max_holder_pages=int(settings.get("holders", "max_holder_pages", 100)),
         )
+        dune_wallets: dict[str, str] = {}
+        dune = DuneSource(http, settings)
+        if dune.enabled:
+            if dune.configured:
+                try:
+                    alpha_wallets = await dune.alpha_wallets(now)
+                    dune_wallets = {wallet.address: wallet.name for wallet in alpha_wallets}
+                    statuses.append(SourceStatus(
+                        "Dune PumpFun alpha wallets", True,
+                        f"{len(dune_wallets)} active wallets accepted from query {dune.alpha_query_id}; "
+                        f"top {dune.skip_top_n} skipped and bot-sized profit capped",
+                    ))
+                except Exception as exc:
+                    log.warning("dune_alpha_wallets_failed error=%s", exc)
+                    statuses.append(SourceStatus("Dune PumpFun alpha wallets", False, str(exc)))
+            else:
+                statuses.append(SourceStatus(
+                    "Dune PumpFun alpha wallets", False,
+                    "DUNE_API_KEY not configured; using static Kolscan wallets only",
+                ))
         # Tracked-wallet flow is a check on the day's runners: a coin earns its
         # place by moving, and this answers whether the wallets that usually
         # catch these moves were in it. Scanned before screening so the answer
         # is available while the record is being built.
-        kol_tracker = KolTracker(helius, settings)
+        kol_tracker = KolTracker(helius, settings, extra_wallets=dune_wallets)
         kol_activity = {}
         if kol_tracker.enabled:
             try:
@@ -325,6 +382,21 @@ async def build_brief(
                 "KOL wallet flow", False,
                 "no wallets configured; add addresses to [kol].wallets in config.toml",
             ))
+
+        if kol_activity:
+            known_mints = {token.mint for token in tokens}
+            kol_mints = [mint for mint in kol_discovery_mints(kol_activity, settings) if mint not in known_mints]
+            if kol_mints:
+                try:
+                    kol_tokens = await dex.token_pairs(kol_mints)
+                    tokens = merge_token_snapshots([*tokens, *kol_tokens])
+                    statuses.append(SourceStatus(
+                        "KOL mint discovery", True,
+                        f"{len(kol_tokens)}/{len(kol_mints)} tracked-wallet mints resolved through Dexscreener",
+                    ))
+                except Exception as exc:
+                    log.warning("kol_mint_discovery_failed error=%s", exc)
+                    statuses.append(SourceStatus("KOL mint discovery", False, str(exc)))
 
         token_by_mint = {token.mint: token for token in tokens}
         hard_pass_mints = [
@@ -699,6 +771,7 @@ async def build_brief(
                 candidate.kol_holders = record.holders
                 candidate.kol_realised_sol = record.realised_sol
                 candidate.kol_sol_spent = record.sol_spent
+                candidate.kol_flows = record.flows
         top_limit = int(settings.get("editorial", "max_shortlist", settings.get("run", "top_tokens", 10)))
         def launched_in_window(candidate) -> bool:
             created = candidate.token.pair_created_at
@@ -758,9 +831,81 @@ async def build_brief(
                 candidate.kol_holders = record.holders
                 candidate.kol_realised_sol = record.realised_sol
                 candidate.kol_sol_spent = record.sol_spent
+                candidate.kol_flows = record.flows
+        score_candidates(journal_pool, settings)
         runners, blocked_runners = build_journal(journal_pool, settings, ledger, now)
+        if bool(settings.get("journal", "include_intraday_pulse_runners", True)):
+            try:
+                pulse_passes = load_pulse_passes(settings, window_start, now)
+                if pulse_passes:
+                    missing_pulse_mints = [
+                        mint for mint in pulse_passes
+                        if mint not in token_by_mint
+                    ]
+                    if missing_pulse_mints:
+                        for token in await dex.token_pairs(missing_pulse_mints):
+                            token_by_mint.setdefault(token.mint, token)
+                    current_blocked = {candidate.token.mint: candidate for candidate in blocked_runners}
+                    existing = {candidate.token.mint for candidate in runners}
+                    recovered: list[Candidate] = []
+                    for mint, entry in pulse_passes.items():
+                        if mint in existing or not pass_crosses_intraday_floor(entry, settings):
+                            continue
+                        blocked_now = current_blocked.get(mint)
+                        if blocked_now and hard_blocked_pass({"riskLabels": blocked_now.risk_labels}, settings):
+                            continue
+                        candidate = candidate_from_pass(entry, token_by_mint.get(mint), settings)
+                        if blocked_now:
+                            candidate.risk_labels = list(dict.fromkeys([*candidate.risk_labels, *blocked_now.risk_labels]))
+                        if "intraday runner: qualified during the window, may have faded by report time" not in candidate.risk_labels:
+                            candidate.risk_labels.insert(
+                                0,
+                                "intraday runner: qualified during the window, may have faded by report time",
+                            )
+                        recovered.append(candidate)
+                        existing.add(mint)
+                    if recovered:
+                        blocked_mints = {candidate.token.mint for candidate in recovered}
+                        blocked_runners = [
+                            candidate for candidate in blocked_runners
+                            if candidate.token.mint not in blocked_mints
+                        ]
+                        runners = [*runners, *recovered]
+                        runners.sort(key=journal_rank_key, reverse=True)
+                    statuses.append(SourceStatus(
+                        "Intraday pulse memory",
+                        True,
+                        f"{len(recovered)} faded/earlier runners recovered from {len(pulse_passes)} pulse-tracked mint(s)",
+                    ))
+                else:
+                    statuses.append(SourceStatus(
+                        "Intraday pulse memory",
+                        False,
+                        "no pulse passes found in the report window; run hourly pulse to capture peaks",
+                    ))
+            except Exception as exc:
+                log.warning("intraday_pulse_recovery_failed error=%s", exc)
+                statuses.append(SourceStatus("Intraday pulse memory", False, str(exc)))
         runners = runners[:int(settings.get('journal', 'max_runners', 40))]
         lore_groups = assign_lore(runners, settings)
+        if bool(settings.get("journal", "gate_editorial_tracks", False)):
+            runner_mints = {candidate.token.mint for candidate in runners}
+            # The older editorial tracks are useful structure, but in production
+            # they must not outrank the actual runner gate. If a name fails the
+            # journal's rug/bundle/organic/KOL checks, it can stay in diagnostics
+            # as blocked evidence, not in the public "picks" rails.
+            new_and_moving = [
+                candidate for candidate in new_and_moving
+                if candidate.token.mint in runner_mints
+            ]
+            cto_candidates = [
+                candidate for candidate in cto_candidates
+                if candidate.token.mint in runner_mints
+            ]
+            movers = [
+                candidate for candidate in movers
+                if candidate.token.mint in runner_mints
+            ]
         min_kol = int(settings.get("kol", "min_buyers_to_flag", 2))
         kol_flagged = sorted(
             (c for c in runners if len(c.kol_buyers) >= min_kol),
@@ -853,6 +998,7 @@ async def build_brief(
                 default=0.0,
             )
             return (
+                candidate.scores.get("runner", 0.0),
                 social,
                 float(len(candidate.x_interactions)),
                 float(len(candidate.kol_buyers)),

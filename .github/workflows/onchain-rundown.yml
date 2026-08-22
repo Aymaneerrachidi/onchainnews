@@ -28,12 +28,6 @@ concurrency:
 env:
   HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
   BIRDEYE_API_KEY: ${{ secrets.BIRDEYE_API_KEY }}
-  X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
-  X_USER_ACCESS_TOKEN: ${{ secrets.X_USER_ACCESS_TOKEN }}
-  X_API_KEY: ${{ secrets.X_API_KEY }}
-  X_API_SECRET: ${{ secrets.X_API_SECRET }}
-  X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-  X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   OPENAI_IMAGE_MODEL: ${{ vars.OPENAI_IMAGE_MODEL || 'gpt-image-2' }}
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

@@ -19,13 +19,17 @@ does nothing and costs nothing.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from brief.config import Settings
+from brief.models import KolWalletFlow
 
 
 log = logging.getLogger("brief.kol")
@@ -99,6 +103,7 @@ class MintActivity:
     realised_sol: float = 0.0
     sol_spent: float = 0.0
     holders: list[str] = field(default_factory=list)
+    flows: list[KolWalletFlow] = field(default_factory=list)
     first_buy_at: datetime | None = None
 
     @property
@@ -202,10 +207,13 @@ def apply_transaction(flows: dict[str, MintFlow], transaction: dict[str, Any], o
 
 
 class KolTracker:
-    def __init__(self, helius, settings: Settings) -> None:
+    def __init__(self, helius, settings: Settings, extra_wallets: dict[str, str] | None = None) -> None:
         self.helius = helius
         self.settings = settings
         self.wallets = configured_wallets(settings)
+        for address, label in (extra_wallets or {}).items():
+            if address and address not in self.wallets:
+                self.wallets[address] = label or f"{address[:4]}...{address[-4:]}"
         section = settings.section("kol")
         self.max_transactions = int(section.get("max_transactions_per_wallet", 40))
         self.concurrency = int(section.get("concurrency", 2))
@@ -217,6 +225,12 @@ class KolTracker:
         max_wallets = int(section.get("max_wallets_per_run", 0))
         if max_wallets > 0:
             self.wallets = dict(list(self.wallets.items())[:max_wallets])
+        self.cache_ttl_seconds = int(section.get("cache_ttl_seconds", 0) or 0)
+        raw_cache_path = str(section.get("cache_path", "") or "").strip()
+        self.cache_path: Path | None = None
+        if raw_cache_path:
+            path = Path(raw_cache_path)
+            self.cache_path = path if path.is_absolute() else settings.root / path
         self.scanned = 0
         self.failed = 0
 
@@ -228,6 +242,14 @@ class KolTracker:
         """Per-mint aggregate of what every tracked wallet did in the window."""
         if not self.enabled or not getattr(self.helius, "configured", False):
             return {}
+        cached = self._read_cache(now)
+        if cached is not None:
+            self.scanned = len(self.wallets)
+            log.info(
+                "kol_scan_cache_hit wallets=%s mints=%s path=%s",
+                len(self.wallets), len(cached), self.cache_path,
+            )
+            return cached
         cutoff = now.astimezone(timezone.utc) - timedelta(hours=self.window_hours)
         semaphore = asyncio.Semaphore(max(1, self.concurrency))
         per_wallet: dict[str, dict[str, MintFlow]] = {}
@@ -240,6 +262,7 @@ class KolTracker:
                     transactions = await self.helius.wallet_transactions(
                         address,
                         limit=self.max_transactions,
+                        since_unix=int(cutoff.timestamp()),
                         requests_per_minute=self.requests_per_minute,
                     )
                 except Exception as exc:
@@ -278,15 +301,136 @@ class KolTracker:
                 record.realised_sol += flow.realised_sol
                 if flow.still_holding:
                     record.holders.append(label)
+                if flow.tokens_in > 0 or flow.tokens_out > 0 or flow.realised_sol:
+                    record.flows.append(KolWalletFlow(
+                        name=label,
+                        bought=flow.tokens_in > 0,
+                        sold=flow.tokens_out > 0,
+                        holding=flow.still_holding,
+                        realised_sol=flow.realised_sol,
+                        sol_spent=flow.sol_spent,
+                    ))
         for record in activity.values():
             record.buyers.sort()
             record.sellers.sort()
             record.holders.sort()
+            record.flows.sort(
+                key=lambda flow: (
+                    flow.realised_sol,
+                    flow.holding,
+                    flow.bought,
+                    flow.name.lower(),
+                ),
+                reverse=True,
+            )
         log.info(
             "kol_scan wallets=%s scanned=%s failed=%s mints=%s",
             len(self.wallets), self.scanned, self.failed, len(activity),
         )
+        self._write_cache(now, activity)
         return activity
 
     async def buyers_by_mint(self, now: datetime) -> dict[str, list[str]]:
         return {mint: record.buyers for mint, record in (await self.activity(now)).items()}
+
+    def _cache_key(self) -> str:
+        payload = {
+            "wallets": list(self.wallets.items()),
+            "window_hours": self.window_hours,
+            "max_transactions": self.max_transactions,
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def _read_cache(self, now: datetime) -> dict[str, MintActivity] | None:
+        if not self.cache_path or self.cache_ttl_seconds <= 0 or not self.cache_path.exists():
+            return None
+        try:
+            data = json.loads(self.cache_path.read_text(encoding="utf-8"))
+            if data.get("key") != self._cache_key():
+                return None
+            created_raw = str(data.get("created_at") or "")
+            created = datetime.fromisoformat(created_raw)
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            age = now.astimezone(timezone.utc) - created.astimezone(timezone.utc)
+            if age.total_seconds() < 0 or age.total_seconds() > self.cache_ttl_seconds:
+                return None
+            return {
+                mint: self._record_from_json(mint, raw)
+                for mint, raw in (data.get("activity") or {}).items()
+                if isinstance(raw, dict)
+            }
+        except Exception as exc:
+            log.warning("kol_cache_read_failed path=%s error=%s", self.cache_path, exc)
+            return None
+
+    def _write_cache(self, now: datetime, activity: dict[str, MintActivity]) -> None:
+        if not self.cache_path or self.cache_ttl_seconds <= 0:
+            return
+        try:
+            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "created_at": now.astimezone(timezone.utc).isoformat(),
+                "key": self._cache_key(),
+                "wallet_count": len(self.wallets),
+                "activity": {
+                    mint: self._record_to_json(record)
+                    for mint, record in activity.items()
+                },
+            }
+            self.cache_path.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+        except Exception as exc:
+            log.warning("kol_cache_write_failed path=%s error=%s", self.cache_path, exc)
+
+    @staticmethod
+    def _record_to_json(record: MintActivity) -> dict[str, Any]:
+        return {
+            "buyers": record.buyers,
+            "sellers": record.sellers,
+            "holders": record.holders,
+            "realised_sol": record.realised_sol,
+            "sol_spent": record.sol_spent,
+            "first_buy_at": record.first_buy_at.isoformat() if record.first_buy_at else None,
+            "flows": [
+                {
+                    "name": flow.name,
+                    "bought": flow.bought,
+                    "sold": flow.sold,
+                    "holding": flow.holding,
+                    "realised_sol": flow.realised_sol,
+                    "sol_spent": flow.sol_spent,
+                }
+                for flow in record.flows
+            ],
+        }
+
+    @staticmethod
+    def _record_from_json(mint: str, raw: dict[str, Any]) -> MintActivity:
+        first_buy_at = None
+        if raw.get("first_buy_at"):
+            try:
+                first_buy_at = datetime.fromisoformat(str(raw["first_buy_at"]))
+            except ValueError:
+                first_buy_at = None
+        return MintActivity(
+            mint=mint,
+            buyers=[str(item) for item in raw.get("buyers", [])],
+            sellers=[str(item) for item in raw.get("sellers", [])],
+            holders=[str(item) for item in raw.get("holders", [])],
+            realised_sol=float(raw.get("realised_sol") or 0.0),
+            sol_spent=float(raw.get("sol_spent") or 0.0),
+            first_buy_at=first_buy_at,
+            flows=[
+                KolWalletFlow(
+                    name=str(flow.get("name") or ""),
+                    bought=bool(flow.get("bought")),
+                    sold=bool(flow.get("sold")),
+                    holding=bool(flow.get("holding")),
+                    realised_sol=float(flow.get("realised_sol") or 0.0),
+                    sol_spent=float(flow.get("sol_spent") or 0.0),
+                )
+                for flow in raw.get("flows", [])
+                if isinstance(flow, dict)
+            ],
+        )

@@ -45,7 +45,23 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "faded": candidate.faded_from_peak,
         "kolBuyers": candidate.kol_buyers,
         "kolHolders": candidate.kol_holders,
+        "kolSellers": candidate.kol_sellers,
         "kolRealisedSol": candidate.kol_realised_sol,
+        "kolSolSpent": candidate.kol_sol_spent,
+        "kolFlows": [
+            {
+                "name": flow.name,
+                "bought": flow.bought,
+                "sold": flow.sold,
+                "holding": flow.holding,
+                "realisedSol": flow.realised_sol,
+                "solSpent": flow.sol_spent,
+            }
+            for flow in candidate.kol_flows
+        ],
+        "scores": candidate.scores,
+        "scoreComponents": candidate.score_components,
+        "classification": candidate.classification,
         "read": candidate.read,
         "track": candidate.track,
         "tradeUrl": trade_url(trade_template, token.mint, token.symbol),
@@ -96,6 +112,7 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
         template = str(settings.get("overlay", "trade_url_template", "") or "")
         template += str(settings.get("overlay", "trade_url_suffix", "") or "")
     runners = [_candidate(candidate, template) for candidate in brief.runners]
+    blocked = [_candidate(candidate, template) for candidate in brief.blocked_runners]
     fresh = sum(
         1 for candidate in brief.runners
         if candidate.signals.age_hours is not None and candidate.signals.age_hours <= 24
@@ -106,6 +123,7 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
         "timezone": brief.generated_at.tzname() or "local",
         "summary": {
             "runners": len(brief.runners),
+            "observedRunners": len(brief.runners) + len(brief.blocked_runners),
             "launchedToday": fresh,
             "bigMultiples": sum(1 for c in brief.runners if c.run_multiple >= 5),
             "kolFlagged": len(brief.kol_flagged),
@@ -114,6 +132,7 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
             "walletsTracked": brief.kol_wallet_count,
         },
         "runners": runners,
+        "blockedRunners": blocked,
         "chains": sorted({c.token.chain_id for c in brief.runners}),
         "loreGroups": [
             {

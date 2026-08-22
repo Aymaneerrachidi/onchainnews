@@ -152,6 +152,8 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     token = candidate.token
     report = candidate.safety
     enrichment = candidate.enrichment
+    kol_touch_count = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+    strong_kol_flow = kol_touch_count >= int(section.get("strong_kol_wallets", 3) or 3)
 
     if bool(section.get("exclude_boosted", False)) and token.active_boosts:
         reasons.append("active Dexscreener boost; paid placement is not organic discovery")
@@ -181,7 +183,7 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
         elif report.top10_pct > max_top10:
             reasons.append(f"top 10 hold {report.top10_pct:.0f}%, above publisher ceiling")
 
-    if bool(section.get("require_socials", False)) and not token.socials:
+    if bool(section.get("require_socials", False)) and not token.socials and not strong_kol_flow:
         reasons.append("no linked social context")
     if bool(section.get("require_social_resolves", False)) and enrichment.social_resolves is False:
         reasons.append("linked X account does not resolve")
@@ -201,7 +203,7 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
             reasons.append(f"blocked low-signal theme term: {term}")
             break
 
-    if bool(section.get("exclude_recycled", False)) and candidate.recycled_label_count:
+    if bool(section.get("exclude_recycled", False)) and candidate.recycled_label_count and not strong_kol_flow:
         reasons.append(f"ticker/name reused by {candidate.recycled_label_count} other recent mint(s)")
 
     age = _age_hours(token, now)
@@ -212,6 +214,69 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     max_fade = float(section.get("max_negative_1h_pct", 0) or 0)
     if max_fade and token.price_change_1h <= -abs(max_fade):
         reasons.append(f"fading {token.price_change_1h:.0f}% in the last hour")
+
+    extreme_multiple = float(section.get("extreme_multiple", 0) or 0)
+    if extreme_multiple and candidate.run_multiple >= extreme_multiple:
+        min_extreme_volume = float(section.get("extreme_min_volume_24h", 0) or 0)
+        min_extreme_holders = int(section.get("extreme_min_holders", 0) or 0)
+        min_extreme_turnover = float(section.get("extreme_min_turnover", 0) or 0)
+        min_extreme_recent_share = float(section.get("extreme_min_recent_volume_share", 0) or 0)
+        if min_extreme_volume and token.volume_24h < min_extreme_volume:
+            reasons.append(
+                f"{candidate.run_multiple:.0f}x move on only ${token.volume_24h:,.0f} volume"
+            )
+        if min_extreme_turnover and candidate.signals.turnover < min_extreme_turnover:
+            reasons.append(
+                f"{candidate.run_multiple:.0f}x move on only {candidate.signals.turnover:.2f}x turnover"
+            )
+        if min_extreme_holders and (report.holder_count is None or report.holder_count < min_extreme_holders):
+            holder_text = "unavailable holders" if report.holder_count is None else f"{report.holder_count:,} holders"
+            reasons.append(f"{candidate.run_multiple:.0f}x move with {holder_text}")
+        if min_extreme_recent_share and token.volume_24h:
+            recent_share = token.volume_6h / token.volume_24h
+            if recent_share < min_extreme_recent_share:
+                reasons.append(
+                    f"{candidate.run_multiple:.0f}x move but only {recent_share:.0%} of volume stayed active in 6h"
+                )
+        if not token.socials and not strong_kol_flow:
+            reasons.append(f"{candidate.run_multiple:.0f}x move with no linked social context")
+        if candidate.recycled_label_count and not strong_kol_flow:
+            reasons.append(f"{candidate.run_multiple:.0f}x move on recycled ticker/name")
+
+    min_confirmations = int(section.get("min_organic_confirmations", 0) or 0)
+    if min_confirmations:
+        confirmations: list[str] = []
+        min_holders = int(section.get("min_holders", 0) or 0)
+        min_trades = int(section.get("min_trades_24h", 0) or 0)
+        min_volume = float(section.get("min_volume_24h", 0) or 0)
+        min_liquidity = float(section.get("min_liquidity", 0) or 0)
+        max_top10 = float(section.get("publisher_max_top10_pct", 0) or 0)
+        min_buy_ratio = float(section.get("organic_min_buy_ratio", 0.42) or 0.42)
+        max_buy_ratio = float(section.get("organic_max_buy_ratio", 0.72) or 0.72)
+
+        if report.holder_count is not None and (not min_holders or report.holder_count >= min_holders):
+            confirmations.append("holders")
+        if token.txns_24h.total and (not min_trades or token.txns_24h.total >= min_trades):
+            confirmations.append("trades")
+        if not min_volume or token.volume_24h >= min_volume:
+            confirmations.append("volume")
+        if not min_liquidity or token.liquidity_usd >= min_liquidity:
+            confirmations.append("liquidity")
+        if token.socials or strong_kol_flow:
+            confirmations.append("context")
+        if report.top10_pct is not None and (not max_top10 or report.top10_pct <= max_top10):
+            confirmations.append("distribution")
+        if (
+            candidate.signals.buy_imbalance_6h is not None
+            and min_buy_ratio <= candidate.signals.buy_imbalance_6h <= max_buy_ratio
+        ):
+            confirmations.append("two-sided book")
+
+        if len(confirmations) < min_confirmations:
+            reasons.append(
+                f"only {len(confirmations)}/{min_confirmations} organic confirmations "
+                f"({', '.join(confirmations) or 'none'})"
+            )
 
     return reasons
 
@@ -324,6 +389,38 @@ def untouched_by_tracked_wallets(candidate: Candidate, settings: Settings) -> bo
     )
 
 
+def missing_wallet_confirmation(candidate: Candidate, settings: Settings) -> bool:
+    """Whether a publishable Solana runner lacks the wallet heat it should have.
+
+    This is stricter than the row label above. The newsletter is for a creator,
+    not a lab notebook: if a big Solana runner was missed by the entire tracked
+    wallet net, it should not headline as clean unless holder/distribution data
+    proves another organic crowd.
+    """
+    section = settings.section("journal")
+    if not bool(section.get("require_wallet_touch_for_publish", False)):
+        return False
+    if candidate.token.chain_id.lower() != "solana" or not candidate.kol_wallets_scanned:
+        return False
+    threshold = float(section.get("wallet_touch_required_above_multiple", 2.0) or 2.0)
+    min_mcap = float(section.get("wallet_touch_required_min_mcap", 0) or 0)
+    if candidate.run_multiple < threshold:
+        return False
+    if min_mcap and candidate.token.market_cap < min_mcap:
+        return False
+    touch_count = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+    min_buyers = int(section.get("wallet_touch_required_min_buyers", 2) or 2)
+    min_participants = int(section.get("wallet_touch_required_min_participants", 3) or 3)
+    min_realised = float(section.get("wallet_touch_required_min_realised_sol", 50.0) or 50.0)
+    if len(set(candidate.kol_buyers)) >= min_buyers:
+        return False
+    if touch_count >= min_participants:
+        return False
+    if abs(float(candidate.kol_realised_sol or 0)) >= min_realised:
+        return False
+    return True
+
+
 def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list[str]:
     """Everything worth seeing on the row that is not a reason to hide it."""
     section = settings.section("journal")
@@ -341,6 +438,8 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
     ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else float("inf")
     if ratio > float(section.get("thin_liquidity_ratio", 60)):
         labels.append(f"thin pool, {ratio:.0f}x its liquidity traded")
+    if token.active_boosts:
+        labels.append("active Dexscreener boost")
     if candidate.recycled_label_count:
         labels.append(f"ticker also used by {candidate.recycled_label_count} other recent mint(s)")
     if candidate.safety.source == "unavailable" and token.chain_id.lower() != "solana":
@@ -434,6 +533,9 @@ def journal_rank_key(candidate: Candidate) -> tuple[float, ...]:
     """Organic attention first: volume, trades and holders beat raw percent."""
     token = candidate.token
     return (
+        candidate.scores.get("runner", 0.0),
+        candidate.scores.get("organic", 0.0),
+        -candidate.scores.get("manipulation", 0.0),
         float(len(candidate.kol_buyers)),
         token.volume_24h,
         float(token.txns_24h.total or token.txns_6h.total),
@@ -441,6 +543,41 @@ def journal_rank_key(candidate: Candidate) -> tuple[float, ...]:
         candidate.signals.turnover,
         token.price_change_24h,
     )
+
+
+def _matches_any_reason(reason: str, patterns: list[str]) -> bool:
+    lowered = reason.casefold()
+    return any(pattern and pattern in lowered for pattern in patterns)
+
+
+def caveated_runner_fill_allowed(candidate: Candidate, settings: Settings) -> bool:
+    """Allow non-toxic caveated names to fill the daily tape.
+
+    The product wants a useful morning recap, usually 5-6+ names. That does not
+    mean forcing rugs through. This lets softer editorial failures remain
+    visible while hard safety/manipulation failures stay blocked.
+    """
+    section = settings.section("journal")
+    if not bool(section.get("fill_with_caveated_runners", False)):
+        return False
+
+    age = candidate.signals.age_hours
+    min_age = float(section.get("fill_min_age_hours", 0.5) or 0.5)
+    if age is not None and age < min_age:
+        return False
+    if candidate.scores.get("runner", 0.0) < float(section.get("fill_min_runner_score", 25.0) or 25.0):
+        return False
+    if candidate.scores.get("organic", 0.0) < float(section.get("fill_min_organic_score", 40.0) or 40.0):
+        return False
+    if candidate.scores.get("manipulation", 100.0) > float(section.get("fill_max_manipulation", 55.0) or 55.0):
+        return False
+
+    hard_terms = [
+        str(term).casefold()
+        for term in (section.get("fill_hard_block_terms", []) or [])
+        if str(term).strip()
+    ]
+    return not any(_matches_any_reason(reason, hard_terms) for reason in candidate.risk_labels)
 
 
 def build_journal(
@@ -459,6 +596,12 @@ def build_journal(
             + inorganic_reasons(candidate, settings)
             + publisher_quality_reasons(candidate, settings, now)
         )
+        if missing_wallet_confirmation(candidate, settings):
+            disqualifying.append(
+                f"{candidate.run_multiple:.1f}x Solana runner but tracked-wallet confirmation was too thin "
+                f"({len(set(candidate.kol_buyers))} buyers, "
+                f"{len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))} participants)"
+            )
         if disqualifying:
             candidate.risk_labels = disqualifying
             blocked.append(candidate)
@@ -469,4 +612,22 @@ def build_journal(
     mark_lore_freshness(runners, ledger, now, settings)
     runners.sort(key=journal_rank_key, reverse=True)
     blocked.sort(key=journal_rank_key, reverse=True)
+    target_min = int(settings.get("journal", "target_min_runners", 0) or 0)
+    if target_min and len(runners) < target_min:
+        promoted: list[Candidate] = []
+        still_blocked: list[Candidate] = []
+        for candidate in blocked:
+            if len(runners) + len(promoted) < target_min and caveated_runner_fill_allowed(candidate, settings):
+                if "caveated runner: failed a soft editorial gate, not a hard rug/bundle/wash gate" not in candidate.risk_labels:
+                    candidate.risk_labels.insert(
+                        0,
+                        "caveated runner: failed a soft editorial gate, not a hard rug/bundle/wash gate",
+                    )
+                promoted.append(candidate)
+            else:
+                still_blocked.append(candidate)
+        if promoted:
+            runners = [*runners, *promoted]
+            runners.sort(key=journal_rank_key, reverse=True)
+            blocked = still_blocked
     return runners, blocked

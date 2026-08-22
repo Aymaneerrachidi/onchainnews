@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 import pytest
 
 from brief.kol import (
+    KolTracker,
     MintFlow,
+    MintActivity,
     _mints_bought,
     _sol_delta,
     _token_deltas,
@@ -150,16 +152,82 @@ def test_the_shipped_wallet_list_has_no_duplicates():
     addresses = [entry["address"] for entry in entries]
     assert len(addresses) == len(set(addresses)), "duplicate wallet in config.toml"
     assert all(entry.get("name") for entry in entries), "every wallet needs a name"
-    assert len(addresses) >= 60
+    assert len(addresses) == 100
+
+
+def test_extra_dune_wallets_extend_static_kol_wallets(tmp_path):
+    settings = build_settings(
+        tmp_path / "kol-extra",
+        "movers.json",
+        extra=(
+            "\n[kol]\nenabled = true\nmax_wallets_per_run = 3\nwallets = [\n"
+            '  { address = "AAAA1111", name = "Static A" },\n'
+            '  { address = "BBBB2222", name = "Static B" },\n'
+            "]\n"
+        ),
+    )
+    tracker = KolTracker(
+        object(),
+        settings,
+        extra_wallets={
+            "CCCC3333": "Dune #44 CCCC...3333",
+            "AAAA1111": "Duplicate should not replace",
+        },
+    )
+    assert tracker.wallets == {
+        "AAAA1111": "Static A",
+        "BBBB2222": "Static B",
+        "CCCC3333": "Dune #44 CCCC...3333",
+    }
 
 
 def test_a_wallet_that_only_sold_still_counts_as_a_trader():
     """Positions opened before the window close inside it; buyers alone misses them."""
-    from brief.kol import MintActivity
-
     record = MintActivity(mint="MINTA", buyers=["Wugi"], sellers=["Wugi", "theo"])
     assert record.participants == 2
     assert len(record.buyers) == 1
+
+
+@pytest.mark.asyncio
+async def test_kol_wallet_transactions_include_ata_balance_changes():
+    """KOL scans must include associated token-account balance changes."""
+    from brief.sources.helius import HeliusSource
+
+    asked = {}
+
+    class FakeHttp:
+        async def post_json(self, url, *, family, limit, ttl, json_body, params=None, headers=None):
+            asked.update(json_body["params"][1])
+            return {"result": {"data": []}}
+
+    source = HeliusSource(FakeHttp(), "https://helius.test", "key", 60)
+    await source.wallet_transactions("WALLET", limit=100, since_unix=1786000000)
+
+    filters = asked["filters"]
+    assert filters["status"] == "succeeded"
+    assert filters["tokenAccounts"] == "balanceChanged"
+    assert filters["blockTime"]["gte"] == 1786000000
+
+
+def test_kol_activity_promotes_unknown_mints_for_market_checks(tmp_path):
+    """Tracked-wallet flow is discovery, not an automatic pass."""
+    from brief.engine import kol_discovery_mints
+
+    settings = build_settings(tmp_path / "kol-discovery")
+    settings.values["kol"] = {
+        "max_mints_enriched": 2,
+        "min_buyers_to_enrich": 1,
+        "min_participants_to_enrich": 3,
+        "min_realised_sol_to_enrich": 5.0,
+    }
+    activity = {
+        "MINT_A": MintActivity("MINT_A", buyers=["Wugi"], holders=["Wugi"], sol_spent=4.0),
+        "MINT_B": MintActivity("MINT_B", sellers=["theo", "Pain"], realised_sol=2.0),
+        "MINT_C": MintActivity("MINT_C", sellers=["Gasp"], realised_sol=9.0),
+        "MINT_D": MintActivity("MINT_D", sellers=["Noise"], realised_sol=0.1),
+    }
+
+    assert kol_discovery_mints(activity, settings) == ["MINT_A", "MINT_C"]
 
 
 @pytest.mark.asyncio

@@ -723,6 +723,76 @@ def test_a_genuine_runner_survives_every_organic_check(tmp_path):
               trades6=2_467, buys6=1_233), settings) == []
 
 
+def _publisher_settings(settings):
+    journal = settings.values.setdefault("journal", {})
+    journal.update({
+        "require_socials": True,
+        "exclude_recycled": True,
+        "require_holder_count": True,
+        "min_holders": 1000,
+        "min_trades_24h": 1000,
+        "min_liquidity": 40_000.0,
+        "min_lp_locked_pct": 80.0,
+        "publisher_max_top10_pct": 25.0,
+        "extreme_multiple": 10.0,
+        "extreme_min_volume_24h": 1_000_000.0,
+        "extreme_min_holders": 5_000,
+        "extreme_min_turnover": 0.75,
+        "extreme_min_recent_volume_share": 0.15,
+        "min_organic_confirmations": 6,
+        "organic_min_buy_ratio": 0.42,
+        "organic_max_buy_ratio": 0.72,
+    })
+    return settings
+
+
+def test_publisher_gate_blocks_insta_x_with_weak_organic_proof(tmp_path):
+    """A 30x+ print is not enough when holders, turnover and context lag."""
+    from brief.journal import publisher_quality_reasons
+    from brief.models import SafetyReport
+
+    settings = _publisher_settings(build_settings(tmp_path / "publisher-weak"))
+    suspect = _tape("TNOS", mcap=1_640_000, vol24=326_000, vol6=180_000, liq=80_000,
+                    trades6=1_527, buys6=780)
+    suspect.token.txns_24h = suspect.token.txns_6h
+    suspect.token.price_change_24h = 3400.0
+    suspect.run_multiple = 35.0
+    suspect.safety = SafetyReport(
+        "m",
+        holder_count=1_527,
+        lp_locked_or_burned_pct=100.0,
+        top10_pct=1.4,
+    )
+
+    reasons = publisher_quality_reasons(suspect, settings, NOW)
+    assert any("move on only $326,000 volume" in r for r in reasons)
+    assert any("move on only 0.20x turnover" in r for r in reasons)
+    assert any("move with 1,527 holders" in r for r in reasons)
+    assert any("no linked social context" in r for r in reasons)
+
+
+def test_publisher_gate_keeps_extreme_runner_when_tape_confirms_it(tmp_path):
+    """A violent move survives only when independent signals agree."""
+    from brief.journal import publisher_quality_reasons
+    from brief.models import SafetyReport
+
+    settings = _publisher_settings(build_settings(tmp_path / "publisher-strong"))
+    fomo = _tape("FOMO", mcap=380_000, vol24=3_098_000, vol6=900_000, liq=83_000,
+                 trades6=2_467, buys6=1_233)
+    fomo.token.txns_24h = fomo.token.txns_6h
+    fomo.token.price_change_24h = 6988.0
+    fomo.token.socials = [{"type": "twitter", "url": "https://x.com/fomo"}]
+    fomo.run_multiple = 70.88
+    fomo.safety = SafetyReport(
+        "m",
+        holder_count=6_200,
+        lp_locked_or_burned_pct=100.0,
+        top10_pct=19.0,
+    )
+
+    assert publisher_quality_reasons(fomo, settings, NOW) == []
+
+
 def test_a_big_move_no_tracked_wallet_touched_is_flagged(tmp_path):
     """These wallets exist because they find moves like this. Silence is odd."""
     from brief.journal import risk_labels, untouched_by_tracked_wallets
@@ -737,6 +807,30 @@ def test_a_big_move_no_tracked_wallet_touched_is_flagged(tmp_path):
     assert untouched_by_tracked_wallets(ran, settings)
     assert any("not one tracked wallet touched it" in f
                for f in risk_labels(ran, settings, NOW))
+
+
+def test_a_big_solana_runner_without_wallet_heat_is_blocked_for_publishing(tmp_path):
+    """For the public recap, silence from a wide wallet net is not clean."""
+    from brief.journal import missing_wallet_confirmation
+
+    settings = build_settings(tmp_path / "missing-wallet-confirmation")
+    settings.values.setdefault("journal", {})["require_wallet_touch_for_publish"] = True
+    settings.values["journal"]["wallet_touch_required_above_multiple"] = 1.8
+    settings.values["journal"]["wallet_touch_required_min_mcap"] = 200_000
+
+    ran = _tape("GHOST", mcap=400_000, vol24=900_000, vol6=250_000, liq=60_000,
+                trades6=1_200, buys6=640)
+    ran.token.chain_id = "solana"
+    ran.run_multiple = 2.4
+    ran.kol_wallets_scanned = 150
+
+    assert missing_wallet_confirmation(ran, settings)
+
+    ran.kol_buyers = ["Wugi"]
+    assert missing_wallet_confirmation(ran, settings)
+
+    ran.kol_buyers = ["Wugi", "Cupsey"]
+    assert not missing_wallet_confirmation(ran, settings)
 
 
 def test_a_runner_the_wallets_traded_is_not_flagged(tmp_path):

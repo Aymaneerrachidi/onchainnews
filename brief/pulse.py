@@ -86,6 +86,10 @@ def _pass_entry(candidate: Candidate, now: datetime) -> dict[str, Any]:
     token = candidate.token
     txns_24h = getattr(token, "txns_24h", None)
     trades_24h = getattr(txns_24h, "total", 0) if txns_24h is not None else 0
+    txns_6h = getattr(token, "txns_6h", None)
+    trades_6h = getattr(txns_6h, "total", 0) if txns_6h is not None else 0
+    signals = getattr(candidate, "signals", None)
+    safety = getattr(candidate, "safety", None)
     return {
         "takenAt": _iso(now),
         "symbol": token.symbol,
@@ -96,13 +100,26 @@ def _pass_entry(candidate: Candidate, now: datetime) -> dict[str, Any]:
         "marketCap": token.market_cap,
         "liquidity": token.liquidity_usd,
         "volume24h": token.volume_24h,
+        "volume6h": getattr(token, "volume_6h", token.volume_24h),
         "trades24h": trades_24h,
+        "trades6h": trades_6h,
+        "buys6h": getattr(txns_6h, "buys", 0) if txns_6h is not None else 0,
+        "sells6h": getattr(txns_6h, "sells", 0) if txns_6h is not None else 0,
         "change24h": token.price_change_24h,
+        "change6h": getattr(token, "price_change_6h", token.price_change_24h),
         "change1h": token.price_change_1h,
         "runMultiple": candidate.run_multiple,
-        "holders": candidate.safety.holder_count,
+        "turnover": getattr(signals, "turnover", token.volume_24h / token.market_cap if token.market_cap else 0),
+        "ageHours": getattr(signals, "age_hours", None),
+        "buyRatio6h": getattr(signals, "buy_imbalance_6h", None),
+        "holders": getattr(safety, "holder_count", None),
+        "top10Pct": getattr(safety, "top10_pct", None),
+        "lpLockedPct": getattr(safety, "lp_locked_or_burned_pct", None),
         "kolBuyers": candidate.kol_buyers,
         "riskLabels": candidate.risk_labels,
+        "scores": getattr(candidate, "scores", {}),
+        "scoreComponents": getattr(candidate, "score_components", {}),
+        "classification": getattr(candidate, "classification", ""),
         "read": candidate.read,
     }
 

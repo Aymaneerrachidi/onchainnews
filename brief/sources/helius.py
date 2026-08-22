@@ -260,13 +260,28 @@ class HeliusSource:
         return balances, excluded_count
 
     async def wallet_transactions(
-        self, owner: str, *, limit: int = 60, ttl: int = 300, requests_per_minute: int | None = None
+        self,
+        owner: str,
+        *,
+        limit: int = 60,
+        ttl: int = 300,
+        requests_per_minute: int | None = None,
+        since_unix: int | None = None,
     ) -> list[dict[str, Any]]:
         """Most recent full transactions for a wallet, newest first.
 
         Returned with full details so token balance deltas can be read directly
         rather than inferring intent from swap instructions.
         """
+        filters: dict[str, Any] = {
+            "status": "succeeded",
+            # SPL buys/sells usually move balances on associated token accounts
+            # owned by the wallet. Helius defaults this to "none", which misses
+            # exactly the token deltas the KOL scanner is trying to read.
+            "tokenAccounts": "balanceChanged",
+        }
+        if since_unix is not None:
+            filters["blockTime"] = {"gte": int(since_unix)}
         result = await self._rpc(
             "getTransactionsForAddress",
             [owner, {
@@ -275,7 +290,7 @@ class HeliusSource:
                 "maxSupportedTransactionVersion": 0,
                 "sortOrder": "desc",
                 "limit": limit,
-                "filters": {"status": "succeeded"},
+                "filters": filters,
             }],
             ttl=ttl,
             family="helius-kol",

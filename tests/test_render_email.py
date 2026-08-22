@@ -60,9 +60,12 @@ async def test_subject_prefix_and_date(tmp_path):
         # day's headline while avoiding characters that rendered badly in Gmail.
         assert subject.startswith("Fomo Onchain | ")
         assert brief.generated_at.strftime("%d %b") in subject
-        if brief.runners:
-            top = max(brief.runners, key=lambda c: c.run_multiple)
-            assert f"${top.token.symbol}" in subject
+        recap = [
+            candidate for candidate in [*brief.runners, *brief.blocked_runners]
+            if candidate.scores.get("runner", 0) >= 25
+        ]
+        if recap:
+            assert any(f"${candidate.token.symbol}" in subject for candidate in recap)
     finally:
         ledger.close()
 
@@ -115,3 +118,64 @@ def test_brief_older_than_a_week_still_renders_an_empty_email(tmp_path):
     settings = build_settings(tmp_path)
     body = render_email(brief, settings)
     assert "Nothing cleared the floors today" in body
+
+
+def test_email_recaps_observed_movers_with_caveats(tmp_path):
+    """The newsletter is a recap, not only the clean gate output."""
+    from brief.models import Brief, Enrichment, SafetyReport, Scorecard
+    from brief.scoring import score_candidate
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    settings.values.setdefault("delivery", {})["newsletter_min_observed_runner_score"] = 0
+    settings.values["delivery"]["newsletter_excluded_risk_terms"] = [
+        "move on only 0.",
+        "move with no linked social context",
+    ]
+    clean = _tape("CLEAN", mcap=900_000, vol24=2_000_000, vol6=700_000, liq=120_000, trades6=2_000, buys6=1_050)
+    clean.token.txns_24h = clean.token.txns_6h
+    clean.token.socials = [{"type": "twitter", "url": "https://x.com/clean"}]
+    clean.safety = SafetyReport("clean", holder_count=4_000, top10_pct=12.0, lp_locked_or_burned_pct=100.0)
+    clean.run_multiple = 4.0
+    score_candidate(clean, settings)
+
+    watched = _tape("WATCH", mcap=700_000, vol24=1_500_000, vol6=400_000, liq=90_000, trades6=1_800, buys6=930)
+    watched.token.txns_24h = watched.token.txns_6h
+    watched.safety = SafetyReport("watch", holder_count=1_600, top10_pct=22.0, lp_locked_or_burned_pct=100.0)
+    watched.enrichment = Enrichment()
+    watched.run_multiple = 8.0
+    watched.risk_labels = ["no linked social context"]
+    score_candidate(watched, settings)
+
+    junk = _tape("JUNK", mcap=1_700_000, vol24=300_000, vol6=75_000, liq=100_000, trades6=1_800, buys6=900)
+    junk.token.txns_24h = junk.token.txns_6h
+    junk.safety = SafetyReport("junk", holder_count=1_500, top10_pct=5.0, lp_locked_or_burned_pct=100.0)
+    junk.run_multiple = 40.0
+    junk.risk_labels = [
+        "40x move on only 0.18x turnover",
+        "40x move with no linked social context",
+    ]
+    score_candidate(junk, settings)
+    junk.scores["runner"] = max(junk.scores.get("runner", 0.0), 45.0)
+
+    brief = Brief(
+        generated_at=NOW,
+        scorecard=Scorecard(),
+        metas=[],
+        new_and_moving=[],
+        ctos=[],
+        follow_ups=[],
+        onchain=[],
+        excluded=[],
+        source_statuses=[],
+        runners=[clean],
+        blocked_runners=[watched, junk],
+    )
+
+    body = render_email(brief, settings)
+
+    assert "$CLEAN" in body
+    assert "$WATCH" in body
+    assert "$JUNK" not in body
+    assert "no linked social context" in body
+    assert "Ran, but disqualified" not in body
