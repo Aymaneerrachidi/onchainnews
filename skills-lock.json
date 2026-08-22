@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": {
+    "gmgn-cooking": {
+      "source": "GMGNAI/gmgn-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gmgn-cooking/SKILL.md",
+      "computedHash": "9f01b89eb7dd522af5925ef4a32e5887390c1eb022d29da7fa408add2fd2d09a"
+    },
+    "gmgn-holder-analysis": {
+      "source": "GMGNAI/gmgn-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gmgn-holder-analysis/SKILL.md",
+      "computedHash": "3509016d68e84c2a3b61cea7c2fc974b0b8c54aaf1e2cd2459ba1a02ef3cf39b"
+    },
+    "gmgn-market": {
+      "source": "GMGNAI/gmgn-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gmgn-market/SKILL.md",
+      "computedHash": "563558ecf8e21f6ae2bac0133914b510d28c5741b6830c6c5dbeb6ae12250d49"
+    },
+    "gmgn-portfolio": {
+      "source": "GMGNAI/gmgn-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gmgn-portfolio/SKILL.md",
+      "computedHash": "65747afb36f0ce9a782c00425140ffe25dba0b81c694c79ab1a0ec6289debc03"
+    },
+    "gmgn-swap": {
+      "source": "GMGNAI/gmgn-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gmgn-swap/SKILL.md",
+      "computedHash": "c78aa53aa3048a2da83ed4b408f4594dcfaf3a8818f45477b0b8e141ec42a1d1"
+    },
+    "gmgn-token": {
+      "source": "GMGNAI/gmgn-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gmgn-token/SKILL.md",
+      "computedHash": "b068c9b32481116cfb0b191d57fd29586df3660c211bff7adafe12f55efd70a0"
+    },
+    "gmgn-track": {
+      "source": "GMGNAI/gmgn-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gmgn-track/SKILL.md",
+      "computedHash": "0abe9c76a6a359c4b625faeb99f1cc69dac43b8d7abe7ca602bf8167806f86d0"
+    },
+    "opennews": {
+      "source": "6551Team/opennews-mcp",
+      "sourceType": "github",
+      "skillPath": "openclaw-skill/opennews/SKILL.md",
+      "computedHash": "407aef9cf0181746cfb962e6c1730148bfd1a347572bacdc8dff1871a40d7e72"
+    },
+    "opentwitter": {
+      "source": "6551Team/opentwitter-mcp",
+      "sourceType": "github",
+      "skillPath": "openclaw-skill/opentwitter/SKILL.md",
+      "computedHash": "7a98690143f50022af2052ea5916e2bcd5de8e6aa432b0319eccd5b1a5948400"
+    }
+  }
+}
