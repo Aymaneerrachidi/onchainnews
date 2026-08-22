@@ -131,14 +131,14 @@ def test_hourly_email_contains_only_confirmed_runner_alert_content(tmp_path):
     )
     candidate.run_multiple = 4.2
     candidate.read = "$PULSE kept volume and liquidity through three hourly checks."
-    items = [(candidate, 3)]
+    items = [(candidate, 1)]
 
     subject = pulse_email_subject(items, settings)
     body = render_pulse_email(items, settings, NOW)
 
     assert subject == "Fomo Onchain runner alert | $PULSE"
     assert "Confirmed runner alert" in body
-    assert "3 passes" in body
+    assert "1 scan" in body
     assert "$PULSE" in body
     assert "CA:" in body and candidate.token.mint in body
     assert "No email is sent on an empty hour" in body
@@ -148,6 +148,33 @@ def test_hourly_email_refuses_an_empty_alert(tmp_path):
     settings = build_settings(tmp_path)
     with pytest.raises(ValueError, match="at least one"):
         render_pulse_email([], settings, NOW)
+
+
+def test_daily_email_does_not_truncate_the_24_hour_runner_ledger(tmp_path):
+    from brief.models import Brief, Scorecard
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    runners = []
+    for index in range(16):
+        candidate = _tape(
+            f"DAY{index}", mcap=300_000 + index * 10_000,
+            vol24=800_000, vol6=250_000, liq=60_000,
+            trades6=1_200, buys6=650,
+        )
+        candidate.run_multiple = 2.0 + index / 10
+        candidate.read = f"$DAY{index} qualified during the hourly scan."
+        runners.append(candidate)
+    brief = Brief(
+        generated_at=NOW, scorecard=Scorecard(), metas=[], new_and_moving=[],
+        ctos=[], follow_ups=[], onchain=[], excluded=[], source_statuses=[],
+        runners=runners, blocked_runners=[],
+    )
+
+    body = render_email(brief, settings)
+
+    for index in range(16):
+        assert f"$DAY{index}" in body
 
 
 def test_email_recaps_observed_movers_with_caveats(tmp_path):

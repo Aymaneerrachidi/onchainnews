@@ -343,7 +343,7 @@ def _theme_groups(brief: Brief, runners: list[Candidate]) -> list[tuple[str, lis
         if len(kept) < 2:
             continue
         kept.sort(key=lambda c: c.token.market_cap, reverse=True)
-        groups.append((_theme_title(lore, kept), kept[:5]))
+        groups.append((_theme_title(lore, kept), kept))
         used.update(c.token.mint for c in kept)
 
     remaining = [candidate for candidate in runners if candidate.token.mint not in used]
@@ -353,7 +353,7 @@ def _theme_groups(brief: Brief, runners: list[Candidate]) -> list[tuple[str, lis
         used.update(c.token.mint for c in lead)
         remaining = [candidate for candidate in runners if candidate.token.mint not in used]
     if remaining:
-        groups.append(("More Cooks", remaining[:10]))
+        groups.append(("More Cooks", remaining))
     return groups
 
 
@@ -653,14 +653,14 @@ def _pulse_masthead(
         f'<div style="{_txt(36, 850, SURFACE, 1.06, -0.035)};padding-top:12px">'
         'Fomo <span style="color:#8EA0FF">Onchain</span></div>'
         f'<div style="{_txt(16, 450, "#D7DCF8", 1.6)};padding-top:14px">'
-        f'{len(items)} new {noun} survived repeated scans. No email is sent on an empty hour.</div>'
+        f'{len(items)} new qualifying {noun} appeared. No email is sent on an empty hour.</div>'
         '</td><td align="right" style="vertical-align:top;white-space:nowrap;padding-left:18px">'
         f'<div style="{_txt(13, 750, SURFACE, 1.2)}">{_e(when)}</div>'
         f'<div style="{_txt(12, 500, "#AAB3E8", 1.4)};padding-top:6px">{_e(clock)}</div>'
         '</td></tr></table>'
         f'<div style="height:1px;background:{LINE_DARK};line-height:1px;font-size:0;margin-top:26px">&nbsp;</div>'
         f'<div style="{_txt(12, 650, "#AAB3E8", 1.55)};padding-top:18px">'
-        f'Confirmation window: {_e(f"{window_hours:g}")} hours. Each pass is separated by the configured scan gap.'
+        f'Rolling memory: {_e(f"{window_hours:g}")} hours. Duplicate mints are skipped after their first alert.'
         '</div></td></tr></table></td></tr>'
     )
 
@@ -668,6 +668,7 @@ def _pulse_masthead(
 def _pulse_runner(candidate: Candidate, pass_count: int) -> str:
     token = candidate.token
     kol = f"{len(candidate.kol_buyers)} tracked wallets" if candidate.kol_buyers else "hourly market confirmation"
+    pass_label = "scan" if pass_count == 1 else "scans"
     return (
         '<tr><td style="padding:18px 30px 0">'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
@@ -680,8 +681,8 @@ def _pulse_runner(candidate: Candidate, pass_count: int) -> str:
         f'<div style="{_txt(13, 550, MUTED, 1.5)};padding-top:7px">'
         f'{_e(token.name)} / {_e(_age(candidate))} / {_e(kol)}</div></td>'
         '<td align="right" style="vertical-align:top;white-space:nowrap">'
-        f'<div style="{_txt(29, 850, BLUE, 1.0, -0.03)}">{pass_count} passes</div>'
-        f'<div style="{_txt(11, 750, MUTED, 1.2, 0.08, "uppercase")};padding-top:7px">sustained signal</div>'
+        f'<div style="{_txt(29, 850, BLUE, 1.0, -0.03)}">{pass_count} {pass_label}</div>'
+        f'<div style="{_txt(11, 750, MUTED, 1.2, 0.08, "uppercase")};padding-top:7px">new runner</div>'
         '</td></tr></table>'
         f'<div style="{_txt(15, 450, INK_2, 1.65)};padding-top:19px">{_e(candidate.read)}</div>'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:20px"><tr>'
@@ -707,11 +708,11 @@ def render_pulse_email(
     if not items:
         raise ValueError("pulse email requires at least one confirmed runner")
     report_url = str(settings.get("delivery", "report_url", "") or "")
-    window_hours = float(settings.get("pulse", "window_hours", 12.0))
+    window_hours = float(settings.get("pulse", "window_hours", 24.0))
     rows = [_pulse_masthead(items, generated_at, window_hours)]
     rows.extend(_pulse_runner(candidate, passes) for candidate, passes in items)
     rows.append(_footer(report_url))
-    preheader = ", ".join(f"${candidate.token.symbol} confirmed in {passes} passes" for candidate, passes in items)
+    preheader = ", ".join(f"${candidate.token.symbol} appeared as a new runner" for candidate, _ in items)
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'

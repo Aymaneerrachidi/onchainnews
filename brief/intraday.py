@@ -38,7 +38,7 @@ def pulse_state_path(settings: Settings) -> Path:
 
 
 def load_pulse_passes(settings: Settings, window_start: datetime, now: datetime) -> dict[str, dict[str, Any]]:
-    """Return each mint's strongest runner pass inside the report window."""
+    """Return each alerted mint's strongest runner pass inside the report window."""
     path = pulse_state_path(settings)
     if not path.exists():
         return {}
@@ -48,10 +48,16 @@ def load_pulse_passes(settings: Settings, window_start: datetime, now: datetime)
         return {}
     start = window_start.astimezone(timezone.utc)
     end = now.astimezone(timezone.utc)
+    alerted_only = bool(settings.get("journal", "pulse_recap_alerted_only", True))
+    posted = data.get("posted") or {}
     best: dict[str, dict[str, Any]] = {}
     for mint, entries in (data.get("passes") or {}).items():
         if not isinstance(entries, list):
             continue
+        if alerted_only:
+            alert_stamp = _parse_time(posted.get(str(mint)))
+            if alert_stamp is None or alert_stamp < start or alert_stamp > end:
+                continue
         for entry in entries:
             if not isinstance(entry, dict):
                 continue

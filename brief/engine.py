@@ -1455,6 +1455,9 @@ async def build_brief(
         if bool(settings.get("journal", "include_intraday_pulse_runners", True)):
             try:
                 pulse_passes = pulse_passes_for_day
+                include_all_alerted = bool(
+                    settings.get("journal", "include_all_alerted_pulse_runners", False)
+                )
                 if pulse_passes:
                     missing_pulse_mints = [
                         mint for mint in pulse_passes
@@ -1472,7 +1475,10 @@ async def build_brief(
                         blocked_now = current_blocked.get(mint)
                         if blocked_now and hard_blocked_pass({"riskLabels": blocked_now.risk_labels}, settings):
                             continue
-                        if bool(settings.get("journal", "require_kol_trade_for_publish", False)):
+                        if (
+                            not include_all_alerted
+                            and bool(settings.get("journal", "require_kol_trade_for_publish", False))
+                        ):
                             record = kol_activity.get(mint)
                             touched = bool(
                                 record
@@ -1490,7 +1496,7 @@ async def build_brief(
                             _attach_kol_record(candidate, record, scanned_wallets)
                         candidate.safety = safety.get(mint, candidate.safety)
                         candidate.enrichment = enrichments.get(mint, candidate.enrichment)
-                        if not _kol_flow_qualifies(candidate, settings):
+                        if not include_all_alerted and not _kol_flow_qualifies(candidate, settings):
                             continue
                         hard_reasons, soft_reasons = _kol_hard_reasons(candidate, settings)
                         if hard_reasons:
@@ -1541,7 +1547,9 @@ async def build_brief(
                 candidate for candidate in blocked_runners
                 if candidate.token.mint not in manually_excluded_mints
             ]
-        runners = runners[:int(settings.get('journal', 'max_runners', 40))]
+        max_runners = int(settings.get('journal', 'max_runners', 40))
+        if max_runners > 0:
+            runners = runners[:max_runners]
         lore_groups = assign_lore(runners, settings)
         if bool(settings.get("journal", "gate_editorial_tracks", False)):
             runner_mints = {candidate.token.mint for candidate in runners}

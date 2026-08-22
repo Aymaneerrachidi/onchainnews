@@ -187,7 +187,7 @@ def _pulse_settings(settings: Settings) -> Settings:
         values.setdefault("kol", {})["enabled"] = False
         # The hourly job is the tape recorder. It must remember market runners
         # even though it deliberately skips the expensive wallet scan. The
-        # morning job intersects these passes with real KOL trades and safety.
+        # morning job enriches the complete alert ledger with wallet and safety data.
         journal = values.setdefault("journal", {})
         journal["require_kol_trade_for_publish"] = False
         journal["require_wallet_touch_for_publish"] = False
@@ -766,7 +766,7 @@ async def render_openai_signal_image(
 
 def post_text(candidate: Candidate, passes: list[dict[str, Any]], settings: Settings) -> str:
     return "\n".join([
-        f"${candidate.token.symbol} passed the runner screen {len(passes)} times in {settings.get('pulse', 'window_hours', 12)}h.",
+        f"${candidate.token.symbol} appeared as a new runner in the hourly scan.",
         f"{money(candidate.token.market_cap)} mcap | {money(candidate.token.volume_24h)} vol | {money(candidate.token.liquidity_usd)} liq | {candidate.run_multiple:.1f}x",
         f"CA: {candidate.token.mint}",
         "Data, not advice.",
@@ -832,15 +832,17 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
         state,
         brief.runners,
         now,
-        window_hours=float(settings.get("pulse", "window_hours", 12.0)),
-        required_passes=int(settings.get("pulse", "required_passes", 3)),
-        repost_after_hours=float(settings.get("pulse", "repost_after_hours", 72.0)),
+        window_hours=float(settings.get("pulse", "window_hours", 24.0)),
+        required_passes=int(settings.get("pulse", "required_passes", 1)),
+        repost_after_hours=float(settings.get("pulse", "repost_after_hours", 24.0)),
         min_gap_minutes=float(settings.get("pulse", "min_gap_minutes", 45.0)),
     )
 
     triggers: list[PulseTrigger] = []
     telegram_lines: list[str] = []
-    for candidate, passes in triggered[: int(settings.get("pulse", "max_posts_per_run", 3))]:
+    max_posts = int(settings.get("pulse", "max_posts_per_run", 0) or 0)
+    delivery_batch = triggered if max_posts <= 0 else triggered[:max_posts]
+    for candidate, passes in delivery_batch:
         trigger = PulseTrigger(candidate=candidate, passes=passes)
         try:
             if bool(settings.get("pulse", "openai_image_enabled", True)) and openai_image_configured():
@@ -862,7 +864,7 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
             log.warning("pulse_trigger_failed mint=%s error=%s", candidate.token.mint, exc)
         triggers.append(trigger)
         telegram_lines.append(
-            f"${candidate.token.symbol} passed {len(passes)} times in {settings.get('pulse', 'window_hours', 12)}h - "
+            f"${candidate.token.symbol} appeared as a new hourly runner - "
             f"{candidate.run_multiple:.1f}x, {money(candidate.token.market_cap)} mcap"
         )
     save_state(state_path, state)

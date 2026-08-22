@@ -54,7 +54,7 @@ def parser() -> argparse.ArgumentParser:
     watcher.add_argument("--once", action="store_true", help="run one polling cycle")
     watcher.add_argument("--interval", type=int, help="seconds between polls")
     watcher.add_argument("--max-cycles", type=int, help=argparse.SUPPRESS)
-    sub.add_parser("pulse", help="run one hourly runner pass check and optional X alert")
+    sub.add_parser("pulse", help="run one hourly runner check and alert on newly qualifying mints")
     collector = sub.add_parser("collector", help="continuously index new Pump.fun launches from Helius")
     collector.add_argument("--max-events", type=int, help=argparse.SUPPRESS)
     interface_parser = sub.add_parser("interface", help="serve and open the local visual brief interface")
@@ -282,7 +282,7 @@ async def pulse(args: argparse.Namespace) -> int:
         if result.latest_written:
             console.print(f"[dim]Live site snapshot refreshed: {result.latest_written}[/dim]")
         if not result.triggers:
-            console.print("[dim]No runner crossed the sustained-pass threshold.[/dim]")
+            console.print("[dim]No new runner appeared; hourly email skipped.[/dim]")
         elif bool(settings.get("pulse", "email_enabled", True)):
             recipients = list(settings.get("delivery", "email_to", []) or [])
             provider = str(settings.get("delivery", "email_provider", "resend") or "resend").strip().lower()

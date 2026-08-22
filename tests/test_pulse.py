@@ -55,6 +55,26 @@ def test_pulse_triggers_on_third_pass_inside_window():
     assert len(third[0][1]) == 3
 
 
+def test_hourly_mode_alerts_first_appearance_then_skips_duplicate():
+    state = {"version": 1, "passes": {}, "posted": {}}
+    now = datetime(2026, 8, 20, 12, tzinfo=timezone.utc)
+    candidate = runner()
+
+    first = record_runner_passes(
+        state, [candidate], now,
+        window_hours=24, required_passes=1, repost_after_hours=24, min_gap_minutes=45,
+    )
+    duplicate = record_runner_passes(
+        state, [candidate], now + timedelta(hours=1),
+        window_hours=24, required_passes=1, repost_after_hours=24, min_gap_minutes=45,
+    )
+
+    assert len(first) == 1
+    assert first[0][0].token.mint == "MINTA"
+    assert duplicate == []
+    assert len(state["passes"]["MINTA"]) == 2
+
+
 def test_pulse_does_not_repost_inside_cooldown():
     now = datetime(2026, 8, 20, 12, tzinfo=timezone.utc)
     state = {

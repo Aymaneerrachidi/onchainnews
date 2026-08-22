@@ -9,6 +9,14 @@ from brief.delivery import EmailDeliveryError, send_email
 from tests.conftest import build_settings
 
 
+def test_shipped_test_recipient_is_only_ue06prog():
+    import tomllib
+    from pathlib import Path
+
+    config = tomllib.loads(Path("config.toml").read_text(encoding="utf-8"))
+    assert config["delivery"]["email_to"] == ["ue06prog@gmail.com"]
+
+
 def _email_settings(tmp_path):
     return build_settings(
         tmp_path,

@@ -165,14 +165,15 @@ watcher_cluster_sell_pct = 5.0
 watcher_creator_outflow_pp = 0.1
 
 [pulse]
-# Hourly market pulse. This is separate from the morning newsletter: it records
-# runner passes, refreshes the live JSON snapshot, and only alerts when the same
-# mint survives the runner screen repeatedly.
-window_hours = 12.0
-required_passes = 3
-repost_after_hours = 72.0
+# Hourly market pulse. A runner alerts on its first qualifying appearance. Its
+# pass stays in memory for the complete trailing-day recap, while the cooldown
+# prevents the same mint from generating another hourly email the next hour.
+window_hours = 24.0
+required_passes = 1
+repost_after_hours = 24.0
 min_gap_minutes = 45.0
-max_posts_per_run = 3
+# Zero means every new runner in the hour is delivered in the same alert.
+max_posts_per_run = 0
 state_path = "web/data/pulse-state.json"
 image_dir = "output/pulse-images"
 image_template_path = "overlays/fomo-runner-template.jpg"
@@ -184,8 +185,8 @@ openai_image_format = "png"
 openai_image_timeout_seconds = 120.0
 write_latest_json = true
 telegram_enabled = true
-# Email is event-driven: an empty hourly scan sends nothing. A mint must first
-# survive `required_passes`, and `repost_after_hours` suppresses duplicates.
+# Email is event-driven: an empty hourly scan sends nothing. One qualifying
+# scan alerts immediately, and `repost_after_hours` suppresses duplicates.
 email_enabled = true
 x_post_enabled = false
 x_timeout_seconds = 30.0
@@ -267,9 +268,6 @@ email_from = "ue06prog@gmail.com"
 email_from_name = "Fomo Onchain"
 email_to = [
   "ue06prog@gmail.com",
-  "bryanquispe528@gmail.com",
-  "kahlmannalan@gmail.com",
-  "jacob.preiss@contentstratus.com",
 ]
 email_subject_prefix = "Fomo Onchain"
 # Newsletter recap breadth. Clean runners always appear. These settings add
@@ -316,9 +314,15 @@ excluded_mints = [
   "n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump", # TNOS
   "DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump", # KERMIT
 ]
-max_runners = 25
+max_runners = 0
 target_min_runners = 6
 include_intraday_pulse_runners = true
+# The recap is the ledger of hourly alerts: include every pulse runner that was
+# actually claimed for delivery in the preceding 24 hours, even if it faded or
+# the deeper morning KOL scan did not rediscover it. New hard-risk evidence can
+# still remove it.
+pulse_recap_alerted_only = true
+include_all_alerted_pulse_runners = true
 intraday_min_peak_market_cap = 200000.0
 intraday_min_volume_24h = 250000.0
 intraday_min_liquidity = 40000.0
