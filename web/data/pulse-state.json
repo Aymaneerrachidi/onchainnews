@@ -62,6 +62,67 @@
     "url": "https://dexscreener.com/solana/57et71hck613i37onushcv2zcnutbwmnn3kujyzgh45t",
     "volume24h": 1790144.53,
     "volume6h": 1790144.53
+   },
+   {
+    "ageHours": 4.8268629233333336,
+    "buyRatio6h": 0.5771851204138886,
+    "buys6h": 15842,
+    "chain": "solana",
+    "change1h": -1.97,
+    "change24h": 1725.0,
+    "change6h": 1725.0,
+    "classification": "MIXED RUNNER",
+    "holders": 4092,
+    "kolBuyers": [],
+    "liquidity": 67188.77,
+    "lpLockedPct": 100.0,
+    "marketCap": 613579.0,
+    "mint": "2hXHY3DnN7HUGySZEmBsLFKSqLB8nj3aE8wwq44wpump",
+    "name": "Tom Lizard",
+    "read": "$LIZARD \u2014 5h-old pair at $613,579 market cap, +1725% on the day, $1,881,168 of 24h volume (3.1x market cap), 58% of 27,447 six-hour trades were buys, LP 100% locked or burned, top 10 hold 13%.",
+    "riskLabels": [
+     "caveated runner: failed a soft editorial gate, not a hard rug/bundle/wash gate",
+     "ticker/name reused by 2 other recent mint(s)",
+     "18x move on recycled ticker/name"
+    ],
+    "runMultiple": 18.25,
+    "scoreComponents": {
+     "organic": {
+      "buyerDiversity": 97.7,
+      "distribution": 74.2,
+      "holderGrowth": 45.0,
+      "liquidity": 58.7,
+      "manipulationPenalty": -5.9,
+      "organicVolume": 100.0,
+      "priceStructure": 88.0,
+      "smartMoney": "unavailable",
+      "walletIndependence": "unavailable"
+     },
+     "runner": {
+      "manipulationPenalty": -4.2,
+      "momentum": 100.0
+     }
+    },
+    "scores": {
+     "holderQuality": 85.8,
+     "kol": 0.0,
+     "liquidity": 58.7,
+     "manipulation": 17.0,
+     "organic": 65.3,
+     "priceStructure": 88.0,
+     "runner": 44.7,
+     "smartMoney": 0.0
+    },
+    "sells6h": 11605,
+    "symbol": "LIZARD",
+    "takenAt": "2026-08-22T03:53:26.706524+00:00",
+    "top10Pct": 12.77970866113797,
+    "trades24h": 27447,
+    "trades6h": 27447,
+    "turnover": 3.065894057651908,
+    "url": "https://dexscreener.com/solana/57et71hck613i37onushcv2zcnutbwmnn3kujyzgh45t",
+    "volume24h": 1881168.21,
+    "volume6h": 1881168.21
    }
   ],
   "4CwRX9ByUrEGuG8FxBKAsFpzFxMRmyEdVRBT8TZupump": [
@@ -84,6 +145,69 @@
     "volume24h": 365421.53
    }
   ],
+  "7Dxr19j2PHovdocuQfvySft7M2XuP5pr6x8YAWHPpump": [
+   {
+    "ageHours": 0.7243629233333334,
+    "buyRatio6h": 0.7595771593783881,
+    "buys6h": 8407,
+    "chain": "solana",
+    "change1h": 199.0,
+    "change24h": 199.0,
+    "change6h": 199.0,
+    "classification": "MIXED RUNNER",
+    "holders": 2964,
+    "kolBuyers": [],
+    "liquidity": 38196.38,
+    "lpLockedPct": 100.0,
+    "marketCap": 222151.0,
+    "mint": "7Dxr19j2PHovdocuQfvySft7M2XuP5pr6x8YAWHPpump",
+    "name": "Thief Cat",
+    "read": "$NAMI \u2014 1h-old pair at $222,151 market cap, +199% on the day, $405,821 of 24h volume (1.8x market cap), 76% of 11,068 six-hour trades were buys, LP 100% locked or burned, top 10 hold 4%.",
+    "riskLabels": [
+     "caveated runner: failed a soft editorial gate, not a hard rug/bundle/wash gate",
+     "liquidity below publisher floor ($38,196 < $40,000)",
+     "only 5/6 organic confirmations (holders, trades, volume, context, distribution)"
+    ],
+    "runMultiple": 2.99,
+    "scoreComponents": {
+     "organic": {
+      "buyerDiversity": 73.6,
+      "distribution": 98.7,
+      "holderGrowth": 45.0,
+      "liquidity": 68.6,
+      "manipulationPenalty": -1.8,
+      "organicVolume": 100.0,
+      "priceStructure": 100.0,
+      "smartMoney": "unavailable",
+      "walletIndependence": "unavailable"
+     },
+     "runner": {
+      "manipulationPenalty": -1.2,
+      "momentum": 22.1
+     }
+    },
+    "scores": {
+     "holderQuality": 98.8,
+     "kol": 0.0,
+     "liquidity": 68.6,
+     "manipulation": 5.0,
+     "organic": 70.0,
+     "priceStructure": 100.0,
+     "runner": 49.1,
+     "smartMoney": 0.0
+    },
+    "sells6h": 2661,
+    "symbol": "NAMI",
+    "takenAt": "2026-08-22T03:53:26.706524+00:00",
+    "top10Pct": 4.02192228948015,
+    "trades24h": 11068,
+    "trades6h": 11068,
+    "turnover": 1.8267808832730892,
+    "url": "https://dexscreener.com/solana/2fy4thhkuqtvrtfgaxeyfxfgqqeaxmmmnjavvqhvnlhd",
+    "volume24h": 405821.2,
+    "volume6h": 405821.2
+   }
+  ],
   "8FhAXv2tfXUpyMbJsHDHX9zfiEb9PERzFWSY9sgLpump": [
    {
     "chain": "solana",
@@ -104,6 +228,68 @@
     "takenAt": "2026-08-21T20:33:51.182941+00:00",
     "url": "https://dexscreener.com/solana/2pvoknxnrheshnj2hcq8vsxymyr8d4vcpgksm95njhfs",
     "volume24h": 448020.18
+   }
+  ],
+  "918p2GRyDLkhsRvtAHaKZg8yrP5kXSe6CYustqTcpump": [
+   {
+    "ageHours": 1.5515851455555556,
+    "buyRatio6h": 0.6360739082596654,
+    "buys6h": 16765,
+    "chain": "solana",
+    "change1h": 51.73,
+    "change24h": 506.0,
+    "change6h": 506.0,
+    "classification": "MIXED RUNNER",
+    "holders": 1800,
+    "kolBuyers": [],
+    "liquidity": 75531.96,
+    "lpLockedPct": 100.0,
+    "marketCap": 783553.0,
+    "mint": "918p2GRyDLkhsRvtAHaKZg8yrP5kXSe6CYustqTcpump",
+    "name": "Cat Season",
+    "read": "$CATSZN \u2014 2h-old pair at $783,553 market cap, +506% on the day, $1,616,690 of 24h volume (2.1x market cap), 64% of 26,357 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
+    "riskLabels": [
+     "caveated runner: failed a soft editorial gate, not a hard rug/bundle/wash gate",
+     "ticker/name reused by 1 other recent mint(s)"
+    ],
+    "runMultiple": 6.06,
+    "scoreComponents": {
+     "organic": {
+      "buyerDiversity": 75.3,
+      "distribution": 100.0,
+      "holderGrowth": 45.0,
+      "liquidity": 57.0,
+      "manipulationPenalty": -3.8,
+      "organicVolume": 100.0,
+      "priceStructure": 100.0,
+      "smartMoney": "unavailable",
+      "walletIndependence": "unavailable"
+     },
+     "runner": {
+      "manipulationPenalty": -2.8,
+      "momentum": 56.2
+     }
+    },
+    "scores": {
+     "holderQuality": 82.0,
+     "kol": 0.0,
+     "liquidity": 57.0,
+     "manipulation": 11.0,
+     "organic": 64.4,
+     "priceStructure": 100.0,
+     "runner": 45.1,
+     "smartMoney": 0.0
+    },
+    "sells6h": 9592,
+    "symbol": "CATSZN",
+    "takenAt": "2026-08-22T03:53:26.706524+00:00",
+    "top10Pct": 2.218181056261444,
+    "trades24h": 26357,
+    "trades6h": 26357,
+    "turnover": 2.06328067150531,
+    "url": "https://dexscreener.com/solana/6fgfnwury3nblbrtyer39ocezdm67r5zcah4dtgbelmd",
+    "volume24h": 1616689.76,
+    "volume6h": 1616689.76
    }
   ],
   "AC8jUD8j1neSZzW3oZgFZ1dQHhqdNoX4f9gV1SRHpump": [
@@ -189,6 +375,65 @@
     "url": "https://dexscreener.com/solana/h3qgazgxmkk6ciqj22iymmc4myb7ckgtxtrsg227jm9r",
     "volume24h": 845286.67,
     "volume6h": 845286.67
+   },
+   {
+    "ageHours": 3.3763073677777777,
+    "buyRatio6h": 0.6754102895076526,
+    "buys6h": 14651,
+    "chain": "solana",
+    "change1h": 62.77,
+    "change24h": 998.0,
+    "change6h": 998.0,
+    "classification": "MIXED RUNNER",
+    "holders": 4421,
+    "kolBuyers": [],
+    "liquidity": 80015.02,
+    "lpLockedPct": 100.0,
+    "marketCap": 885989.0,
+    "mint": "DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump",
+    "name": "Kermit the cat",
+    "read": "$KERMIT \u2014 3h-old pair at $885,989 market cap, +998% on the day, $1,044,366 of 24h volume (1.2x market cap), 68% of 21,692 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
+    "riskLabels": [
+     "active Dexscreener boost"
+    ],
+    "runMultiple": 10.98,
+    "scoreComponents": {
+     "organic": {
+      "buyerDiversity": 84.7,
+      "distribution": 100.0,
+      "holderGrowth": 45.0,
+      "liquidity": 56.3,
+      "manipulationPenalty": -1.8,
+      "organicVolume": 99.4,
+      "priceStructure": 100.0,
+      "smartMoney": "unavailable",
+      "walletIndependence": "unavailable"
+     },
+     "runner": {
+      "manipulationPenalty": -1.2,
+      "momentum": 100.0
+     }
+    },
+    "scores": {
+     "holderQuality": 100.0,
+     "kol": 0.0,
+     "liquidity": 56.3,
+     "manipulation": 5.0,
+     "organic": 70.5,
+     "priceStructure": 100.0,
+     "runner": 52.0,
+     "smartMoney": 0.0
+    },
+    "sells6h": 7041,
+    "symbol": "KERMIT",
+    "takenAt": "2026-08-22T03:53:26.706524+00:00",
+    "top10Pct": 1.9335445916006548,
+    "trades24h": 21692,
+    "trades6h": 21692,
+    "turnover": 1.1787569145892332,
+    "url": "https://dexscreener.com/solana/h3qgazgxmkk6ciqj22iymmc4myb7ckgtxtrsg227jm9r",
+    "volume24h": 1044365.66,
+    "volume6h": 1044365.66
    }
   ],
   "DLhzqAWwE2YkPLdYvvWNMZ71vxZJQD2FByMfWFHppump": [
@@ -346,10 +591,73 @@
     "url": "https://dexscreener.com/solana/fthts2bjnnzbkblprcpyh67c39xqufmtzenube3yrnxj",
     "volume24h": 447532.68,
     "volume6h": 130818.34
+   },
+   {
+    "ageHours": 20.832696256666665,
+    "buyRatio6h": 0.5006960556844547,
+    "buys6h": 1079,
+    "chain": "solana",
+    "change1h": 4.1,
+    "change24h": 5423.0,
+    "change6h": 24.48,
+    "classification": "MIXED RUNNER",
+    "holders": 1526,
+    "kolBuyers": [],
+    "liquidity": 118708.1,
+    "lpLockedPct": 100.0,
+    "marketCap": 2077095.0,
+    "mint": "n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump",
+    "name": "TNOS",
+    "read": "$TNOS \u2014 21h-old pair at $2,077,095 market cap, +5423% on the day, $468,707 of 24h volume (0.2x market cap), 50% of 2,155 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
+    "riskLabels": [
+     "caveated runner: failed a soft editorial gate, not a hard rug/bundle/wash gate",
+     "55x move on only $468,707 volume",
+     "55x move on only 0.23x turnover",
+     "55x move with 1,526 holders",
+     "55x move with no linked social context"
+    ],
+    "runMultiple": 55.23,
+    "scoreComponents": {
+     "organic": {
+      "buyerDiversity": 92.2,
+      "distribution": 100.0,
+      "holderGrowth": 45.0,
+      "liquidity": 54.3,
+      "manipulationPenalty": -4.2,
+      "organicVolume": 71.6,
+      "priceStructure": 63.2,
+      "smartMoney": "unavailable",
+      "walletIndependence": "unavailable"
+     },
+     "runner": {
+      "manipulationPenalty": -3.0,
+      "momentum": 100.0
+     }
+    },
+    "scores": {
+     "holderQuality": 77.9,
+     "kol": 0.0,
+     "liquidity": 54.3,
+     "manipulation": 12.0,
+     "organic": 57.8,
+     "priceStructure": 63.2,
+     "runner": 39.1,
+     "smartMoney": 0.0
+    },
+    "sells6h": 1076,
+    "symbol": "TNOS",
+    "takenAt": "2026-08-22T03:53:26.706524+00:00",
+    "top10Pct": 1.6015526111817566,
+    "trades24h": 9967,
+    "trades6h": 2155,
+    "turnover": 0.225655075959453,
+    "url": "https://dexscreener.com/solana/fthts2bjnnzbkblprcpyh67c39xqufmtzenube3yrnxj",
+    "volume24h": 468707.03,
+    "volume6h": 132213.26
    }
   ]
  },
  "posted": {},
- "updatedAt": "2026-08-22T02:57:52.114483+00:00",
+ "updatedAt": "2026-08-22T03:53:26.706524+00:00",
  "version": 1
 }
