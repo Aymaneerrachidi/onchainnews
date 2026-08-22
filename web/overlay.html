@@ -296,7 +296,7 @@ function ticker(list) {
     const f = topFlag(r);
     return `<span class="tk-item"><b>$${esc(r.symbol)}</b>
       <em class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</em>
-      <em class="mc">${money(r.marketCap)}</em>
+      <em class="mc">${money(Math.max(Number(r.marketCap) || 0, Number(r.observedPeakMarketCap) || 0))}</em>
       ${f ? `<em class="flag">${f}</em>` : ""}</span>`;
   }).join("");
   const speed = Math.max(30, list.length * 6);
@@ -324,7 +324,7 @@ function card(r) {
       <div class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}<small>24 HOURS</small></div>
     </div>
     <div class="grid">
-      <div><span>Mcap</span><b>${money(r.marketCap)}</b></div>
+      <div><span>${Number(r.observedPeakMarketCap) > Number(r.marketCap) ? "Peak" : "Mcap"}</span><b>${money(Math.max(Number(r.marketCap) || 0, Number(r.observedPeakMarketCap) || 0))}</b></div>
       <div><span>1h</span><b class="${r.change1h >= 0 ? "up" : "dn"}">${pct(r.change1h)}</b></div>
       <div><span>Liq</span><b>${money(r.liquidity)}</b></div>
       <div><span>Holders</span><b>${r.holders ? r.holders.toLocaleString() : "—"}</b></div>
@@ -350,7 +350,7 @@ function lower3(r) {
     <div class="body">
       <div class="sym">$${esc(r.symbol)}</div>
       <div class="mult ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</div>
-      <div class="kv"><span>Mcap</span><b>${money(r.marketCap)}</b></div>
+      <div class="kv"><span>${Number(r.observedPeakMarketCap) > Number(r.marketCap) ? "Peak" : "Mcap"}</span><b>${money(Math.max(Number(r.marketCap) || 0, Number(r.observedPeakMarketCap) || 0))}</b></div>
       <div class="kv"><span>1h</span><b class="${r.change1h >= 0 ? "up" : "dn"}">${pct(r.change1h)}</b></div>
       <div class="kv"><span>${esc(chainName(r.chain))}</span><b>${esc(shortCa(r.mint))}</b></div>
       ${warn ? `<div class="warn">${esc(warn)}</div>` : ""}
@@ -366,7 +366,7 @@ function board(list) {
     <li><span class="n">${String(i + 1).padStart(2, "0")}</span>
       <span class="s">$${esc(r.symbol)}<em>${esc(chainName(r.chain))} · ${esc(r.name)}</em></span>
       <span class="m ${r.change24h >= 0 ? "up" : "dn"}">${mult(r)}</span>
-      <span class="c">${n ? `<b class="kolc">${n} KOL</b>` : money(r.marketCap)}</span></li>`;
+      <span class="c">${n ? `<b class="kolc">${n} KOL</b>` : money(Math.max(Number(r.marketCap) || 0, Number(r.observedPeakMarketCap) || 0))}</span></li>`;
   }).join("");
   const pos = SIDE === "left"
     ? `left:calc(48*var(--u));right:auto` : `right:calc(48*var(--u));left:auto`;

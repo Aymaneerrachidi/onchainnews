@@ -194,6 +194,10 @@ disable_helius_enrichment = true
 disable_holder_snapshots = true
 disable_kol_scan = true
 disable_x_scan = true
+capture_target = 12
+capture_min_runner_score = 15.0
+capture_min_organic_score = 25.0
+capture_max_manipulation = 65.0
 
 [goplus]
 # Free contract security for the EVM chains. No key, so the only limit worth
@@ -208,6 +212,7 @@ rugcheck_base_url = "https://api.rugcheck.xyz/v1"
 helius_base_url = "https://mainnet.helius-rpc.com"
 jupiter_quote_url = "https://lite-api.jup.ag/swap/v1/quote"
 jupiter_price_url = "https://lite-api.jup.ag/price/v3"
+geckoterminal_base_url = "https://api.geckoterminal.com/api/v2"
 x_public_metadata_url = "https://cdn.syndication.twimg.com/widgets/followbutton/info.json"
 x_recent_search_url = "https://api.x.com/2/tweets/search/recent"
 
@@ -311,7 +316,7 @@ min_liquidity = 40000.0
 # Nothing older than this reaches the record, whatever it did. The report is
 # about coins that launched and worked, so age is a wall rather than something
 # a large multiple can buy past.
-max_age_hours = 30
+max_age_hours = 24
 # Inside the wall the bar eases with age: a pair in its first day only has to be
 # up this much, while one in its second has to have done a real multiple.
 fresh_window_hours = 24
@@ -435,6 +440,9 @@ fill_hard_block_terms = [
 enabled = true
 window_hours = 24
 min_buyers_to_flag = 2
+# Ignore unsolicited token dust. A wallet counts only when at least this much
+# SOL actually moved through the trade.
+min_trade_sol = 0.05
 # Helius free tier answers a burst of heavy wallet-history calls with 429s, so
 # this work is paced and budgeted separately from the holder snapshots.
 max_transactions_per_wallet = 100
@@ -448,10 +456,31 @@ cache_ttl_seconds = 21600
 max_wallets_per_run = 125
 # KOL flow is a discovery source, not a pass. Mints found here are resolved via
 # Dexscreener, then re-checked by the normal RugCheck/Helius/journal gates.
-max_mints_enriched = 80
+# 0 means enrich every KOL-touched mint through Dexscreener.
+max_mints_enriched = 0
 min_buyers_to_enrich = 1
 min_participants_to_enrich = 2
 min_realised_sol_to_enrich = 5.0
+runner_lane_enabled = true
+runner_lane_max = 12
+runner_min_market_cap = 200000.0
+runner_min_volume_24h = 100000.0
+runner_max_age_hours = 24.0
+runner_min_buyers = 2
+runner_min_participants = 2
+runner_min_realised_sol = 1.0
+runner_min_sol_spent = 0.0
+runner_require_positive_realised = true
+runner_open_min_buyers = 5
+runner_open_min_holders = 2
+runner_allow_faded_below_floor = true
+runner_max_manipulation = 75.0
+runner_max_peak_turnover = 10.0
+runner_require_safety = true
+runner_require_holder_count = true
+runner_min_holders = 300
+ohlcv_requests_per_minute = 25
+ohlcv_request_interval_seconds = 2.5
 
 # Kolscan leaderboard, deduplicated across the daily, weekly and monthly
 # boards (111 listed entries -> 66 unique wallets). `tiers` records which

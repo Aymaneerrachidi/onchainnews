@@ -330,6 +330,8 @@ const money = (n) => {
 const pct = (n) => (n === null || n === undefined) ? "n/a" : (n >= 0 ? "+" : "") + Math.round(n) + "%";
 const sized = (m, c) => m >= 2 ? m.toFixed(1) + "x" : pct(c);
 const age = (h) => h === null || h === undefined ? "n/a" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d";
+const displayCap = (r) => Math.max(Number(r.marketCap) || 0, Number(r.observedPeakMarketCap) || 0);
+const capLabel = (r) => Number(r.observedPeakMarketCap) > Number(r.marketCap) ? "peak" : "mcap";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let DATA = null, SORT = "editorial", FILTERS = { new: false, kol: false, clean: false };
@@ -348,6 +350,14 @@ function stamp(r) {
 
 function fallbackDexEvidence(r) {
   const old = r.ageHours === null || r.ageHours === undefined ? "age unavailable" : r.ageHours < 48 ? `${Math.round(r.ageHours)} hours old` : `${Math.round(r.ageHours / 24)} days old`;
+  const peak = Number(r.observedPeakMarketCap) || 0;
+  if (peak > Number(r.marketCap)) {
+    return [
+      `The pair hit a candle-verified ${money(peak)} intraday market cap before fading to ${money(r.marketCap)} by the cutoff.`,
+      `Dexscreener recorded ${money(r.volume24h)} of 24-hour volume, equal to ${(r.volume24h / peak).toFixed(1)}x the verified peak market cap.`,
+      ...(r.kolBuyers?.length ? [`${r.kolBuyers.length} tracked on-chain wallets bought during the window; ${r.kolHolders.length} still held at the snapshot.`] : []),
+    ];
+  }
   const lines = [
     `The pair was ${old} at the cutoff and moved ${pct(r.change24h)} in 24 hours to a ${money(r.marketCap)} market cap.`,
     `Dexscreener recorded ${money(r.volume24h)} of 24-hour volume, equal to ${r.turnover.toFixed(1)}x market cap, with ${money(r.liquidity)} liquidity.`,
@@ -399,7 +409,7 @@ function rowHTML(r, i) {
   <header class="coin-top">
     <span class="coin-rank">${String(i + 1).padStart(2, "0")}</span>
     <div class="coin-name"><b>$${esc(r.symbol)}</b><span>${esc(r.name)} Â· ${age(r.ageHours)} old Â· ${esc(r.dex)}</span></div>
-    <div class="coin-move"><b>${sized(r.runMultiple, r.change24h)}</b><span>${money(r.marketCap)} mcap</span></div>
+    <div class="coin-move"><b>${sized(r.runMultiple, r.change24h)}</b><span>${money(displayCap(r))} ${capLabel(r)}</span></div>
   </header>
   <div class="coin-tags">
     <span class="coin-tag">${money(r.volume24h)} volume</span>
@@ -498,7 +508,7 @@ function render(d) {
   ].map(([l, v, hot], i) => `<div class="stat ${hot ? "hot" : ""} rv" style="animation-delay:${i * 50}ms"><span>${l}</span><b>${v}</b></div>`).join("");
 
   const t = d.runners.slice(0, 14).map((r) =>
-    `<span><b>$${esc(r.symbol)}</b> <em class="${r.change24h >= 0 ? "up" : "dn"}">${sized(r.runMultiple, r.change24h)}</em> ${money(r.marketCap)}</span>`).join("");
+    `<span><b>$${esc(r.symbol)}</b> <em class="${r.change24h >= 0 ? "up" : "dn"}">${sized(r.runMultiple, r.change24h)}</em> ${money(displayCap(r))} ${capLabel(r)}</span>`).join("");
   $("#ticker").innerHTML = t ? t + t : "<span>No runners in this window</span>";
 
   paint();

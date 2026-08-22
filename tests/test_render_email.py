@@ -179,3 +179,29 @@ def test_email_recaps_observed_movers_with_caveats(tmp_path):
     assert "$JUNK" not in body
     assert "no linked social context" in body
     assert "Ran, but disqualified" not in body
+
+
+def test_email_leads_with_verified_peak_not_faded_cutoff_cap(tmp_path):
+    from brief.models import Brief, Scorecard
+    from brief.render.email import render_email
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    faded = _tape("FADED", mcap=4_000, vol24=1_500_000, vol6=100_000,
+                  liq=4_500, trades6=800, buys6=410)
+    faded.observed_peak_market_cap = 260_000.0
+    faded.read = (
+        "$FADED hit a candle-verified $260,000 intraday market cap before "
+        "fading to $4,000 by the cutoff."
+    )
+    brief = Brief(
+        generated_at=NOW,
+        scorecard=Scorecard(), metas=[], new_and_moving=[], ctos=[], follow_ups=[],
+        onchain=[], excluded=[], source_statuses=[], runners=[faded], blocked_runners=[],
+    )
+
+    body = render_email(brief, settings)
+
+    assert "Hit $260k" in body
+    assert "Hit $4k" not in body
+    assert "candle-verified $260,000" in body

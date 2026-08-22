@@ -315,9 +315,9 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
         ):
             reasons.append(warning)
 
-    ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else float("inf")
+    ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else 0.0
     max_ratio = float(section.get("max_volume_liquidity", 150))
-    if ratio > max_ratio:
+    if token.liquidity_usd and ratio > max_ratio:
         reasons.append(f"wash-trading shape: {ratio:,.0f}x its own liquidity traded in 24h")
 
     max_turnover = float(section.get("max_turnover", 30))

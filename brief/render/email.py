@@ -263,9 +263,13 @@ def _descriptor(candidate: Candidate) -> str:
 
 def _reason_bits(candidate: Candidate) -> list[str]:
     bits: list[str] = []
-    if candidate.dex_evidence:
+    # For a faded runner, its current-cap turnover sentences use the wrong
+    # denominator. The verified peak recap is the useful first read.
+    if candidate.observed_peak_market_cap and candidate.read:
+        bits.append(candidate.read)
+    elif candidate.dex_evidence:
         bits.extend(candidate.dex_evidence[:2])
-    if candidate.read:
+    if candidate.read and candidate.read not in bits:
         bits.append(candidate.read)
     risks, gaps = _split_labels(candidate.risk_labels)
     if risks:
@@ -304,7 +308,12 @@ def _kol_wallet_recap(candidate: Candidate) -> str:
             bits.append(f"still holding: {_name_list(holders)}")
         if sellers:
             bits.append(f"closed/sold: {_name_list(sellers)}")
-        if abs(candidate.kol_realised_sol) >= 0.1:
+        closed_pnl = sum(
+            flow.realised_sol for flow in candidate.kol_flows if flow.bought and flow.sold
+        )
+        if holders and abs(closed_pnl) >= 0.1:
+            bits.append(f"closed trades {closed_pnl:+.1f} SOL; open positions excluded")
+        elif abs(candidate.kol_realised_sol) >= 0.1:
             bits.append(f"realised {candidate.kol_realised_sol:+.1f} SOL")
         if best.realised_sol > 0.1:
             bits.append(f"best wallet {best.name} +{best.realised_sol:.1f} SOL")
@@ -341,6 +350,7 @@ def _theme_groups(brief: Brief, runners: list[Candidate]) -> list[tuple[str, lis
 
 def _lead_recap(candidate: Candidate) -> str:
     token = candidate.token
+    hit_mcap = max(token.market_cap, float(candidate.observed_peak_market_cap or 0.0))
     return (
         '<tr><td style="padding:28px 30px 0">'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
@@ -350,7 +360,7 @@ def _lead_recap(candidate: Candidate) -> str:
         f'<div style="{_txt(30, 850, INK, 1.12, -0.035)};padding-top:10px">'
         f'${_e(token.symbol)} running laps on everything</div>'
         f'<div style="{_txt(16, 450, INK_2, 1.65)};padding-top:13px">'
-        f'Hit {_e(money(token.market_cap))} after a {_e(_size(candidate))} move; {_e(_descriptor(candidate))}.</div>'
+        f'Hit {_e(money(hit_mcap))} after a {_e(_size(candidate))} move; {_e(_descriptor(candidate))}.</div>'
         f'<div style="{_txt(13, 500, MUTED, 1.55)};padding-top:12px">'
         f'{_e(money(token.volume_24h))} volume / {_e(money(token.liquidity_usd))} liquidity / {_e(_age(candidate))}</div>'
         f'<div style="padding-top:17px"><a href="{_e(token.url)}" target="_blank" '
@@ -362,6 +372,7 @@ def _lead_recap(candidate: Candidate) -> str:
 
 def _coin_recap_line(candidate: Candidate) -> str:
     token = candidate.token
+    hit_mcap = max(token.market_cap, float(candidate.observed_peak_market_cap or 0.0))
     reasons = _reason_bits(candidate)
     kol_recap = _kol_wallet_recap(candidate)
     kol_html = (
@@ -390,7 +401,7 @@ def _coin_recap_line(candidate: Candidate) -> str:
         '<tr><td style="padding:0 0 15px">'
         f'<div style="{_txt(17, 750, INK, 1.35)}">'
         f'<a href="{_e(token.url)}" target="_blank" style="color:{INK};text-decoration:none">${_e(token.symbol)}</a>'
-        f' <span style="color:{MUTED};font-weight:500">-&gt; hit</span> {_e(money(token.market_cap))}'
+        f' <span style="color:{MUTED};font-weight:500">-&gt; hit</span> {_e(money(hit_mcap))}'
         f'<span style="color:{MUTED};font-weight:500">, {_e(_descriptor(candidate))}</span></div>'
         f'<div style="{_txt(12, 600, SOFT, 1.45)};padding-top:4px">'
         f'{_e(_size(candidate))} / {_e(_age(candidate))} / {_e(money(token.volume_24h))} vol{_e(kol)}</div>'
@@ -468,6 +479,7 @@ def _stat_band(brief: Brief, runners: list[Candidate]) -> str:
 
 def _hero(candidate: Candidate) -> str:
     token = candidate.token
+    hit_mcap = max(token.market_cap, float(candidate.observed_peak_market_cap or 0.0))
     risks, gaps = _split_labels(candidate.risk_labels)
     risk_text = " / ".join(risks[:3])
     gap_text = " / ".join(gaps[:2])
@@ -491,7 +503,7 @@ def _hero(candidate: Candidate) -> str:
         f'<div style="{_txt(17, 450, INK_2, 1.7)};padding-top:22px">{_e(candidate.read)}</div>'
         f'<div style="padding-top:22px">{_bar(1.0, BLUE, 10)}</div>'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:20px"><tr>'
-        f'{_mini_stat("Market cap", money(token.market_cap))}'
+        f'{_mini_stat("Peak mcap", money(hit_mcap))}'
         f'{_mini_stat("Volume", money(token.volume_24h))}'
         f'{_mini_stat("Liquidity", money(token.liquidity_usd))}'
         f'{_mini_stat("1 hour", pct(token.price_change_1h, 0), last_hour_color)}'
@@ -519,6 +531,7 @@ def _hero(candidate: Candidate) -> str:
 
 def _runner_row(candidate: Candidate, share: float) -> str:
     token = candidate.token
+    hit_mcap = max(token.market_cap, float(candidate.observed_peak_market_cap or 0.0))
     risks, gaps = _split_labels(candidate.risk_labels)
     accent = RED if risks else BLUE
     kol = f" / {len(candidate.kol_buyers)} KOL" if candidate.kol_buyers else ""
@@ -535,7 +548,7 @@ def _runner_row(candidate: Candidate, share: float) -> str:
         '<td style="vertical-align:top;padding-right:12px">'
         f'<div style="{_txt(20, 850, INK, 1.12, -0.02)}">${_e(token.symbol)}</div>'
         f'<div style="{_txt(12, 550, MUTED, 1.5)};padding-top:5px">'
-        f'{_e(_chain_name(token.chain_id))} / {_e(_age(candidate))} / {_e(money(token.market_cap))} mcap{_e(kol)}</div>'
+        f'{_e(_chain_name(token.chain_id))} / {_e(_age(candidate))} / hit {_e(money(hit_mcap))}{_e(kol)}</div>'
         "</td>"
         '<td align="right" style="vertical-align:top;white-space:nowrap">'
         f'<div style="{_txt(26, 850, INK, 1.0, -0.03)}">{_e(_size(candidate))}</div>'

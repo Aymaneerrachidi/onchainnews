@@ -230,6 +230,27 @@ def test_kol_activity_promotes_unknown_mints_for_market_checks(tmp_path):
     assert kol_discovery_mints(activity, settings) == ["MINT_A", "MINT_C"]
 
 
+def test_kol_discovery_zero_cap_enriches_every_qualified_mint(tmp_path):
+    from brief.engine import kol_discovery_mints
+
+    settings = build_settings(tmp_path / "kol-discovery-all")
+    settings.values["kol"] = {
+        "max_mints_enriched": 0,
+        "min_buyers_to_enrich": 1,
+        "min_participants_to_enrich": 3,
+        "min_realised_sol_to_enrich": 5.0,
+    }
+    activity = {
+        "MINT_A": MintActivity("MINT_A", buyers=["Wugi"], holders=["Wugi"], sol_spent=4.0),
+        "MINT_B": MintActivity("MINT_B", sellers=["theo", "Pain"], realised_sol=2.0),
+        "MINT_C": MintActivity("MINT_C", sellers=["Gasp"], realised_sol=9.0),
+        "MINT_D": MintActivity("MINT_D", sellers=["Noise"], realised_sol=0.1),
+        "MINT_E": MintActivity("MINT_E", buyers=["Cupsey"], holders=["Cupsey"], realised_sol=30.0),
+    }
+
+    assert kol_discovery_mints(activity, settings) == ["MINT_E", "MINT_A", "MINT_C"]
+
+
 @pytest.mark.asyncio
 async def test_goplus_asks_for_one_contract_at_a_time():
     """A batch answers HTTP 200 and returns a single record regardless.

@@ -19,7 +19,7 @@ from brief.intelligence import (
     migration_detail,
     pool_liquidity_proxy,
 )
-from brief.journal import build_journal, assign_lore, journal_rank_key
+from brief.journal import build_journal, assign_lore, journal_rank_key, inorganic_reasons, rug_or_bundle, risk_labels
 from brief.kol import KolTracker
 from brief.ledger import Ledger, iso
 from brief.models import (
@@ -32,12 +32,23 @@ from brief.models import (
     SourceStatus,
     TokenSnapshot,
 )
-from brief.screen import allowed_chains, is_editorial_pick, is_live_cto, is_mover, mover_rank_key, screen
+from brief.screen import (
+    allowed_chains,
+    compute_signals,
+    describe_candidate,
+    is_editorial_pick,
+    is_live_cto,
+    is_mover,
+    mover_rank_key,
+    populate_editorial_reasons,
+    screen,
+)
 from brief.scoring import score_candidates
 from brief.sources.birdeye import BirdeyeSource
 from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
 from brief.sources.dune import DuneSource
 from brief.sources.goplus import GoPlusSource, supports as goplus_supports
+from brief.sources.geckoterminal import GeckoTerminalSource
 from brief.sources.helius import HeliusSource
 from brief.sources.http import CachedHttpClient
 from brief.sources.jupiter import JupiterSource
@@ -63,7 +74,11 @@ def kol_discovery_mints(kol_activity: dict[str, object], settings: Settings) -> 
     Dex/RugCheck/Helius gates.
     """
     section = settings.section("kol")
-    max_mints = int(section.get("max_mints_enriched", 80) or 80)
+    # 0 or a negative value means "resolve every KOL-touched mint". Dexscreener
+    # lookups are free and batched; the expensive Helius holder checks happen
+    # later only on finalists.
+    raw_max = section.get("max_mints_enriched", 80)
+    max_mints = int(raw_max if raw_max is not None else 80)
     min_buyers = int(section.get("min_buyers_to_enrich", 1) or 1)
     min_participants = int(section.get("min_participants_to_enrich", 2) or 2)
     min_realised = float(section.get("min_realised_sol_to_enrich", 0) or 0)
@@ -85,7 +100,369 @@ def kol_discovery_mints(kol_activity: dict[str, object], settings: Settings) -> 
         score = buyers * 1000 + holders * 250 + participants * 100 + max(realised, 0) * 10 + spent
         rows.append((score, mint))
     rows.sort(reverse=True)
+    if max_mints <= 0:
+        return [mint for _, mint in rows]
     return [mint for _, mint in rows[:max_mints]]
+
+
+def _kol_touch_count(candidate: Candidate) -> int:
+    return len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+
+
+def _kol_record_touch_count(record: object) -> int:
+    return len(
+        set(getattr(record, "buyers", []) or [])
+        | set(getattr(record, "holders", []) or [])
+        | set(getattr(record, "sellers", []) or [])
+    )
+
+
+def _closed_kol_pnl(flows: list[object]) -> float:
+    """Cash PnL from wallets that both entered and exited inside the window.
+
+    The aggregate wallet-flow value treats an unsold position as a cash
+    outflow. That is useful accounting, but it is not realised PnL and must not
+    turn a crowded, still-held runner into a losing trade.
+    """
+    return sum(
+        float(getattr(flow, "realised_sol", 0.0) or 0.0)
+        for flow in flows
+        if bool(getattr(flow, "bought", False)) and bool(getattr(flow, "sold", False))
+    )
+
+
+def _kol_profit_or_open_conviction(
+    *,
+    realised: float,
+    buyers: int,
+    holders: int,
+    flows: list[object],
+    section: dict[str, object],
+) -> bool:
+    min_realised = float(section.get("runner_min_realised_sol", 5.0) or 5.0)
+    if realised > 0 and realised >= min_realised:
+        return True
+    # Open positions make net cash flow look negative. Accept that case only
+    # when a genuine wallet crowd remains and completed round trips are net
+    # profitable. This cannot rescue a one-wallet punt.
+    return (
+        buyers >= int(section.get("runner_open_min_buyers", 5) or 5)
+        and holders >= int(section.get("runner_open_min_holders", 2) or 2)
+        and _closed_kol_pnl(flows) > 0
+    )
+
+
+def _token_age_hours(token: TokenSnapshot, now: datetime) -> float | None:
+    if token.pair_created_at is None:
+        return None
+    return max(0.0, (now.astimezone(token.pair_created_at.tzinfo) - token.pair_created_at).total_seconds() / 3600)
+
+
+def _kol_tape_prequalifies(token: TokenSnapshot, record: object, settings: Settings, now: datetime) -> bool:
+    section = settings.section("kol")
+    if not bool(section.get("runner_lane_enabled", True)):
+        return False
+    if token.chain_id.lower() != "solana":
+        return False
+    age = _token_age_hours(token, now)
+    max_age = float(section.get("runner_max_age_hours", 24) or 24)
+    if age is None or (max_age and age > max_age):
+        return False
+    buyers = len(set(getattr(record, "buyers", []) or []))
+    participants = _kol_record_touch_count(record)
+    realised = float(getattr(record, "realised_sol", 0.0) or 0.0)
+    spent = float(getattr(record, "sol_spent", 0.0) or 0.0)
+    holders = len(set(getattr(record, "holders", []) or []))
+    flows = list(getattr(record, "flows", []) or [])
+    if buyers < int(section.get("runner_min_buyers", 5) or 5):
+        return False
+    if participants < int(section.get("runner_min_participants", 5) or 5):
+        return False
+    if bool(section.get("runner_require_positive_realised", True)) and not _kol_profit_or_open_conviction(
+        realised=realised, buyers=buyers, holders=holders, flows=flows, section=section
+    ):
+        return False
+    min_spent = float(section.get("runner_min_sol_spent", 0.0) or 0.0)
+    if min_spent and spent < min_spent:
+        return False
+    return True
+
+
+def _kol_flow_qualifies(candidate: Candidate, settings: Settings) -> bool:
+    section = settings.section("kol")
+    if not bool(section.get("runner_lane_enabled", True)):
+        return False
+    if candidate.token.chain_id.lower() != "solana":
+        return False
+    if bool(section.get("runner_require_safety", False)) and candidate.safety.source == "unavailable":
+        return False
+    if bool(section.get("runner_require_holder_count", False)) and candidate.safety.holder_count is None:
+        return False
+    age = candidate.signals.age_hours
+    max_age = float(section.get("runner_max_age_hours", 72) or 72)
+    if age is None:
+        return False
+    if max_age and age > max_age:
+        return False
+    buyers = len(set(candidate.kol_buyers))
+    participants = _kol_touch_count(candidate)
+    realised = float(candidate.kol_realised_sol or 0.0)
+    spent = float(candidate.kol_sol_spent or 0.0)
+    min_buyers = int(section.get("runner_min_buyers", 5) or 5)
+    min_participants = int(section.get("runner_min_participants", 5) or 5)
+    min_realised = float(section.get("runner_min_realised_sol", 5.0) or 5.0)
+    min_spent = float(section.get("runner_min_sol_spent", 0.0) or 0.0)
+    if buyers < min_buyers:
+        return False
+    if participants < min_participants:
+        return False
+    if bool(section.get("runner_require_positive_realised", True)) and not _kol_profit_or_open_conviction(
+        realised=realised,
+        buyers=buyers,
+        holders=len(set(candidate.kol_holders)),
+        flows=list(candidate.kol_flows),
+        section=section,
+    ):
+        return False
+    if min_spent and spent < min_spent:
+        return False
+    clears_current_floor = (
+        max(candidate.token.market_cap, float(candidate.observed_peak_market_cap or 0.0))
+        >= float(section.get("runner_min_market_cap", 200_000) or 200_000)
+        and candidate.token.volume_24h >= float(section.get("runner_min_volume_24h", 100_000) or 100_000)
+    )
+    if not clears_current_floor:
+        return False
+    return True
+
+
+def _kol_flow_reason(candidate: Candidate) -> str:
+    buyers = len(set(candidate.kol_buyers))
+    holders = len(set(candidate.kol_holders))
+    sellers = len(set(candidate.kol_sellers))
+    bits: list[str] = []
+    if buyers:
+        bits.append(f"{buyers} tracked wallet{'s' if buyers != 1 else ''} bought")
+    if holders:
+        bits.append(f"{holders} still holding")
+    if sellers:
+        bits.append(f"{sellers} sold/trimmed")
+    if abs(candidate.kol_realised_sol) >= 0.1:
+        bits.append(f"{candidate.kol_realised_sol:+.1f} SOL realised")
+    if candidate.kol_sol_spent >= 0.1:
+        bits.append(f"{candidate.kol_sol_spent:.1f} SOL spent")
+    return "; ".join(bits) or "tracked wallet activity"
+
+
+def _kol_hard_reasons(candidate: Candidate, settings: Settings) -> tuple[list[str], list[str]]:
+    """Split irreversible/manufactured risk from normal end-of-day fading.
+
+    Low recent activity is valuable recap context: it says the runner peaked
+    and died. It is not evidence that the earlier run was fake. Contract risk,
+    holder packs, wash volume, dust cadence and one-sided books remain hard
+    exclusions.
+    """
+    hard = list(rug_or_bundle(candidate, settings))
+    soft: list[str] = []
+    peak = float(candidate.observed_peak_market_cap or 0.0)
+    peak_floor = float(settings.get("kol", "runner_min_market_cap", 200_000) or 200_000)
+    max_peak_turnover = float(settings.get("kol", "runner_max_peak_turnover", 10.0) or 10.0)
+    verified_faded_run = (
+        peak >= peak_floor
+        and candidate.token.market_cap < peak_floor
+        and candidate.token.volume_24h / max(peak, 1.0) <= max_peak_turnover
+    )
+    for reason in inorganic_reasons(candidate, settings):
+        lowered = reason.casefold()
+        holder_floor = int(settings.get("kol", "runner_min_holders", 0) or 0)
+        softer_holder_floor = (
+            " holders, which is not a market yet" in lowered
+            and candidate.safety.holder_count is not None
+            and candidate.safety.holder_count >= holder_floor
+        )
+        # Market cap and liquidity collapse after a runner fades. Ratios against
+        # that final dust value cannot prove that the candle-verified run was
+        # wash traded. Peak-normalised turnover remains capped, while all
+        # holder, bundle and authority checks stay hard.
+        stale_end_state_ratio = verified_faded_run and (
+            "wash-trading shape:" in lowered or "its market cap traded" in lowered
+        )
+        if stale_end_state_ratio:
+            continue
+        if "the move is over:" in lowered or softer_holder_floor or (
+            lowered.startswith("only ") and " trades in 24h" in lowered
+        ):
+            soft.append(reason)
+        else:
+            hard.append(reason)
+    return list(dict.fromkeys(hard)), list(dict.fromkeys(soft))
+
+
+def _attach_kol_record(candidate: Candidate, record: object, scanned_wallets: int) -> None:
+    candidate.kol_wallets_scanned = scanned_wallets
+    candidate.kol_buyers = list(getattr(record, "buyers", []) or [])
+    candidate.kol_sellers = list(getattr(record, "sellers", []) or [])
+    candidate.kol_holders = list(getattr(record, "holders", []) or [])
+    candidate.kol_realised_sol = float(getattr(record, "realised_sol", 0.0) or 0.0)
+    candidate.kol_sol_spent = float(getattr(record, "sol_spent", 0.0) or 0.0)
+    candidate.kol_flows = list(getattr(record, "flows", []) or [])
+
+
+def _kol_tape_candidates(
+    tokens: list[TokenSnapshot],
+    safety: dict[str, SafetyReport],
+    enrichments: dict[str, Enrichment],
+    kol_activity: dict[str, object],
+    settings: Settings,
+    now: datetime,
+    scanned_wallets: int,
+    existing_mints: set[str],
+    observed_peaks: dict[str, float] | None = None,
+) -> list[Candidate]:
+    """Build candidates for fresh KOL-profit names that already faded below floors."""
+    result: list[Candidate] = []
+    for token in tokens:
+        if token.mint in existing_mints:
+            continue
+        record = kol_activity.get(token.mint)
+        if not record or not _kol_tape_prequalifies(token, record, settings, now):
+            continue
+        candidate = Candidate(
+            token=token,
+            signals=compute_signals(token, enrichments.get(token.mint, Enrichment()), None, now),
+            safety=safety.get(token.mint, SafetyReport(token.mint)),
+            enrichment=enrichments.get(token.mint, Enrichment()),
+        )
+        candidate.track = "KOL"
+        candidate.observed_peak_market_cap = (observed_peaks or {}).get(token.mint)
+        _attach_kol_record(candidate, record, scanned_wallets)
+        populate_editorial_reasons(candidate)
+        result.append(candidate)
+    return result
+
+
+def _add_kol_flow_runners(
+    runners: list[Candidate],
+    blocked: list[Candidate],
+    journal_pool: list[Candidate],
+    settings: Settings,
+    now: datetime,
+) -> tuple[list[Candidate], list[Candidate], int]:
+    """Promote KOL-discovered names that pass hard market/safety checks.
+
+    The normal journal starts from Dex motion and then asks whether wallets
+    touched it. This lane starts from wallets and asks whether Dex/RugCheck still
+    make the coin safe enough to recap.
+    """
+    if not bool(settings.get("kol", "runner_lane_enabled", True)):
+        return runners, blocked, 0
+    # The morning product is KOL-confirmed by definition. The hourly tape is
+    # intentionally broader and runs with [kol].enabled=false, so this filter
+    # applies only to the fully enriched daily build.
+    if bool(settings.get("kol", "enabled", True)) and bool(settings.get("kol", "wallets", []) or []):
+        retained: list[Candidate] = []
+        rejected_mints = {candidate.token.mint for candidate in blocked}
+        for candidate in runners:
+            hard, _ = _kol_hard_reasons(candidate, settings)
+            if _kol_flow_qualifies(candidate, settings) and not hard:
+                retained.append(candidate)
+                continue
+            if candidate.token.mint not in rejected_mints:
+                if not candidate.risk_labels:
+                    candidate.risk_labels = [
+                        "daily KOL confirmation below the two-wallet profitable-flow floor"
+                    ]
+                blocked.append(candidate)
+                rejected_mints.add(candidate.token.mint)
+        runners = retained
+    existing = {candidate.token.mint for candidate in runners}
+    blocked_by_mint = {candidate.token.mint: candidate for candidate in blocked}
+    promoted: list[Candidate] = []
+    still_blocked = [candidate for candidate in blocked]
+    max_added = int(settings.get("kol", "runner_lane_max", 10) or 10)
+    max_manipulation = float(settings.get("kol", "runner_max_manipulation", 75.0) or 75.0)
+
+    for candidate in sorted(
+        journal_pool,
+        key=lambda c: (
+            max(float(c.kol_realised_sol or 0), 0.0),
+            len(set(c.kol_buyers)),
+            _kol_touch_count(c),
+            c.scores.get("runner", 0.0),
+            c.token.volume_24h,
+        ),
+        reverse=True,
+    ):
+        if len(promoted) >= max_added:
+            break
+        if candidate.token.mint in existing or not _kol_flow_qualifies(candidate, settings):
+            continue
+        hard_reasons, soft_reasons = _kol_hard_reasons(candidate, settings)
+        if hard_reasons:
+            if candidate.token.mint not in blocked_by_mint:
+                candidate.risk_labels = hard_reasons
+                still_blocked.append(candidate)
+                blocked_by_mint[candidate.token.mint] = candidate
+            continue
+        peak = float(candidate.observed_peak_market_cap or 0.0)
+        peak_floor = float(settings.get("kol", "runner_min_market_cap", 200_000) or 200_000)
+        peak_turnover = candidate.token.volume_24h / max(peak, 1.0) if peak else float("inf")
+        verified_faded_run = (
+            peak >= peak_floor
+            and candidate.token.market_cap < peak_floor
+            and peak_turnover <= float(settings.get("kol", "runner_max_peak_turnover", 10.0) or 10.0)
+        )
+        if candidate.scores.get("manipulation", 0.0) > max_manipulation and not verified_faded_run:
+            candidate.risk_labels = [f"manipulation score {candidate.scores.get('manipulation', 0.0):.0f} above KOL-flow ceiling"]
+            if candidate.token.mint not in blocked_by_mint:
+                still_blocked.append(candidate)
+                blocked_by_mint[candidate.token.mint] = candidate
+            continue
+        candidate.track = "KOL"
+        if verified_faded_run:
+            candidate.read = (
+                f"${candidate.token.symbol} hit a candle-verified ${peak:,.0f} intraday market cap "
+                f"before fading to ${candidate.token.market_cap:,.0f} by the cutoff; "
+                f"{len(set(candidate.kol_buyers))} tracked wallets bought and the chart recorded "
+                f"${candidate.token.volume_24h:,.0f} of 24-hour volume."
+            )
+            # These sentences were produced from the final dust market cap and
+            # would restate the exact denominator error corrected above.
+            candidate.dex_evidence = []
+        elif not candidate.read:
+            candidate.read = describe_candidate(candidate)
+        current_floor = (
+            candidate.token.market_cap >= float(settings.get("kol", "runner_min_market_cap", 200_000) or 200_000)
+            and candidate.token.volume_24h >= float(settings.get("kol", "runner_min_volume_24h", 100_000) or 100_000)
+        )
+        prefix = "KOL-flow runner" if current_floor else "KOL-tape runner; faded below current floor"
+        label = f"{prefix}: {_kol_flow_reason(candidate)}"
+        contextual_labels = risk_labels(candidate, settings, now)
+        if verified_faded_run:
+            contextual_labels = [
+                item for item in contextual_labels
+                if "thin pool," not in item.casefold() and "its market cap traded" not in item.casefold()
+            ]
+        labels = [label, *soft_reasons, *contextual_labels]
+        candidate.risk_labels = list(dict.fromkeys(labels))
+        promoted.append(candidate)
+        existing.add(candidate.token.mint)
+
+    if promoted:
+        runners = [*runners, *promoted]
+        runners.sort(
+            key=lambda c: (
+                len(set(c.kol_buyers)),
+                _kol_touch_count(c),
+                max(float(c.kol_realised_sol or 0), 0.0),
+                c.scores.get("runner", 0.0),
+                c.token.volume_24h,
+            ),
+            reverse=True,
+        )
+        promoted_mints = {candidate.token.mint for candidate in promoted}
+        still_blocked = [candidate for candidate in still_blocked if candidate.token.mint not in promoted_mints]
+    return runners, still_blocked, len(promoted)
 
 
 def _short_address(address: str | None) -> str:
@@ -560,6 +937,27 @@ async def build_brief(
                     log.warning("kol_mint_discovery_failed error=%s", exc)
                     statuses.append(SourceStatus("KOL mint discovery", False, str(exc)))
 
+        # The hourly scan is our historical high-water mark. Bring every mint
+        # that crossed the tape gate back into today's universe before safety
+        # checks, even if it has faded out of Dexscreener's discovery feeds.
+        pulse_passes_for_day: dict[str, dict[str, object]] = {}
+        if bool(settings.get("journal", "include_intraday_pulse_runners", True)):
+            pulse_passes_for_day = load_pulse_passes(settings, window_start, now)
+            known_mints = {token.mint for token in tokens}
+            missing_pulse_mints = [mint for mint in pulse_passes_for_day if mint not in known_mints]
+            if missing_pulse_mints:
+                try:
+                    pulse_tokens = await dex.token_pairs(missing_pulse_mints)
+                    tokens = merge_token_snapshots([*tokens, *pulse_tokens])
+                    statuses.append(SourceStatus(
+                        "Intraday tape discovery",
+                        True,
+                        f"{len(pulse_tokens)}/{len(missing_pulse_mints)} faded runner mints resolved",
+                    ))
+                except Exception as exc:
+                    log.warning("pulse_mint_discovery_failed error=%s", exc)
+                    statuses.append(SourceStatus("Intraday tape discovery", False, str(exc)))
+
         token_by_mint = {token.mint: token for token in tokens}
         hard_pass_mints = [
             token.mint for token in tokens
@@ -567,6 +965,11 @@ async def build_brief(
             and token.market_cap >= float(settings.get("thresholds", "min_market_cap"))
             and token.liquidity_usd >= float(settings.get("thresholds", "min_liquidity"))
             and token.txns_6h.total > 0
+        ]
+        kol_tape_mints = [
+            token.mint for token in tokens
+            if (record := kol_activity.get(token.mint))
+            and _kol_tape_prequalifies(token, record, settings, now)
         ]
         rug = RugCheckSource(
             http,
@@ -577,7 +980,12 @@ async def build_brief(
         # Solana; GoPlus knows the EVM chains and also answers questions Solana
         # does not have, like whether a sale is taxed or can be blocked.
         chain_of = {token.mint: token.chain_id.lower() for token in tokens}
-        solana_mints = [m for m in hard_pass_mints if chain_of.get(m) == "solana"]
+        solana_mints = sorted(
+            {
+                m for m in [*hard_pass_mints, *kol_tape_mints]
+                if chain_of.get(m) == "solana"
+            }
+        )
 
         # GoPlus is free and rate-limited, and most of the universe never
         # reaches the record. Asking about all of it spent the budget before the
@@ -652,7 +1060,9 @@ async def build_brief(
                 "tokens there are labelled unverified",
             ))
 
-        enrichments: dict[str, Enrichment] = {mint: Enrichment() for mint in hard_pass_mints}
+        enrichments: dict[str, Enrichment] = {
+            mint: Enrichment() for mint in {*hard_pass_mints, *kol_tape_mints}
+        }
         if helius.configured and solana_mints:
             try:
                 batch = await helius.enrich_batch(solana_mints)
@@ -667,6 +1077,40 @@ async def build_brief(
             ))
         else:
             statuses.append(SourceStatus("Helius", False, "not configured; holder and authority cross-checks unavailable"))
+
+        # A morning snapshot cannot prove where a faded coin traded earlier.
+        # Reconstruct the 30-hour high from free hourly candles. KOL profit by
+        # itself never qualifies a small scalp as a runner.
+        observed_peaks: dict[str, float] = {}
+        faded_peak_mints = [
+            mint for mint in kol_tape_mints
+            if (token := token_by_mint.get(mint))
+            and token.market_cap < float(settings.get("kol", "runner_min_market_cap", 200_000) or 200_000)
+        ]
+        if faded_peak_mints:
+            gecko = GeckoTerminalSource(
+                http,
+                str(urls.get("geckoterminal_base_url", "https://api.geckoterminal.com/api/v2")),
+                ttl=int(cache.get("ohlcv_ttl_seconds", 3600)),
+                requests_per_minute=int(settings.get("kol", "ohlcv_requests_per_minute", 25)),
+                request_interval_seconds=float(settings.get("kol", "ohlcv_request_interval_seconds", 2.5)),
+            )
+            peak_results = await _map_resilient(
+                faded_peak_mints,
+                lambda mint: gecko.peak_market_cap(token_by_mint[mint]),
+                concurrency=3,
+            )
+            observed_peaks = {
+                mint: float(value) for mint, value, _ in peak_results if value is not None
+            }
+            peak_floor = float(settings.get("kol", "runner_min_market_cap", 200_000) or 200_000)
+            crossed = sum(peak >= peak_floor for peak in observed_peaks.values())
+            statuses.append(SourceStatus(
+                "GeckoTerminal peak verification",
+                len(observed_peaks) == len(faded_peak_mints),
+                f"{len(observed_peaks)}/{len(faded_peak_mints)} faded KOL charts checked; "
+                f"{crossed} crossed the ${peak_floor:,.0f} peak floor",
+            ))
 
         # Public X widget metadata is only a resolution/age check; no sentiment is scraped.
         social_inputs = {token.mint: token.socials for token in tokens if token.mint in hard_pass_mints}
@@ -928,12 +1372,7 @@ async def build_brief(
             )
             record = kol_activity.get(candidate.token.mint)
             if record:
-                candidate.kol_buyers = record.buyers
-                candidate.kol_sellers = record.sellers
-                candidate.kol_holders = record.holders
-                candidate.kol_realised_sol = record.realised_sol
-                candidate.kol_sol_spent = record.sol_spent
-                candidate.kol_flows = record.flows
+                _attach_kol_record(candidate, record, scanned_wallets)
         top_limit = int(settings.get("editorial", "max_shortlist", settings.get("run", "top_tokens", 10)))
         def launched_in_window(candidate) -> bool:
             created = candidate.token.pair_created_at
@@ -988,21 +1427,31 @@ async def build_brief(
         for candidate in journal_pool:
             record = kol_activity.get(candidate.token.mint)
             if record:
-                candidate.kol_buyers = record.buyers
-                candidate.kol_sellers = record.sellers
-                candidate.kol_holders = record.holders
-                candidate.kol_realised_sol = record.realised_sol
-                candidate.kol_sol_spent = record.sol_spent
-                candidate.kol_flows = record.flows
+                _attach_kol_record(candidate, record, scanned_wallets)
+        existing_pool_mints = {candidate.token.mint for candidate in journal_pool}
+        kol_tape_extra = _kol_tape_candidates(
+            tokens, safety, enrichments, kol_activity, settings, now, scanned_wallets,
+            existing_pool_mints, observed_peaks,
+        )
+        if kol_tape_extra:
+            journal_pool = [*journal_pool, *kol_tape_extra]
         score_candidates(journal_pool, settings)
         if bool(settings.get("holders", "enabled", True)):
             statuses.append(await _apply_holder_cluster_precheck(
                 journal_pool, safety, ledger, helius, settings, now, commit=commit
             ))
         runners, blocked_runners = build_journal(journal_pool, settings, ledger, now)
+        runners, blocked_runners, kol_promoted = _add_kol_flow_runners(
+            runners, blocked_runners, journal_pool, settings, now
+        )
+        statuses.append(SourceStatus(
+            "KOL-flow runner lane",
+            True,
+            f"{kol_promoted} tracked-wallet coins promoted after Dex/RugCheck/Helius checks",
+        ))
         if bool(settings.get("journal", "include_intraday_pulse_runners", True)):
             try:
-                pulse_passes = load_pulse_passes(settings, window_start, now)
+                pulse_passes = pulse_passes_for_day
                 if pulse_passes:
                     missing_pulse_mints = [
                         mint for mint in pulse_passes
@@ -1035,15 +1484,17 @@ async def build_brief(
                         candidate = candidate_from_pass(entry, token_by_mint.get(mint), settings)
                         record = kol_activity.get(mint)
                         if record:
-                            candidate.kol_wallets_scanned = scanned_wallets
-                            candidate.kol_buyers = record.buyers
-                            candidate.kol_sellers = record.sellers
-                            candidate.kol_holders = record.holders
-                            candidate.kol_realised_sol = record.realised_sol
-                            candidate.kol_sol_spent = record.sol_spent
-                            candidate.kol_flows = record.flows
+                            _attach_kol_record(candidate, record, scanned_wallets)
+                        candidate.safety = safety.get(mint, candidate.safety)
+                        candidate.enrichment = enrichments.get(mint, candidate.enrichment)
+                        if not _kol_flow_qualifies(candidate, settings):
+                            continue
+                        hard_reasons, soft_reasons = _kol_hard_reasons(candidate, settings)
+                        if hard_reasons:
+                            continue
                         if blocked_now:
                             candidate.risk_labels = list(dict.fromkeys([*candidate.risk_labels, *blocked_now.risk_labels]))
+                        candidate.risk_labels = list(dict.fromkeys([*candidate.risk_labels, *soft_reasons]))
                         if "intraday runner: qualified during the window, may have faded by report time" not in candidate.risk_labels:
                             candidate.risk_labels.insert(
                                 0,

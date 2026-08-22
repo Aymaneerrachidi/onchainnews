@@ -176,6 +176,10 @@ class Candidate:
     kol_wallets_scanned: int = 0
     run_multiple: float = 1.0
     faded_from_peak: float | None = None
+    # Highest market cap reconstructed from hourly pool candles inside the
+    # report window. Used to prove that a coin which faded by morning actually
+    # crossed the runner floor.
+    observed_peak_market_cap: float | None = None
     # One descriptive sentence assembled from measured values, never a forecast.
     read: str = ""
     # Editorial evidence used by the daily rundown. Dex evidence is generated

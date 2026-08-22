@@ -222,6 +222,11 @@ class KolTracker:
         # 429s, so this work is paced and capped independently of the rest.
         self.request_interval = float(section.get("request_interval_seconds", 1.0))
         self.requests_per_minute = int(section.get("requests_per_minute", 30))
+        # A positive token balance delta alone is not a buy. Meme deployers
+        # routinely airdrop dust to visible wallets so dashboards can claim
+        # fake KOL participation. Require an actual SOL leg before a wallet is
+        # counted as a buyer or seller.
+        self.min_trade_sol = float(section.get("min_trade_sol", 0.05) or 0.05)
         max_wallets = int(section.get("max_wallets_per_run", 0))
         if max_wallets > 0:
             self.wallets = dict(list(self.wallets.items())[:max_wallets])
@@ -288,27 +293,37 @@ class KolTracker:
         activity: dict[str, MintActivity] = {}
         for label, flows in per_wallet.items():
             for mint, flow in flows.items():
+                bought = flow.tokens_in > 0 and flow.sol_spent >= self.min_trade_sol
+                sold = flow.tokens_out > 0 and flow.sol_received >= self.min_trade_sol
+                if not bought and not sold:
+                    continue
                 record = activity.setdefault(mint, MintActivity(mint=mint))
-                if flow.tokens_in > 0:
+                if bought:
                     record.buyers.append(label)
                     record.sol_spent += flow.sol_spent
                     if flow.first_buy_at and (
                         record.first_buy_at is None or flow.first_buy_at < record.first_buy_at
                     ):
                         record.first_buy_at = flow.first_buy_at
-                if flow.tokens_out > 0:
+                if sold:
                     record.sellers.append(label)
-                record.realised_sol += flow.realised_sol
-                if flow.still_holding:
+                # A position opened in the window has negative realised cash
+                # flow until it is sold. This field is net realised flow for
+                # the observed window, not mark-to-market PnL.
+                record.realised_sol += (
+                    (flow.sol_received if sold else 0.0)
+                    - (flow.sol_spent if bought else 0.0)
+                )
+                if bought and flow.still_holding:
                     record.holders.append(label)
-                if flow.tokens_in > 0 or flow.tokens_out > 0 or flow.realised_sol:
+                if bought or sold:
                     record.flows.append(KolWalletFlow(
                         name=label,
-                        bought=flow.tokens_in > 0,
-                        sold=flow.tokens_out > 0,
-                        holding=flow.still_holding,
-                        realised_sol=flow.realised_sol,
-                        sol_spent=flow.sol_spent,
+                        bought=bought,
+                        sold=sold,
+                        holding=bought and flow.still_holding,
+                        realised_sol=(flow.sol_received if sold else 0.0) - (flow.sol_spent if bought else 0.0),
+                        sol_spent=flow.sol_spent if bought else 0.0,
                     ))
         for record in activity.values():
             record.buyers.sort()
@@ -338,6 +353,7 @@ class KolTracker:
             "wallets": list(self.wallets.items()),
             "window_hours": self.window_hours,
             "max_transactions": self.max_transactions,
+            "min_trade_sol": self.min_trade_sol,
         }
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
         return hashlib.sha256(encoded).hexdigest()

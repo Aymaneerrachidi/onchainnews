@@ -185,6 +185,32 @@ def _pulse_settings(settings: Settings) -> Settings:
         values.setdefault("holders", {})["enabled"] = False
     if bool(pulse.get("disable_kol_scan", True)):
         values.setdefault("kol", {})["enabled"] = False
+        # The hourly job is the tape recorder. It must remember market runners
+        # even though it deliberately skips the expensive wallet scan. The
+        # morning job intersects these passes with real KOL trades and safety.
+        journal = values.setdefault("journal", {})
+        journal["require_kol_trade_for_publish"] = False
+        journal["require_wallet_touch_for_publish"] = False
+        journal["wallet_touch_required_above_multiple"] = 0.0
+        # Capture a wide but still safety-screened tape. These are observations,
+        # not morning endorsements; the daily build applies wallet consensus.
+        journal["target_min_runners"] = int(pulse.get("capture_target", 12) or 12)
+        journal["fill_with_caveated_runners"] = True
+        journal["fill_min_runner_score"] = float(pulse.get("capture_min_runner_score", 15.0) or 15.0)
+        journal["fill_min_organic_score"] = float(pulse.get("capture_min_organic_score", 25.0) or 25.0)
+        journal["fill_max_manipulation"] = float(pulse.get("capture_max_manipulation", 65.0) or 65.0)
+        hard_terms = [
+            str(term) for term in (journal.get("fill_hard_block_terms", []) or [])
+            if not any(
+                marker in str(term).casefold()
+                for marker in (
+                    "tracked kol wallet",
+                    "move with no linked social context",
+                    "move on only 0.",
+                )
+            )
+        ]
+        journal["fill_hard_block_terms"] = hard_terms
     if bool(pulse.get("disable_x_scan", True)):
         values.setdefault("x", {})["enabled"] = False
     return Settings(root=settings.root, values=values)

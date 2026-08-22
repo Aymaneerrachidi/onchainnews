@@ -760,6 +760,248 @@ def test_publisher_can_require_a_tracked_kol_wallet_touch(tmp_path):
     assert not any("no tracked KOL wallet traded" in r for r in publisher_quality_reasons(c, settings, NOW))
 
 
+def test_kol_flow_lane_promotes_wallet_discovered_runners(tmp_path):
+    from brief.engine import _add_kol_flow_runners
+    from brief.models import SafetyReport
+    from brief.scoring import score_candidate
+
+    settings = build_settings(tmp_path / "kol-lane")
+    settings.values.setdefault("kol", {}).update({
+        "runner_lane_enabled": True,
+        "runner_lane_max": 10,
+        "runner_min_market_cap": 200_000.0,
+        "runner_min_volume_24h": 100_000.0,
+        "runner_max_age_hours": 24.0,
+        "runner_min_buyers": 5,
+        "runner_min_participants": 5,
+        "runner_min_realised_sol": 5.0,
+        "runner_min_sol_spent": 0.0,
+        "runner_require_positive_realised": True,
+        "runner_max_manipulation": 75.0,
+    })
+    c = _tape("OMO", mcap=900_000, vol24=1_600_000, vol6=500_000, liq=95_000,
+              trades6=2_200, buys6=1_120)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport("m", holder_count=2_800, top10_pct=14.0, lp_locked_or_burned_pct=100.0)
+    c.kol_wallets_scanned = 120
+    c.kol_buyers = ["Wugi", "Chairman", "Pain", "Gasp", "Cupsey"]
+    c.kol_holders = ["Wugi", "Chairman"]
+    c.kol_sellers = ["Pain", "Gasp"]
+    c.kol_realised_sol = 22.0
+    c.kol_sol_spent = 18.0
+    score_candidate(c, settings)
+
+    runners, blocked, count = _add_kol_flow_runners([], [], [c], settings, NOW)
+
+    assert count == 1
+    assert runners[0].track == "KOL"
+    assert "$OMO" in runners[0].read
+    assert any("KOL-flow runner" in label for label in runners[0].risk_labels)
+    assert blocked == []
+
+
+def test_kol_flow_lane_rejects_thin_old_or_losing_wallet_flow(tmp_path):
+    from brief.engine import _add_kol_flow_runners
+    from brief.models import SafetyReport
+    from brief.scoring import score_candidate
+
+    settings = build_settings(tmp_path / "kol-lane-reject")
+    settings.values.setdefault("kol", {}).update({
+        "runner_lane_enabled": True,
+        "runner_lane_max": 10,
+        "runner_min_market_cap": 200_000.0,
+        "runner_min_volume_24h": 100_000.0,
+        "runner_max_age_hours": 24.0,
+        "runner_min_buyers": 5,
+        "runner_min_participants": 5,
+        "runner_min_realised_sol": 5.0,
+        "runner_require_positive_realised": True,
+        "runner_max_manipulation": 75.0,
+    })
+
+    def candidate(symbol: str):
+        c = _tape(symbol, mcap=900_000, vol24=1_600_000, vol6=500_000, liq=95_000,
+                  trades6=2_200, buys6=1_120)
+        c.token.txns_24h = c.token.txns_6h
+        c.safety = SafetyReport("m", holder_count=2_800, top10_pct=14.0, lp_locked_or_burned_pct=100.0)
+        c.kol_wallets_scanned = 120
+        return c
+
+    one_loser = candidate("ONELOSS")
+    one_loser.kol_buyers = ["West"]
+    one_loser.kol_sellers = ["West"]
+    one_loser.kol_realised_sol = -12.0
+
+    four_kols = candidate("FOUR")
+    four_kols.kol_buyers = ["Wugi", "Chairman", "Pain", "Gasp"]
+    four_kols.kol_holders = ["Wugi"]
+    four_kols.kol_realised_sol = 40.0
+
+    old = candidate("OLDKOL")
+    old.kol_buyers = ["Wugi", "Chairman", "Pain", "Gasp", "Cupsey"]
+    old.kol_holders = ["Wugi"]
+    old.kol_realised_sol = 40.0
+    old.signals.age_hours = 25.0
+    old.token.pair_created_at = NOW - timedelta(hours=25)
+
+    for c in (one_loser, four_kols, old):
+        score_candidate(c, settings)
+
+    runners, blocked, count = _add_kol_flow_runners([], [], [one_loser, four_kols, old], settings, NOW)
+
+    assert count == 0
+    assert runners == []
+    assert blocked == []
+
+
+def test_kol_flow_lane_can_promote_faded_positive_kol_tape(tmp_path):
+    from brief.engine import _add_kol_flow_runners
+    from brief.models import SafetyReport
+    from brief.scoring import score_candidate
+
+    settings = build_settings(tmp_path / "kol-lane-faded")
+    settings.values.setdefault("kol", {}).update({
+        "runner_lane_enabled": True,
+        "runner_lane_max": 10,
+        "runner_min_market_cap": 200_000.0,
+        "runner_min_volume_24h": 100_000.0,
+        "runner_max_age_hours": 24.0,
+        "runner_min_buyers": 5,
+        "runner_min_participants": 5,
+        "runner_min_realised_sol": 5.0,
+        "runner_require_positive_realised": True,
+        "runner_allow_faded_below_floor": True,
+        "runner_max_manipulation": 75.0,
+    })
+    c = _tape("CONK", mcap=30_000, vol24=120_000, vol6=40_000, liq=5_000,
+              trades6=350, buys6=180)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport("m", holder_count=600, top10_pct=18.0, lp_locked_or_burned_pct=100.0)
+    c.kol_wallets_scanned = 120
+    c.kol_buyers = ["Apex", "Casino", "Doji", "Latuche", "Pain"]
+    c.kol_sellers = ["Apex", "Casino", "Doji", "Latuche", "Pain"]
+    c.kol_holders = ["Doji", "Pain"]
+    c.kol_realised_sol = 42.8
+    c.kol_sol_spent = 153.4
+    c.observed_peak_market_cap = 260_000.0
+    score_candidate(c, settings)
+
+    runners, blocked, count = _add_kol_flow_runners([], [], [c], settings, NOW)
+
+    assert count == 1
+    assert runners[0].track == "KOL"
+    assert any("KOL-tape runner" in label for label in runners[0].risk_labels)
+    assert blocked == []
+
+
+def test_profitable_kol_scalp_without_200k_peak_is_not_a_runner(tmp_path):
+    from brief.engine import _add_kol_flow_runners
+    from brief.models import SafetyReport
+    from brief.scoring import score_candidate
+
+    settings = build_settings(tmp_path / "kol-small-scalp")
+    settings.values.setdefault("kol", {}).update({
+        "runner_lane_enabled": True,
+        "runner_min_market_cap": 200_000.0,
+        "runner_min_volume_24h": 100_000.0,
+        "runner_max_age_hours": 24.0,
+        "runner_min_buyers": 2,
+        "runner_min_participants": 2,
+        "runner_min_realised_sol": 1.0,
+        "runner_require_positive_realised": True,
+        "runner_allow_faded_below_floor": True,
+    })
+    c = _tape("SMALL", mcap=18_000, vol24=120_000, vol6=40_000, liq=8_000,
+              trades6=900, buys6=470)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport("m", holder_count=900, top10_pct=18.0, lp_locked_or_burned_pct=100.0)
+    c.kol_buyers = ["Apex", "Pain", "Doji"]
+    c.kol_sellers = ["Apex", "Pain", "Doji"]
+    c.kol_realised_sol = 20.0
+    c.kol_sol_spent = 50.0
+    c.observed_peak_market_cap = 90_000.0
+    score_candidate(c, settings)
+
+    runners, _, count = _add_kol_flow_runners([], [], [c], settings, NOW)
+
+    assert count == 0
+    assert runners == []
+
+
+def test_faded_runner_uses_verified_peak_for_turnover_safety(tmp_path):
+    from brief.engine import _add_kol_flow_runners
+    from brief.models import SafetyReport
+    from brief.scoring import score_candidate
+
+    settings = build_settings(tmp_path / "kol-faded-turnover")
+    settings.values.setdefault("kol", {}).update({
+        "runner_lane_enabled": True,
+        "runner_min_market_cap": 200_000.0,
+        "runner_min_volume_24h": 100_000.0,
+        "runner_max_age_hours": 24.0,
+        "runner_min_buyers": 2,
+        "runner_min_participants": 2,
+        "runner_min_realised_sol": 1.0,
+        "runner_require_positive_realised": True,
+        "runner_max_peak_turnover": 10.0,
+        "runner_max_manipulation": 75.0,
+    })
+    c = _tape("FADED", mcap=7_000, vol24=1_100_000, vol6=50_000, liq=6_000,
+              trades6=1_800, buys6=920)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport("m", holder_count=1_200, top10_pct=16.0, lp_locked_or_burned_pct=100.0)
+    c.kol_buyers = ["Doji", "Pain", "Gasp"]
+    c.kol_sellers = list(c.kol_buyers)
+    c.kol_realised_sol = 12.0
+    c.observed_peak_market_cap = 380_000.0
+    score_candidate(c, settings)
+
+    runners, _, count = _add_kol_flow_runners([], [], [c], settings, NOW)
+
+    assert count == 1
+    assert runners[0].token.symbol == "FADED"
+
+
+def test_open_kol_conviction_is_not_mislabeled_as_negative_realised_pnl(tmp_path):
+    from brief.engine import _add_kol_flow_runners
+    from brief.models import KolWalletFlow, SafetyReport
+    from brief.scoring import score_candidate
+
+    settings = build_settings(tmp_path / "kol-open-conviction")
+    settings.values.setdefault("kol", {}).update({
+        "runner_lane_enabled": True,
+        "runner_min_market_cap": 200_000.0,
+        "runner_min_volume_24h": 100_000.0,
+        "runner_max_age_hours": 24.0,
+        "runner_min_buyers": 2,
+        "runner_min_participants": 2,
+        "runner_min_realised_sol": 1.0,
+        "runner_require_positive_realised": True,
+        "runner_open_min_buyers": 5,
+        "runner_open_min_holders": 2,
+        "runner_max_manipulation": 75.0,
+    })
+    c = _tape("OPEN", mcap=600_000, vol24=1_500_000, vol6=600_000, liq=90_000,
+              trades6=2_100, buys6=1_080)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport("m", holder_count=3_000, top10_pct=14.0, lp_locked_or_burned_pct=100.0)
+    c.kol_buyers = ["A", "B", "C", "D", "E", "F"]
+    c.kol_holders = ["A", "B", "C"]
+    c.kol_sellers = ["D", "E"]
+    c.kol_realised_sol = -40.0
+    c.kol_flows = [
+        KolWalletFlow("D", bought=True, sold=True, realised_sol=3.0),
+        KolWalletFlow("E", bought=True, sold=True, realised_sol=-1.0),
+        KolWalletFlow("A", bought=True, holding=True, realised_sol=-20.0),
+    ]
+    score_candidate(c, settings)
+
+    runners, _, count = _add_kol_flow_runners([], [], [c], settings, NOW)
+
+    assert count == 1
+    assert runners[0].token.symbol == "OPEN"
+
+
 def _publisher_settings(settings):
     journal = settings.values.setdefault("journal", {})
     journal.update({

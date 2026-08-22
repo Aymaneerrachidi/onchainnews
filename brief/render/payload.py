@@ -25,6 +25,7 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "chain": token.chain_id,
         "dex": token.dex_id,
         "marketCap": token.market_cap,
+        "observedPeakMarketCap": candidate.observed_peak_market_cap,
         "liquidity": token.liquidity_usd,
         "volume24h": token.volume_24h,
         "change24h": token.price_change_24h,
