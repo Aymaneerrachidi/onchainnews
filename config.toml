@@ -262,7 +262,12 @@ email_enabled = true
 email_provider = "brevo"
 email_from = "ue06prog@gmail.com"
 email_from_name = "Fomo Onchain"
-email_to = ["ue06prog@gmail.com"]
+email_to = [
+  "ue06prog@gmail.com",
+  "bryanquispe528@gmail.com",
+  "kahlmannalan@gmail.com",
+  "jacob.preiss@contentstratus.com",
+]
 email_subject_prefix = "Fomo Onchain"
 # Newsletter recap breadth. Clean runners always appear. These settings add
 # strong observed movers that did not clear the strict organic publisher gate,
