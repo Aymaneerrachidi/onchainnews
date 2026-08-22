@@ -310,6 +310,12 @@ newsletter_excluded_risk_terms = [
 # below remove a coin from the record entirely.
 [journal]
 enabled = true
+# Human-confirmed bad mints never re-enter through the live screen, KOL lane,
+# caveated fill, or saved intraday pulse history.
+excluded_mints = [
+  "n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump", # TNOS
+  "DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump", # KERMIT
+]
 max_runners = 25
 target_min_runners = 6
 include_intraday_pulse_runners = true

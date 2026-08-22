@@ -1527,6 +1527,20 @@ async def build_brief(
             except Exception as exc:
                 log.warning("intraday_pulse_recovery_failed error=%s", exc)
                 statuses.append(SourceStatus("Intraday pulse memory", False, str(exc)))
+        manually_excluded_mints = {
+            str(mint).strip()
+            for mint in (settings.get("journal", "excluded_mints", []) or [])
+            if str(mint).strip()
+        }
+        if manually_excluded_mints:
+            runners = [
+                candidate for candidate in runners
+                if candidate.token.mint not in manually_excluded_mints
+            ]
+            blocked_runners = [
+                candidate for candidate in blocked_runners
+                if candidate.token.mint not in manually_excluded_mints
+            ]
         runners = runners[:int(settings.get('journal', 'max_runners', 40))]
         lore_groups = assign_lore(runners, settings)
         if bool(settings.get("journal", "gate_editorial_tracks", False)):

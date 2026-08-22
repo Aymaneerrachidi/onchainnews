@@ -793,6 +793,21 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
 
     state_path = _state_path(settings)
     state = load_state(state_path)
+    manually_excluded_mints = {
+        str(mint).strip()
+        for mint in (settings.get("journal", "excluded_mints", []) or [])
+        if str(mint).strip()
+    }
+    if manually_excluded_mints:
+        brief.runners = [
+            candidate for candidate in brief.runners
+            if candidate.token.mint not in manually_excluded_mints
+        ]
+        state_passes = state.setdefault("passes", {})
+        state_posted = state.setdefault("posted", {})
+        for mint in manually_excluded_mints:
+            state_passes.pop(mint, None)
+            state_posted.pop(mint, None)
     allowed_chains = {
         str(chain).strip().lower()
         for chain in (pulse_settings.get("thresholds", "chains", ["solana"]) or ["solana"])
