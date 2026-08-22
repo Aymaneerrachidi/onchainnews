@@ -230,10 +230,10 @@ class HolderSnapshotter:
             return None
 
     async def trace_top_wallets(
-        self, snapshot: HolderSnapshot, now: datetime
+        self, snapshot: HolderSnapshot, now: datetime, *, top_n: int | None = None
     ) -> tuple[dict[str, WalletTrace], dict[str, AcquisitionTrace], int]:
-        top_n = int(self.values.get("cluster_top_holders", 100))
-        owners = [balance.owner for balance in snapshot.balances[:top_n]]
+        limit = int(top_n or self.values.get("cluster_top_holders", 100))
+        owners = [balance.owner for balance in snapshot.balances[:limit]]
 
         async def trace(owner: str):
             try:

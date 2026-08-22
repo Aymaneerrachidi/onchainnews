@@ -723,6 +723,43 @@ def test_a_genuine_runner_survives_every_organic_check(tmp_path):
               trades6=2_467, buys6=1_233), settings) == []
 
 
+def test_same_funder_holder_pack_is_removed_even_with_low_nominal_top10(tmp_path):
+    """Nominal concentration can lie when one entity splits across wallets."""
+    from brief.journal import inorganic_reasons
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "clustered")
+    c = _tape("PACK", mcap=2_400_000, vol24=8_000_000, vol6=2_500_000, liq=140_000,
+              trades6=12_000, buys6=6_200)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport("m", holder_count=4_000, top10_pct=12.0, lp_locked_or_burned_pct=100.0)
+    c.warnings.append(
+        "same-funder holder cluster: 20 traced top holders hold 4.8% funded by FS4RY…Ne42 inside 120m; effective top10 after clustering 31.0%"
+    )
+
+    reasons = inorganic_reasons(c, settings)
+    assert any("same-funder holder cluster" in reason for reason in reasons)
+
+
+def test_publisher_can_require_a_tracked_kol_wallet_touch(tmp_path):
+    from brief.journal import publisher_quality_reasons
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "kol-gate")
+    settings.values.setdefault("journal", {})["require_kol_trade_for_publish"] = True
+    settings.values["journal"]["min_kol_trades_for_publish"] = 1
+    c = _tape("KOLMISS", mcap=600_000, vol24=2_500_000, vol6=800_000, liq=100_000,
+              trades6=2_000, buys6=1_050)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport("m", holder_count=2_500, top10_pct=12.0, lp_locked_or_burned_pct=100.0)
+    c.kol_wallets_scanned = 100
+
+    assert any("no tracked KOL wallet traded" in r for r in publisher_quality_reasons(c, settings, NOW))
+
+    c.kol_buyers = ["Chairman"]
+    assert not any("no tracked KOL wallet traded" in r for r in publisher_quality_reasons(c, settings, NOW))
+
+
 def _publisher_settings(settings):
     journal = settings.values.setdefault("journal", {})
     journal.update({

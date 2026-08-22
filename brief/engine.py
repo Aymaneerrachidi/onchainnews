@@ -88,6 +88,168 @@ def kol_discovery_mints(kol_activity: dict[str, object], settings: Settings) -> 
     return [mint for _, mint in rows[:max_mints]]
 
 
+def _short_address(address: str | None) -> str:
+    if not address:
+        return "unknown"
+    return f"{address[:5]}…{address[-4:]}" if len(address) > 12 else address
+
+
+async def _apply_holder_cluster_precheck(
+    candidates: list[Candidate],
+    safety: dict[str, SafetyReport],
+    ledger: Ledger,
+    helius: HeliusSource,
+    settings: Settings,
+    now: datetime,
+    *,
+    commit: bool,
+) -> SourceStatus:
+    """Run the expensive same-funder check on the strongest Solana runners.
+
+    RugCheck top10 can look harmless when one entity splits across many wallets.
+    This check traces the top holder wallets' first SOL funder and turns that
+    disguised cluster into a hard inorganic label before the journal can fill
+    empty slots with it.
+    """
+    holder_settings = settings.section("holders")
+    if not bool(holder_settings.get("runner_cluster_check_enabled", True)):
+        return SourceStatus("Runner holder clusters", False, "disabled in [holders]")
+    if not helius.configured:
+        return SourceStatus("Runner holder clusters", False, "HELIUS_API_KEY is not configured")
+
+    limit = int(holder_settings.get("runner_cluster_check_limit", 8) or 8)
+    top_n = int(holder_settings.get("runner_cluster_top_holders", 24) or 24)
+    min_market_cap = float(holder_settings.get("runner_cluster_min_market_cap", 200_000) or 200_000)
+    min_volume = float(holder_settings.get("runner_cluster_min_volume_24h", 250_000) or 250_000)
+    min_members = int(holder_settings.get("same_funder_cluster_min_wallets", 6) or 6)
+    min_cluster_pct = float(holder_settings.get("same_funder_cluster_min_supply_pct", 2.0) or 2.0)
+    max_window = float(holder_settings.get("same_funder_cluster_window_minutes", 240) or 240)
+    fresh_hours = float(holder_settings.get("fresh_wallet_hours", 24) or 24)
+    min_fresh_wallets = int(holder_settings.get("fresh_wallet_pack_min_wallets", 8) or 8)
+    min_fresh_pct = float(holder_settings.get("fresh_wallet_pack_min_supply_pct", 3.0) or 3.0)
+    max_history_calls = int(holder_settings.get("runner_cluster_max_history_calls", 160) or 160)
+
+    eligible = [
+        candidate for candidate in candidates
+        if candidate.token.chain_id.lower() == "solana"
+        and candidate.token.market_cap >= min_market_cap
+        and candidate.token.volume_24h >= min_volume
+    ]
+    if bool(settings.get("journal", "require_kol_trade_for_publish", False)):
+        eligible = [
+            candidate for candidate in eligible
+            if candidate.kol_buyers or candidate.kol_sellers or candidate.kol_holders
+        ]
+    eligible.sort(
+        key=lambda candidate: (
+            candidate.scores.get("runner", 0.0),
+            candidate.scores.get("organic", 0.0),
+            -candidate.scores.get("manipulation", 100.0),
+            len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers)),
+            candidate.token.volume_24h,
+        ),
+        reverse=True,
+    )
+    eligible = eligible[:limit]
+    if not eligible:
+        return SourceStatus("Runner holder clusters", True, "no Solana runner candidates needed deep holder tracing")
+
+    snapshotter = HolderSnapshotter(ledger, helius, settings)
+    snapshotter.history_budget = max_history_calls
+    known_cex = set(str(value) for value in holder_settings.get("known_cex_wallets", []))
+
+    checked = 0
+    flagged = 0
+    partial = 0
+    failures = 0
+    for candidate in eligible:
+        token = candidate.token
+        report = safety.get(token.mint) or SafetyReport(token.mint)
+        try:
+            snapshot = await snapshotter.pull(token, report, now, commit=commit)
+            if candidate.enrichment.holder_count is None:
+                candidate.enrichment.holder_count = snapshot.holder_count
+            if candidate.safety.holder_count is None:
+                candidate.safety.holder_count = snapshot.holder_count
+            if candidate.safety.top10_pct is None:
+                candidate.safety.top10_pct = snapshot.top10_pct
+
+            owners = [balance.owner for balance in snapshot.balances[:top_n]]
+            trace_results = await asyncio.gather(*(snapshotter.trace_wallet(owner, now) for owner in owners))
+            traces = {
+                owner: trace
+                for owner, trace in zip(owners, trace_results)
+                if trace is not None
+            }
+            expected = len(owners)
+            checked += 1
+            if expected and len(traces) < expected:
+                partial += 1
+            cluster = collapse_clusters(snapshot.balances, traces, top_n, known_cex)
+            if commit:
+                ledger.record_cluster_snapshot(
+                    token.mint, now, cluster.effective_top10_pct, cluster.cluster_count, cluster.coverage
+                )
+
+            cluster_window_ok = (
+                max_window <= 0
+                or cluster.largest_window_minutes is None
+                or cluster.largest_window_minutes <= max_window
+            )
+            added_flags = 0
+            if (
+                cluster.largest_members >= min_members
+                and cluster.largest_pct >= min_cluster_pct
+                and cluster_window_ok
+            ):
+                window_text = (
+                    f" inside {cluster.largest_window_minutes:.0f}m"
+                    if cluster.largest_window_minutes is not None
+                    else ""
+                )
+                effective = (
+                    f"; effective top10 after clustering {cluster.effective_top10_pct:.1f}%"
+                    if cluster.effective_top10_pct is not None
+                    else ""
+                )
+                candidate.warnings.append(
+                    "same-funder holder cluster: "
+                    f"{cluster.largest_members} traced top holders hold {cluster.largest_pct:.1f}% "
+                    f"funded by {_short_address(cluster.largest_funder)}{window_text}{effective}"
+                )
+                added_flags += 1
+
+            fresh_cutoff = now - timedelta(hours=fresh_hours)
+            amount_by_owner = {balance.owner: balance.amount for balance in snapshot.balances[:top_n]}
+            fresh_owners = [
+                owner for owner, trace in traces.items()
+                if trace.wallet_created_at is not None and trace.wallet_created_at >= fresh_cutoff
+            ]
+            fresh_amount = sum(amount_by_owner.get(owner, 0.0) for owner in fresh_owners)
+            fresh_pct = fresh_amount / snapshot.total_amount * 100 if snapshot.total_amount else 0.0
+            if len(fresh_owners) >= min_fresh_wallets and fresh_pct >= min_fresh_pct:
+                candidate.warnings.append(
+                    "fresh-wallet holder pack: "
+                    f"{len(fresh_owners)}/{len(traces)} traced top holders were created in the last "
+                    f"{fresh_hours:.0f}h and hold {fresh_pct:.1f}%"
+                )
+                added_flags += 1
+
+            if added_flags:
+                flagged += 1
+        except Exception as exc:
+            log.warning("runner_holder_cluster_precheck_failed mint=%s error=%s", token.mint, exc)
+            failures += 1
+
+    detail = (
+        f"{checked}/{len(eligible)} top Solana runners traced; {flagged} flagged; "
+        f"{partial} partial; wallet-history calls {snapshotter.history_calls}"
+    )
+    if failures:
+        detail += f"; {failures} failed"
+    return SourceStatus("Runner holder clusters", failures == 0, detail)
+
+
 async def _map_resilient(items: list[str], fn, concurrency: int = 12):
     semaphore = asyncio.Semaphore(concurrency)
 
@@ -833,6 +995,10 @@ async def build_brief(
                 candidate.kol_sol_spent = record.sol_spent
                 candidate.kol_flows = record.flows
         score_candidates(journal_pool, settings)
+        if bool(settings.get("holders", "enabled", True)):
+            statuses.append(await _apply_holder_cluster_precheck(
+                journal_pool, safety, ledger, helius, settings, now, commit=commit
+            ))
         runners, blocked_runners = build_journal(journal_pool, settings, ledger, now)
         if bool(settings.get("journal", "include_intraday_pulse_runners", True)):
             try:
@@ -854,7 +1020,28 @@ async def build_brief(
                         blocked_now = current_blocked.get(mint)
                         if blocked_now and hard_blocked_pass({"riskLabels": blocked_now.risk_labels}, settings):
                             continue
+                        if bool(settings.get("journal", "require_kol_trade_for_publish", False)):
+                            record = kol_activity.get(mint)
+                            touched = bool(
+                                record
+                                and (
+                                    getattr(record, "buyers", None)
+                                    or getattr(record, "sellers", None)
+                                    or getattr(record, "holders", None)
+                                )
+                            )
+                            if not touched:
+                                continue
                         candidate = candidate_from_pass(entry, token_by_mint.get(mint), settings)
+                        record = kol_activity.get(mint)
+                        if record:
+                            candidate.kol_wallets_scanned = scanned_wallets
+                            candidate.kol_buyers = record.buyers
+                            candidate.kol_sellers = record.sellers
+                            candidate.kol_holders = record.holders
+                            candidate.kol_realised_sol = record.realised_sol
+                            candidate.kol_sol_spent = record.sol_spent
+                            candidate.kol_flows = record.flows
                         if blocked_now:
                             candidate.risk_labels = list(dict.fromkeys([*candidate.risk_labels, *blocked_now.risk_labels]))
                         if "intraday runner: qualified during the window, may have faded by report time" not in candidate.risk_labels:

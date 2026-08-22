@@ -155,6 +155,17 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     kol_touch_count = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
     strong_kol_flow = kol_touch_count >= int(section.get("strong_kol_wallets", 3) or 3)
 
+    if bool(section.get("require_kol_trade_for_publish", False)):
+        min_kol_touches = int(section.get("min_kol_trades_for_publish", 1) or 1)
+        if candidate.token.chain_id.lower() == "solana" and candidate.kol_wallets_scanned:
+            if kol_touch_count < min_kol_touches:
+                reasons.append(
+                    f"no tracked KOL wallet traded it "
+                    f"({kol_touch_count}/{min_kol_touches} required from {candidate.kol_wallets_scanned} scanned)"
+                )
+        elif candidate.token.chain_id.lower() == "solana":
+            reasons.append("tracked KOL wallet scan unavailable")
+
     if bool(section.get("exclude_boosted", False)) and token.active_boosts:
         reasons.append("active Dexscreener boost; paid placement is not organic discovery")
 
@@ -294,6 +305,15 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
     token = candidate.token
     signal = candidate.signals
     reasons: list[str] = []
+
+    for warning in candidate.warnings:
+        lowered = warning.casefold()
+        if (
+            "same-funder holder cluster" in lowered
+            or "fresh-wallet holder pack" in lowered
+            or "effective top10 after clustering" in lowered
+        ):
+            reasons.append(warning)
 
     ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else float("inf")
     max_ratio = float(section.get("max_volume_liquidity", 150))

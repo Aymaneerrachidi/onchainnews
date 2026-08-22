@@ -122,6 +122,19 @@ cluster_alert_pp = 5.0
 min_whale_delta_supply_pct = 0.5
 min_retention_change_pct = 2.0
 fresh_wallet_alert_pct = 50.0
+# Daily runner vetting. This catches the CUPSINA/KERMIT/NENEM-style setup:
+# nominal top10 looks low, but many top holders trace to one funding origin.
+runner_cluster_check_enabled = true
+runner_cluster_check_limit = 20
+runner_cluster_top_holders = 24
+runner_cluster_min_market_cap = 200000.0
+runner_cluster_min_volume_24h = 250000.0
+runner_cluster_max_history_calls = 420
+same_funder_cluster_min_wallets = 6
+same_funder_cluster_min_supply_pct = 2.0
+same_funder_cluster_window_minutes = 240
+fresh_wallet_pack_min_wallets = 8
+fresh_wallet_pack_min_supply_pct = 3.0
 excluded_accounts = []
 excluded_owners = []
 known_cex_wallets = []
@@ -263,6 +276,9 @@ newsletter_excluded_risk_terms = [
   "freeze authority still live",
   "liquidity neither locked nor burned",
   "bundled supply",
+  "same-funder holder cluster",
+  "fresh-wallet holder pack",
+  "effective top10 after clustering",
   "manufactured tape",
   "blacklist",
   "selling is penalised",
@@ -270,6 +286,8 @@ newsletter_excluded_risk_terms = [
   "move on only 0.",
   "move with no linked social context",
   "tracked-wallet confirmation was too thin",
+  "no tracked kol wallet traded",
+  "tracked kol wallet scan unavailable",
 ]
 
 # The daily journal: what ran today. Deliberately wider than the editorial
@@ -310,6 +328,8 @@ expect_tracked_wallets_above = 10.0
 # be missed by our wallet set; absence should be reported/weighted, not used to
 # zero the newsletter.
 require_wallet_touch_for_publish = false
+require_kol_trade_for_publish = true
+min_kol_trades_for_publish = 1
 gate_editorial_tracks = true
 wallet_touch_required_above_multiple = 1.8
 wallet_touch_required_min_mcap = 200000.0
@@ -393,6 +413,9 @@ fill_hard_block_terms = [
   "liquidity neither locked nor burned",
   "lp only 0%",
   "bundled supply",
+  "same-funder holder cluster",
+  "fresh-wallet holder pack",
+  "effective top10 after clustering",
   "manufactured tape",
   "wash-trading shape",
   "market cap traded",
@@ -401,6 +424,8 @@ fill_hard_block_terms = [
   "move with no linked social context",
   "move on only 0.",
   "of trades are buys",
+  "no tracked kol wallet traded",
+  "tracked kol wallet scan unavailable",
 ]
 
 # Tracked wallets. `min_buyers_to_flag` independent buyers on one coin is the

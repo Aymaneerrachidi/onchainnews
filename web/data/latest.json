@@ -1,1373 +1,1825 @@
 {
-    "generatedAt":  "2026-08-22T03:25:43.128623+02:00",
-    "windowStart":  "2026-08-21T03:25:43.128623+02:00",
-    "timezone":  "CEST",
-    "summary":  {
-                    "runners":  4,
-                    "observedRunners":  8,
-                    "launchedToday":  4,
-                    "bigMultiples":  1,
-                    "kolFlagged":  1,
-                    "xMatched":  0,
-                    "loreGroups":  0,
-                    "walletsTracked":  123
-                },
-    "runners":  [
-                    {
-                        "symbol":  "LIZARD",
-                        "name":  "Tom Lizard",
-                        "mint":  "2hXHY3DnN7HUGySZEmBsLFKSqLB8nj3aE8wwq44wpump",
-                        "url":  "https://dexscreener.com/solana/57et71hck613i37onushcv2zcnutbwmnn3kujyzgh45t",
-                        "chain":  "solana",
-                        "dex":  "pumpswap",
-                        "marketCap":  676238.0,
-                        "liquidity":  68633.78,
-                        "volume24h":  1442873.08,
-                        "change24h":  1912.0,
-                        "change6h":  1912.0,
-                        "change1h":  2.71,
-                        "runMultiple":  20.12,
-                        "turnover":  2.1336764275299527,
-                        "ageHours":  2.3647579508333334,
-                        "buyRatio6h":  0.5764667260704404,
-                        "trades24h":  21323,
-                        "trades6h":  21323,
-                        "top10Pct":  13.348369457267768,
-                        "holders":  3670,
-                        "lpLockedPct":  100.0,
-                        "riskLabels":  [
-                                           "active Dexscreener boost"
-                                       ],
-                        "lore":  "",
-                        "loreIsFresh":  true,
-                        "faded":  null,
-                        "kolBuyers":  [
-                                          "Chairman",
-                                          "Daumen",
-                                          "King Solomon",
-                                          "Laanie",
-                                          "Mike",
-                                          "OGAntD",
-                                          "Schoen",
-                                          "Spuno",
-                                          "cap",
-                                          "edward",
-                                          "slingoor"
-                                      ],
-                        "kolHolders":  [
-                                           "Chairman",
-                                           "Daumen",
-                                           "King Solomon",
-                                           "Mike",
-                                           "Schoen",
-                                           "Spuno"
-                                       ],
-                        "kolSellers":  [
-                                           "Laanie",
-                                           "OGAntD",
-                                           "cap",
-                                           "edward",
-                                           "slingoor"
-                                       ],
-                        "kolRealisedSol":  -198.081821053,
-                        "kolSolSpent":  294.00482216700004,
-                        "kolFlows":  [
-                                         {
-                                             "name":  "edward",
-                                             "bought":  true,
-                                             "sold":  true,
-                                             "holding":  false,
-                                             "realisedSol":  1.2944915129999996,
-                                             "solSpent":  7.025574079999999
-                                         },
-                                         {
-                                             "name":  "OGAntD",
-                                             "bought":  true,
-                                             "sold":  true,
-                                             "holding":  false,
-                                             "realisedSol":  1.2792695540000025,
-                                             "solSpent":  30.332074079999998
-                                         },
-                                         {
-                                             "name":  "Schoen",
-                                             "bought":  true,
-                                             "sold":  false,
-                                             "holding":  true,
-                                             "realisedSol":  0.0,
-                                             "solSpent":  0.0
-                                         },
-                                         {
-                                             "name":  "Chairman",
-                                             "bought":  true,
-                                             "sold":  false,
-                                             "holding":  true,
-                                             "realisedSol":  0.0,
-                                             "solSpent":  0.0
-                                         },
-                                         {
-                                             "name":  "Spuno",
-                                             "bought":  true,
-                                             "sold":  false,
-                                             "holding":  true,
-                                             "realisedSol":  -0.052074079999999995,
-                                             "solSpent":  0.052074079999999995
-                                         },
-                                         {
-                                             "name":  "Laanie",
-                                             "bought":  true,
-                                             "sold":  true,
-                                             "holding":  false,
-                                             "realisedSol":  -2.074506597999985,
-                                             "solSpent":  35.39817407999999
-                                         },
-                                         {
-                                             "name":  "cap",
-                                             "bought":  true,
-                                             "sold":  true,
-                                             "holding":  false,
-                                             "realisedSol":  -6.332305275000003,
-                                             "solSpent":  29.00022968
-                                         },
-                                         {
-                                             "name":  "King Solomon",
-                                             "bought":  true,
-                                             "sold":  false,
-                                             "holding":  true,
-                                             "realisedSol":  -10.10707408,
-                                             "solSpent":  10.10707408
-                                         },
-                                         {
-                                             "name":  "Mike",
-                                             "bought":  true,
-                                             "sold":  false,
-                                             "holding":  true,
-                                             "realisedSol":  -10.108074079999998,
-                                             "solSpent":  10.108074079999998
-                                         },
-                                         {
-                                             "name":  "Daumen",
-                                             "bought":  true,
-                                             "sold":  false,
-                                             "holding":  true,
-                                             "realisedSol":  -52.950880885,
-                                             "solSpent":  52.950880885
-                                         },
-                                         {
-                                             "name":  "slingoor",
-                                             "bought":  true,
-                                             "sold":  true,
-                                             "holding":  false,
-                                             "realisedSol":  -119.03066712200004,
-                                             "solSpent":  119.03066712200004
-                                         }
-                                     ],
-                        "scores":  {
-                                       "runner":  52.3,
-                                       "organic":  61.5,
-                                       "smartMoney":  0.0,
-                                       "kol":  73.6,
-                                       "liquidity":  57.2,
-                                       "holderQuality":  84.9,
-                                       "priceStructure":  91.4,
-                                       "manipulation":  28.0
-                                   },
-                        "scoreComponents":  {
-                                                "organic":  {
-                                                                "holderGrowth":  45.0,
-                                                                "buyerDiversity":  97.8,
-                                                                "organicVolume":  100.0,
-                                                                "distribution":  72.6,
-                                                                "liquidity":  57.2,
-                                                                "priceStructure":  91.4,
-                                                                "walletIndependence":  "unavailable",
-                                                                "smartMoney":  "unavailable",
-                                                                "manipulationPenalty":  -9.8
-                                                            },
-                                                "runner":  {
-                                                               "momentum":  100.0,
-                                                               "manipulationPenalty":  -7.0
-                                                           }
-                                            },
-                        "classification":  "CAVEATED RUNNER",
-                        "read":  "$LIZARD — 2h-old pair at $676,238 market cap, +1912% on the day, $1,442,873 of 24h volume (2.1x market cap), 58% of 21,323 six-hour trades were buys, LP 100% locked or burned, top 10 hold 13%.",
-                        "track":  "NEW",
-                        "tradeUrl":  "https://fomo.family/token/2hXHY3DnN7HUGySZEmBsLFKSqLB8nj3aE8wwq44wpump",
-                        "qr":  [
-                                   "1111111011001111011010110101101111111",
-                                   "1000001010000011101111110000101000001",
-                                   "1011101000001001100010100110101011101",
-                                   "1011101011001000100100001111001011101",
-                                   "1011101001110100110100001011101011101",
-                                   "1000001000001001000100001110001000001",
-                                   "1111111010101010101010101010101111111",
-                                   "0000000011011001011000111000000000000",
-                                   "1011011101010111100111001000101001011",
-                                   "1000010101111011110000010110101101010",
-                                   "0011101110101011001001111010100110100",
-                                   "1001100110011111000100011111101101100",
-                                   "1000111101111100111000001111011010111",
-                                   "1010110001000000101001101111111111010",
-                                   "1100011010101010011110001100111010110",
-                                   "0110010010011110011101111000101110011",
-                                   "0101101001111100111011101100100101101",
-                                   "0100010010000010100110011011100000111",
-                                   "1001001111101101110100001011010110111",
-                                   "1011100101010100011100011011001011010",
-                                   "1101011011001010001011000011110110101",
-                                   "1001000101100101101101010010100001000",
-                                   "1101011100101010110000011100010100000",
-                                   "0111000001001100101100111111001011110",
-                                   "0010011011010000001111010110001100111",
-                                   "0101010101001000101011000101101111111",
-                                   "0101001010011101100110100100111010110",
-                                   "1001000101010000101001000010111010000",
-                                   "0001001001011011111000110111111110000",
-                                   "0000000010111101011110011100100010100",
-                                   "1111111010010111110001001110101010111",
-                                   "1000001010100111100010011000100010011",
-                                   "1011101000000000001000101010111111001",
-                                   "1011101010110111001010011110111010001",
-                                   "1011101010100110111110011101111010100",
-                                   "1000001001100000101010100110001111100",
-                                   "1111111011101011000101100110001011011"
-                               ],
-                        "dexEvidence":  [
-
-                                        ],
-                        "catalyst":  "",
-                        "xInteractions":  [
-
-                                          ],
-                        "sources":  [
-                                        {
-                                            "label":  "Dexscreener",
-                                            "url":  "https://dexscreener.com/solana/57et71hck613i37onushcv2zcnutbwmnn3kujyzgh45t"
-                                        },
-                                        {
-                                            "label":  "Bubblemaps",
-                                            "url":  "https://app.bubblemaps.io/sol/token/2hXHY3DnN7HUGySZEmBsLFKSqLB8nj3aE8wwq44wpump"
-                                        }
-                                    ]
-                    },
-                    {
-                        "symbol":  "CUPSINA",
-                        "name":  "Cupsina",
-                        "mint":  "88zwzj3GfZwdp32THtjVpotUf1ViWijL2CXVgQYKpump",
-                        "url":  "https://dexscreener.com/solana/fgkazggrsa8bs4untfwu4savfkrfw6w5qp2rbafprn36",
-                        "chain":  "solana",
-                        "dex":  "pumpswap",
-                        "marketCap":  284931.0,
-                        "liquidity":  43797.19,
-                        "volume24h":  788890.37,
-                        "change24h":  272.0,
-                        "change6h":  272.0,
-                        "change1h":  23.01,
-                        "runMultiple":  3.72,
-                        "turnover":  2.7687067044301954,
-                        "ageHours":  2.1233690619444445,
-                        "buyRatio6h":  0.7793738854765208,
-                        "trades24h":  20188,
-                        "trades6h":  20188,
-                        "top10Pct":  2.729173411748966,
-                        "holders":  5231,
-                        "lpLockedPct":  100.0,
-                        "riskLabels":  [
-
-                                       ],
-                        "lore":  "",
-                        "loreIsFresh":  true,
-                        "faded":  null,
-                        "kolBuyers":  [
-
-                                      ],
-                        "kolHolders":  [
-
-                                       ],
-                        "kolSellers":  [
-
-                                       ],
-                        "kolRealisedSol":  0.0,
-                        "kolSolSpent":  0.0,
-                        "kolFlows":  [
-
-                                     ],
-                        "scores":  {
-                                       "runner":  50.8,
-                                       "organic":  71.2,
-                                       "smartMoney":  0.0,
-                                       "kol":  0.0,
-                                       "liquidity":  65.3,
-                                       "holderQuality":  100.0,
-                                       "priceStructure":  100.0,
-                                       "manipulation":  0.0
-                                   },
-                        "scoreComponents":  {
-                                                "organic":  {
-                                                                "holderGrowth":  45.0,
-                                                                "buyerDiversity":  71.0,
-                                                                "organicVolume":  100.0,
-                                                                "distribution":  100.0,
-                                                                "liquidity":  65.3,
-                                                                "priceStructure":  100.0,
-                                                                "walletIndependence":  "unavailable",
-                                                                "smartMoney":  "unavailable",
-                                                                "manipulationPenalty":  0.0
-                                                            },
-                                                "runner":  {
-                                                               "momentum":  30.2,
-                                                               "manipulationPenalty":  0.0
-                                                           }
-                                            },
-                        "classification":  "CLEAN RUNNER",
-                        "read":  "$CUPSINA — 2h-old pair at $284,931 market cap, +272% on the day, $788,890 of 24h volume (2.8x market cap), 78% of 20,188 six-hour trades were buys, LP 100% locked or burned, top 10 hold 3%.",
-                        "track":  "NEW",
-                        "tradeUrl":  "https://fomo.family/token/88zwzj3GfZwdp32THtjVpotUf1ViWijL2CXVgQYKpump",
-                        "qr":  [
-                                   "1111111001111010011100000000101111111",
-                                   "1000001010001111010101101010001000001",
-                                   "1011101011001100000111001011101011101",
-                                   "1011101011100000010111101101101011101",
-                                   "1011101000100010001011010000101011101",
-                                   "1000001001101001101010100100101000001",
-                                   "1111111010101010101010101010101111111",
-                                   "0000000010000100000100100000000000000",
-                                   "1000001010111010001010100011011001110",
-                                   "0111010010010100000011110110010010010",
-                                   "0000111011010010010010100001011011111",
-                                   "0011010101011111101000111011000101001",
-                                   "1111111011100010010100101000101100101",
-                                   "1001010001100100110101110001100101000",
-                                   "0101001110010011010001100101001111011",
-                                   "1111010110001001111110011001011101101",
-                                   "0000011000010011100100111011011010111",
-                                   "1011100100011000011011100111111101010",
-                                   "0001111001000101001011110101000011001",
-                                   "1011000110101010001110001000010101001",
-                                   "0100001011001001110100011110011010100",
-                                   "1011100101011101100100010101000010110",
-                                   "1001011001100001101001000001011111011",
-                                   "0111010010010011000100010001100111001",
-                                   "1000101110001111111001100100101010010",
-                                   "1110010010010000100001000111100100000",
-                                   "1011011111110010010011000001110001011",
-                                   "1000010001100001000010101001011111100",
-                                   "1010001000110100110010101101111111111",
-                                   "0000000011110011011110110000100010001",
-                                   "1111111000010001100101111000101010001",
-                                   "1000001001001110011110000000100010001",
-                                   "1011101000111001100001000111111110111",
-                                   "1011101000000010101001100111011001001",
-                                   "1011101001001111100100000110100000111",
-                                   "1000001000110100001110010011000011001",
-                                   "1111111010011011000000010000101100001"
-                               ],
-                        "dexEvidence":  [
-
-                                        ],
-                        "catalyst":  "",
-                        "xInteractions":  [
-
-                                          ],
-                        "sources":  [
-                                        {
-                                            "label":  "Dexscreener",
-                                            "url":  "https://dexscreener.com/solana/fgkazggrsa8bs4untfwu4savfkrfw6w5qp2rbafprn36"
-                                        },
-                                        {
-                                            "label":  "Bubblemaps",
-                                            "url":  "https://app.bubblemaps.io/sol/token/88zwzj3GfZwdp32THtjVpotUf1ViWijL2CXVgQYKpump"
-                                        }
-                                    ]
-                    },
-                    {
-                        "symbol":  "KERMIT",
-                        "name":  "Kermit the cat",
-                        "mint":  "DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump",
-                        "url":  "https://dexscreener.com/solana/h3qgazgxmkk6ciqj22iymmc4myb7ckgtxtrsg227jm9r",
-                        "chain":  "solana",
-                        "dex":  "pumpswap",
-                        "marketCap":  301061.0,
-                        "liquidity":  44094.58,
-                        "volume24h":  459554.18,
-                        "change24h":  270.0,
-                        "change6h":  270.0,
-                        "change1h":  270.0,
-                        "runMultiple":  3.7,
-                        "turnover":  1.5264487263378517,
-                        "ageHours":  0.9142023952777778,
-                        "buyRatio6h":  0.7985739750445633,
-                        "trades24h":  7854,
-                        "trades6h":  7854,
-                        "top10Pct":  1.993671987526444,
-                        "holders":  4878,
-                        "lpLockedPct":  100.0,
-                        "riskLabels":  [
-                                           "active Dexscreener boost"
-                                       ],
-                        "lore":  "",
-                        "loreIsFresh":  true,
-                        "faded":  null,
-                        "kolBuyers":  [
-
-                                      ],
-                        "kolHolders":  [
-
-                                       ],
-                        "kolSellers":  [
-
-                                       ],
-                        "kolRealisedSol":  0.0,
-                        "kolSolSpent":  0.0,
-                        "kolFlows":  [
-
-                                     ],
-                        "scores":  {
-                                       "runner":  47.2,
-                                       "organic":  67.1,
-                                       "smartMoney":  0.0,
-                                       "kol":  0.0,
-                                       "liquidity":  63.7,
-                                       "holderQuality":  100.0,
-                                       "priceStructure":  100.0,
-                                       "manipulation":  10.0
-                                   },
-                        "scoreComponents":  {
-                                                "organic":  {
-                                                                "holderGrowth":  45.0,
-                                                                "buyerDiversity":  68.4,
-                                                                "organicVolume":  100.0,
-                                                                "distribution":  100.0,
-                                                                "liquidity":  63.7,
-                                                                "priceStructure":  100.0,
-                                                                "walletIndependence":  "unavailable",
-                                                                "smartMoney":  "unavailable",
-                                                                "manipulationPenalty":  -3.5
-                                                            },
-                                                "runner":  {
-                                                               "momentum":  30.0,
-                                                               "manipulationPenalty":  -2.5
-                                                           }
-                                            },
-                        "classification":  "CAVEATED RUNNER",
-                        "read":  "$KERMIT — 1h-old pair at $301,061 market cap, +270% on the day, $459,554 of 24h volume (1.5x market cap), 80% of 7,854 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
-                        "track":  "NEW",
-                        "tradeUrl":  "https://fomo.family/token/DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump",
-                        "qr":  [
-                                   "1111111010000101011010110100101111111",
-                                   "1000001011011101101111110000101000001",
-                                   "1011101000010100100010100111001011101",
-                                   "1011101010101001010100001111001011101",
-                                   "1011101001000100111100001011101011101",
-                                   "1000001000100101100100001010001000001",
-                                   "1111111010101010101010101010101111111",
-                                   "0000000010011011011110111000000000000",
-                                   "1011011101010101100011001110001001011",
-                                   "0111010101100011100000010101100101110",
-                                   "0011001000101101001001110010000111100",
-                                   "0001100111001001000100000111001101100",
-                                   "1110011101011000110011111111011010011",
-                                   "0010000111111000100101001111111111010",
-                                   "1111011010001000011100001110100010110",
-                                   "0010010000100111011101111010100110001",
-                                   "1000011100011101111111100000110111110",
-                                   "1101110110110110100110011001011000011",
-                                   "0100001000011011111101101011110111111",
-                                   "1111010101111000011100000010001011010",
-                                   "1011111010111100011010010011110111001",
-                                   "0111110011101000100011010110100001011",
-                                   "1111011010101110110010011000000100000",
-                                   "0101100111111000101100111111011011111",
-                                   "1001001000011011001111011010111110101",
-                                   "0101110001000000101010011111100011011",
-                                   "0110101111010101100111000100011111110",
-                                   "1010000011100010100001111011011100000",
-                                   "0000001000110011001010100110111110100",
-                                   "0000000010000010010110011000100010100",
-                                   "1111111010010101010011001100101010111",
-                                   "1000001010101111000010011010100010011",
-                                   "1011101000100010001000100010111111010",
-                                   "1011101011000111011010000100111010101",
-                                   "1011101011110100110110010101111011100",
-                                   "1000001001110100101010110110001111100",
-                                   "1111111010100011000110000110001011111"
-                               ],
-                        "dexEvidence":  [
-
-                                        ],
-                        "catalyst":  "",
-                        "xInteractions":  [
-
-                                          ],
-                        "sources":  [
-                                        {
-                                            "label":  "Dexscreener",
-                                            "url":  "https://dexscreener.com/solana/h3qgazgxmkk6ciqj22iymmc4myb7ckgtxtrsg227jm9r"
-                                        },
-                                        {
-                                            "label":  "Bubblemaps",
-                                            "url":  "https://app.bubblemaps.io/sol/token/DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump"
-                                        }
-                                    ]
-                    },
-                    {
-                        "symbol":  "NENEM",
-                        "name":  "Nenem The Cat",
-                        "mint":  "DYa7Rcnsy3XoYwh1ZLseMdcAQjBE92pQe4enpYDNpump",
-                        "url":  "https://dexscreener.com/solana/48hszk7qjxyiiqcdcd4qhndasp5pe69fvgp9uwptfals",
-                        "chain":  "solana",
-                        "dex":  "pumpswap",
-                        "marketCap":  286781.0,
-                        "liquidity":  42757.27,
-                        "volume24h":  313787.64,
-                        "change24h":  285.0,
-                        "change6h":  285.0,
-                        "change1h":  285.0,
-                        "runMultiple":  3.85,
-                        "turnover":  1.0941716501441867,
-                        "ageHours":  0.7217023952777778,
-                        "buyRatio6h":  0.8214960332451833,
-                        "trades24h":  5294,
-                        "trades6h":  5294,
-                        "top10Pct":  1.695621248743606,
-                        "holders":  3205,
-                        "lpLockedPct":  100.0,
-                        "riskLabels":  [
-                                           "active Dexscreener boost"
-                                       ],
-                        "lore":  "",
-                        "loreIsFresh":  true,
-                        "faded":  null,
-                        "kolBuyers":  [
-
-                                      ],
-                        "kolHolders":  [
-
-                                       ],
-                        "kolSellers":  [
-
-                                       ],
-                        "kolRealisedSol":  0.0,
-                        "kolSolSpent":  0.0,
-                        "kolFlows":  [
-
-                                     ],
-                        "scores":  {
-                                       "runner":  41.0,
-                                       "organic":  60.0,
-                                       "smartMoney":  0.0,
-                                       "kol":  0.0,
-                                       "liquidity":  64.1,
-                                       "holderQuality":  100.0,
-                                       "priceStructure":  100.0,
-                                       "manipulation":  28.0
-                                   },
-                        "scoreComponents":  {
-                                                "organic":  {
-                                                                "holderGrowth":  45.0,
-                                                                "buyerDiversity":  65.4,
-                                                                "organicVolume":  96.9,
-                                                                "distribution":  100.0,
-                                                                "liquidity":  64.1,
-                                                                "priceStructure":  100.0,
-                                                                "walletIndependence":  "unavailable",
-                                                                "smartMoney":  "unavailable",
-                                                                "manipulationPenalty":  -9.8
-                                                            },
-                                                "runner":  {
-                                                               "momentum":  31.7,
-                                                               "manipulationPenalty":  -7.0
-                                                           }
-                                            },
-                        "classification":  "CAVEATED RUNNER",
-                        "read":  "$NENEM — 1h-old pair at $286,781 market cap, +285% on the day, $313,788 of 24h volume (1.1x market cap), 82% of 5,294 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
-                        "track":  "NEW",
-                        "tradeUrl":  "https://fomo.family/token/DYa7Rcnsy3XoYwh1ZLseMdcAQjBE92pQe4enpYDNpump",
-                        "qr":  [
-                                   "1111111000101001111100000010001111111",
-                                   "1000001010000011111101101010101000001",
-                                   "1011101011101011100111001011001011101",
-                                   "1011101011111111010101101100101011101",
-                                   "1011101000110000100111010000101011101",
-                                   "1000001001010110001000100010101000001",
-                                   "1111111010101010101010101010101111111",
-                                   "0000000011110000000110100010000000000",
-                                   "1000001011101101001110100101111001110",
-                                   "1110110111010100010011110100000110110",
-                                   "1011111111111010001010101001011100111",
-                                   "1101100100011001100000110010000001001",
-                                   "0011111111100000001111001001101101001",
-                                   "1010110111001011010111010001100101010",
-                                   "1110101011101001010011100011000111011",
-                                   "1100010100111010111110011011000101101",
-                                   "0010101110010100100000111111111100110",
-                                   "1100100001110010001010100101101101010",
-                                   "1001001111100001001011011101100010101",
-                                   "0000110010010010000110000001010001001",
-                                   "0000111000111101000101101111011011000",
-                                   "0110010000111101000100010001000010101",
-                                   "1011001011100111101001000011001111011",
-                                   "1011100001110101100100010011100111000",
-                                   "0000001101011011111101101000001110010",
-                                   "1101100111010010110001000101001101100",
-                                   "1000101111101010001011000001110110011",
-                                   "1011110011010001001010001000111011100",
-                                   "1001011100010110110010111100111111111",
-                                   "0000000011010101111010010100100010011",
-                                   "1111111000001011000101111000101010001",
-                                   "1000001000001010011110000000100010011",
-                                   "1011101000110110100001000111111110101",
-                                   "1011101000110100111000100101011001101",
-                                   "1011101000011001110101001110100001011",
-                                   "1000001000011000000110101011111011001",
-                                   "1111111011110001010000110001101101001"
-                               ],
-                        "dexEvidence":  [
-
-                                        ],
-                        "catalyst":  "",
-                        "xInteractions":  [
-
-                                          ],
-                        "sources":  [
-                                        {
-                                            "label":  "Dexscreener",
-                                            "url":  "https://dexscreener.com/solana/48hszk7qjxyiiqcdcd4qhndasp5pe69fvgp9uwptfals"
-                                        },
-                                        {
-                                            "label":  "Bubblemaps",
-                                            "url":  "https://app.bubblemaps.io/sol/token/DYa7Rcnsy3XoYwh1ZLseMdcAQjBE92pQe4enpYDNpump"
-                                        }
-                                    ]
-                    }
-                ],
-    "blockedRunners":  [
-                           {
-                               "symbol":  "TNOS",
-                               "name":  "TNOS",
-                               "mint":  "n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump",
-                               "url":  "https://dexscreener.com/solana/fthts2bjnnzbkblprcpyh67c39xqufmtzenube3yrnxj",
-                               "chain":  "solana",
-                               "dex":  "pumpswap",
-                               "marketCap":  1901757.0,
-                               "liquidity":  111573.38,
-                               "volume24h":  414042.37,
-                               "change24h":  4957.0,
-                               "change6h":  23.22,
-                               "change1h":  4.22,
-                               "runMultiple":  50.57,
-                               "turnover":  0.21771570710663876,
-                               "ageHours":  18.370591284166665,
-                               "buyRatio6h":  0.5006947660954145,
-                               "trades24h":  9081,
-                               "trades6h":  2159,
-                               "top10Pct":  1.5531055921925834,
-                               "holders":  1525,
-                               "lpLockedPct":  100.0,
-                               "riskLabels":  [
-                                                  "no linked social context",
-                                                  "51x move on only $414,042 volume",
-                                                  "51x move on only 0.22x turnover",
-                                                  "51x move with 1,525 holders",
-                                                  "51x move with no linked social context",
-                                                  "50.6x Solana runner but tracked-wallet confirmation was too thin (0 buyers, 0 participants)"
-                                              ],
-                               "lore":  "",
-                               "loreIsFresh":  true,
-                               "faded":  null,
-                               "kolBuyers":  [
-
-                                             ],
-                               "kolHolders":  [
-
-                                              ],
-                               "kolSellers":  [
-
-                                              ],
-                               "kolRealisedSol":  0.0,
-                               "kolSolSpent":  0.0,
-                               "kolFlows":  [
-
-                                            ],
-                               "scores":  {
-                                              "runner":  39.0,
-                                              "organic":  57.7,
-                                              "smartMoney":  0.0,
-                                              "kol":  0.0,
-                                              "liquidity":  53.7,
-                                              "holderQuality":  77.9,
-                                              "priceStructure":  62.9,
-                                              "manipulation":  12.0
-                                          },
-                               "scoreComponents":  {
-                                                       "organic":  {
-                                                                       "holderGrowth":  45.0,
-                                                                       "buyerDiversity":  92.2,
-                                                                       "organicVolume":  71.4,
-                                                                       "distribution":  100.0,
-                                                                       "liquidity":  53.7,
-                                                                       "priceStructure":  62.9,
-                                                                       "walletIndependence":  "unavailable",
-                                                                       "smartMoney":  "unavailable",
-                                                                       "manipulationPenalty":  -4.2
-                                                                   },
-                                                       "runner":  {
-                                                                      "momentum":  100.0,
-                                                                      "manipulationPenalty":  -3.0
-                                                                  }
-                                                   },
-                               "classification":  "MIXED RUNNER",
-                               "read":  "$TNOS — 18h-old pair at $1,901,757 market cap, +4957% on the day, $414,042 of 24h volume (0.2x market cap), 50% of 2,159 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
-                               "track":  "NEW",
-                               "tradeUrl":  "https://fomo.family/token/n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump",
-                               "qr":  [
-                                          "1111111001111010110000010100101111111",
-                                          "1000001000110111001010100011001000001",
-                                          "1011101010010110001001000011101011101",
-                                          "1011101010101001100000001111001011101",
-                                          "1011101011000001010110010100101011101",
-                                          "1000001010011001010011100101101000001",
-                                          "1111111010101010101010101010101111111",
-                                          "0000000010000010111001100011000000000",
-                                          "1011111001110000100000100011101111100",
-                                          "0100110100111111001010110101100101110",
-                                          "1111011010001101100100101001111000111",
-                                          "1000000010101101001111101010000010001",
-                                          "0100111100011011010110101111011010111",
-                                          "1100100111010111101111010100100100000",
-                                          "0000011100010101001011000101001111011",
-                                          "1111010101000000100101011000111110000",
-                                          "0011011011010111001111010011111110111",
-                                          "0001110100010111110000010100001101010",
-                                          "1101101101111100011010101011010101111",
-                                          "0001110110010100101001010001110101001",
-                                          "0010001011000110010000011111011010100",
-                                          "0111010011110001110111110110100001010",
-                                          "1110011000010011010011000011001111001",
-                                          "0110010010000011111101010010100110000",
-                                          "1000011101110001100001011010111110100",
-                                          "1000000111111001011010010100001101100",
-                                          "1000101111100101101101001001010100011",
-                                          "1011110100010111000111010010011001011",
-                                          "1000011000101101110111111100111110111",
-                                          "0000000010111110001100010101100011001",
-                                          "1111111000101101101010101110101010111",
-                                          "1000001011000010100000000001100011010",
-                                          "1011101010010011001011101011111110101",
-                                          "1011101011101001110000000100111011001",
-                                          "1011101010111110001011100110100000111",
-                                          "1000001001111000100001111010001010001",
-                                          "1111111011001010110011110110000011111"
-                                      ],
-                               "dexEvidence":  [
-
-                                               ],
-                               "catalyst":  "",
-                               "xInteractions":  [
-
-                                                 ],
-                               "sources":  [
-                                               {
-                                                   "label":  "Dexscreener",
-                                                   "url":  "https://dexscreener.com/solana/fthts2bjnnzbkblprcpyh67c39xqufmtzenube3yrnxj"
-                                               },
-                                               {
-                                                   "label":  "Bubblemaps",
-                                                   "url":  "https://app.bubblemaps.io/sol/token/n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump"
-                                               }
-                                           ]
-                           },
-                           {
-                               "symbol":  "PONK",
-                               "name":  "Ponk",
-                               "mint":  "5z7Nx6sVZ3qEvUDE8JhhKUVUbAJQL9oWeWt9EbBwSXZs",
-                               "url":  "https://dexscreener.com/solana/h4nf69fzcpbmvxpapehao36wvcbcwgf8mzvevpstjvvy",
-                               "chain":  "solana",
-                               "dex":  "pumpswap",
-                               "marketCap":  476065.0,
-                               "liquidity":  44029.95,
-                               "volume24h":  3186674.77,
-                               "change24h":  5687.0,
-                               "change6h":  5687.0,
-                               "change1h":  5687.0,
-                               "runMultiple":  57.87,
-                               "turnover":  6.693780828248244,
-                               "ageHours":  0.7558690619444445,
-                               "buyRatio6h":  0.5593569661995054,
-                               "trades24h":  19408,
-                               "trades6h":  19408,
-                               "top10Pct":  46.56166165395269,
-                               "holders":  2121,
-                               "lpLockedPct":  3.72640564200054E-07,
-                               "riskLabels":  [
-                                                  "LP only 0% locked or burned",
-                                                  "top 10 hold 47%, above publisher ceiling",
-                                                  "no linked social context",
-                                                  "ticker/name reused by 1 other recent mint(s)",
-                                                  "only 0.8h old; too early for publisher recap",
-                                                  "58x move with 2,121 holders",
-                                                  "58x move with no linked social context",
-                                                  "58x move on recycled ticker/name",
-                                                  "only 5/6 organic confirmations (holders, trades, volume, liquidity, two-sided book)",
-                                                  "57.9x Solana runner but tracked-wallet confirmation was too thin (1 buyers, 1 participants)"
-                                              ],
-                               "lore":  "",
-                               "loreIsFresh":  true,
-                               "faded":  null,
-                               "kolBuyers":  [
-                                                 "Loopierr"
-                                             ],
-                               "kolHolders":  [
-                                                  "Loopierr"
-                                              ],
-                               "kolSellers":  [
-
-                                              ],
-                               "kolRealisedSol":  0.0,
-                               "kolSolSpent":  0.0,
-                               "kolFlows":  [
-                                                {
-                                                    "name":  "Loopierr",
-                                                    "bought":  true,
-                                                    "sold":  false,
-                                                    "holding":  true,
-                                                    "realisedSol":  0.0,
-                                                    "solSpent":  0.0
-                                                }
-                                            ],
-                               "scores":  {
-                                              "runner":  27.4,
-                                              "organic":  39.1,
-                                              "smartMoney":  0.0,
-                                              "kol":  34.4,
-                                              "liquidity":  34.9,
-                                              "holderQuality":  31.8,
-                                              "priceStructure":  100.0,
-                                              "manipulation":  56.8
-                                          },
-                               "scoreComponents":  {
-                                                       "organic":  {
-                                                                       "holderGrowth":  45.0,
-                                                                       "buyerDiversity":  97.4,
-                                                                       "organicVolume":  80.8,
-                                                                       "distribution":  0.0,
-                                                                       "liquidity":  34.9,
-                                                                       "priceStructure":  100.0,
-                                                                       "walletIndependence":  "unavailable",
-                                                                       "smartMoney":  "unavailable",
-                                                                       "manipulationPenalty":  -19.9
-                                                                   },
-                                                       "runner":  {
-                                                                      "momentum":  100.0,
-                                                                      "manipulationPenalty":  -14.2
-                                                                  }
-                                                   },
-                               "classification":  "LOW-HOLDER-QUALITY RUNNER",
-                               "read":  "$PONK — 1h-old pair at $476,065 market cap, +5687% on the day, $3,186,675 of 24h volume (6.7x market cap), 56% of 19,408 six-hour trades were buys, LP 0% locked or burned, top 10 hold 47%.",
-                               "track":  "NEW",
-                               "tradeUrl":  "https://fomo.family/token/5z7Nx6sVZ3qEvUDE8JhhKUVUbAJQL9oWeWt9EbBwSXZs",
-                               "qr":  [
-                                          "1111111011110001111100010010001111111",
-                                          "1000001010011100110011100100101000001",
-                                          "1011101011001100101011111110001011101",
-                                          "1011101000000000100101101100101011101",
-                                          "1011101011011111110000000010101011101",
-                                          "1000001001100010111010110010001000001",
-                                          "1111111010101010101010101010101111111",
-                                          "0000000001101000000010000100000000000",
-                                          "1001111110011011101111000111010010111",
-                                          "0111110011110010010011000100001110010",
-                                          "0010111110011010001000110011101001001",
-                                          "1010110101011001011000000011010001111",
-                                          "0001011011101000101100111000101101001",
-                                          "0011010101000000110001110111100011000",
-                                          "1110001010100111110100100011101011111",
-                                          "1010000111001110011100111001011101100",
-                                          "0000101110011101110010100101001000110",
-                                          "1101110010110000111010000111011100000",
-                                          "0100011101000011001011011101000011101",
-                                          "0100100000010110000000111110010011001",
-                                          "0011001011000001110010001010111111100",
-                                          "0010000101111010000110010001000010101",
-                                          "0110001010001101111010010001010101001",
-                                          "0011010010010000010000000001010111111",
-                                          "1101001000110001111001101010001010010",
-                                          "1000000011100010100111000001011010100",
-                                          "1100111110001110101110101101110110011",
-                                          "1000010000011001000010111000011111100",
-                                          "1000001010101100110000011110111110001",
-                                          "0000000011101000001110000100100010100",
-                                          "1111111010011101100111111110101010011",
-                                          "1000001010101011111000000100100010011",
-                                          "1011101011110111000001101111111110011",
-                                          "1011101011101100101000110111011001101",
-                                          "1011101000001001110110110100110010001",
-                                          "1000001000110000110110010010111011111",
-                                          "1111111010111001000011010000101100101"
-                                      ],
-                               "dexEvidence":  [
-
-                                               ],
-                               "catalyst":  "",
-                               "xInteractions":  [
-
-                                                 ],
-                               "sources":  [
-                                               {
-                                                   "label":  "Dexscreener",
-                                                   "url":  "https://dexscreener.com/solana/h4nf69fzcpbmvxpapehao36wvcbcwgf8mzvevpstjvvy"
-                                               },
-                                               {
-                                                   "label":  "Bubblemaps",
-                                                   "url":  "https://app.bubblemaps.io/sol/token/5z7Nx6sVZ3qEvUDE8JhhKUVUbAJQL9oWeWt9EbBwSXZs"
-                                               }
-                                           ]
-                           },
-                           {
-                               "symbol":  "UOTF",
-                               "name":  "UOTF",
-                               "mint":  "GpMNyr1DehzhkRousPrbwNPUZkWzEGFkxtfJu7M9pump",
-                               "url":  "https://dexscreener.com/solana/dztmnncwkysqzrwbip17ygrgq6b3ao8yovbckaa6hbpq",
-                               "chain":  "solana",
-                               "dex":  "pumpswap",
-                               "marketCap":  4664872.0,
-                               "liquidity":  175232.66,
-                               "volume24h":  2235177.27,
-                               "change24h":  12236.0,
-                               "change6h":  -98.84,
-                               "change1h":  26.01,
-                               "runMultiple":  123.36,
-                               "turnover":  0.4791508255746353,
-                               "ageHours":  11.147257950833332,
-                               "buyRatio6h":  0.9475420653249752,
-                               "trades24h":  41762,
-                               "trades6h":  12124,
-                               "top10Pct":  4.963910363560557,
-                               "holders":  2845,
-                               "lpLockedPct":  100.0,
-                               "riskLabels":  [
-                                                  "95% of trades are buys, which is a manufactured book",
-                                                  "no linked social context",
-                                                  "ticker/name reused by 5 other recent mint(s)",
-                                                  "123x move on only 0.48x turnover",
-                                                  "123x move with 2,845 holders",
-                                                  "123x move with no linked social context",
-                                                  "123x move on recycled ticker/name",
-                                                  "only 5/6 organic confirmations (holders, trades, volume, liquidity, distribution)",
-                                                  "123.4x Solana runner but tracked-wallet confirmation was too thin (0 buyers, 0 participants)"
-                                              ],
-                               "lore":  "",
-                               "loreIsFresh":  true,
-                               "faded":  null,
-                               "kolBuyers":  [
-
-                                             ],
-                               "kolHolders":  [
-
-                                              ],
-                               "kolSellers":  [
-
-                                              ],
-                               "kolRealisedSol":  0.0,
-                               "kolSolSpent":  0.0,
-                               "kolFlows":  [
-
-                                            ],
-                               "scores":  {
-                                              "runner":  27.3,
-                                              "organic":  41.0,
-                                              "smartMoney":  0.0,
-                                              "kol":  0.0,
-                                              "liquidity":  57.9,
-                                              "holderQuality":  95.5,
-                                              "priceStructure":  58.0,
-                                              "manipulation":  48.0
-                                          },
-                               "scoreComponents":  {
-                                                       "organic":  {
-                                                                       "holderGrowth":  45.0,
-                                                                       "buyerDiversity":  40.3,
-                                                                       "organicVolume":  79.0,
-                                                                       "distribution":  96.1,
-                                                                       "liquidity":  57.9,
-                                                                       "priceStructure":  58.0,
-                                                                       "walletIndependence":  "unavailable",
-                                                                       "smartMoney":  "unavailable",
-                                                                       "manipulationPenalty":  -16.8
-                                                                   },
-                                                       "runner":  {
-                                                                      "momentum":  100.0,
-                                                                      "manipulationPenalty":  -12.0
-                                                                  }
-                                                   },
-                               "classification":  "MIXED RUNNER",
-                               "read":  "$UOTF — 11h-old pair at $4,664,872 market cap, +12236% on the day, $2,235,177 of 24h volume (0.5x market cap), 95% of 12,124 six-hour trades were buys, LP 100% locked or burned, top 10 hold 5%.",
-                               "track":  "NEW",
-                               "tradeUrl":  "https://fomo.family/token/GpMNyr1DehzhkRousPrbwNPUZkWzEGFkxtfJu7M9pump",
-                               "qr":  [
-                                          "1111111010000101001010110110101111111",
-                                          "1000001011110011011111110000101000001",
-                                          "1011101000111001100010100111101011101",
-                                          "1011101011010011110100001110001011101",
-                                          "1011101001101011010000001111101011101",
-                                          "1000001000110100000110001100001000001",
-                                          "1111111010101010101010101010101111111",
-                                          "0000000011001101111010111010000000000",
-                                          "1011011100000010100111001010101001011",
-                                          "1000010111001001100000010110100101010",
-                                          "1110001000100111011001111010000000100",
-                                          "0001110111101001001100000111001111100",
-                                          "0111001110101110110011111111011011111",
-                                          "1110100100000011100111001011111111001",
-                                          "1010101000011010011100001110101010110",
-                                          "0101000101011100111101111000110110001",
-                                          "1000101111111011111011101100000111110",
-                                          "0010110100110100110110010000010000111",
-                                          "0011001001110001101100100011110101111",
-                                          "1011000011000010010100111011101111010",
-                                          "0110001000011010111011010010110111001",
-                                          "1100010110001100100111110010100001011",
-                                          "0001111100110100010000011100000100000",
-                                          "1111100001111001101100111101011011111",
-                                          "1101111001110001001111011010011100101",
-                                          "0101100101010010101010011110101111011",
-                                          "0110011111011111110110101100011101010",
-                                          "1010100101111000101001010011111000000",
-                                          "0001011111100011101000110110111110000",
-                                          "0000000011010010010010111000100010111",
-                                          "1111111011101001110001001100101010111",
-                                          "1000001010011111000100011010100010000",
-                                          "1011101001010111001000101010111111010",
-                                          "1011101011100111011010011110111010101",
-                                          "1011101010101110110110111101111010100",
-                                          "1000001000000110100010001110101111100",
-                                          "1111111010111001010101100110000010011"
-                                      ],
-                               "dexEvidence":  [
-
-                                               ],
-                               "catalyst":  "",
-                               "xInteractions":  [
-
-                                                 ],
-                               "sources":  [
-                                               {
-                                                   "label":  "Dexscreener",
-                                                   "url":  "https://dexscreener.com/solana/dztmnncwkysqzrwbip17ygrgq6b3ao8yovbckaa6hbpq"
-                                               },
-                                               {
-                                                   "label":  "Bubblemaps",
-                                                   "url":  "https://app.bubblemaps.io/sol/token/GpMNyr1DehzhkRousPrbwNPUZkWzEGFkxtfJu7M9pump"
-                                               }
-                                           ]
-                           },
-                           {
-                               "symbol":  "OPENAI",
-                               "name":  "OpenAI PreStocks",
-                               "mint":  "H7LJ3Zg7pGpBDZKLJfVVCTpjFRh5aX7F3gAQHKVk5FGv",
-                               "url":  "https://dexscreener.com/solana/dkglfpammkwp6prdsztqopfpqme95yy8ejimzs8gciae",
-                               "chain":  "solana",
-                               "dex":  "pumpswap",
-                               "marketCap":  856107.0,
-                               "liquidity":  41119.31,
-                               "volume24h":  48111833.94,
-                               "change24h":  599.0,
-                               "change6h":  46.78,
-                               "change1h":  7.2,
-                               "runMultiple":  6.99,
-                               "turnover":  56.19838868272307,
-                               "ageHours":  24.580591284166665,
-                               "buyRatio6h":  0.5554468194694824,
-                               "trades24h":  71979,
-                               "trades6h":  19415,
-                               "top10Pct":  19.665889484856187,
-                               "holders":  5187,
-                               "lpLockedPct":  7.63998527674068E-07,
-                               "riskLabels":  [
-                                                  "wash-trading shape: 1,170x its own liquidity traded in 24h",
-                                                  "56x its market cap traded in 24h",
-                                                  "LP only 0% locked or burned",
-                                                  "no linked social context",
-                                                  "7.0x Solana runner but tracked-wallet confirmation was too thin (0 buyers, 0 participants)"
-                                              ],
-                               "lore":  "",
-                               "loreIsFresh":  true,
-                               "faded":  null,
-                               "kolBuyers":  [
-
-                                             ],
-                               "kolHolders":  [
-
-                                              ],
-                               "kolSellers":  [
-
-                                              ],
-                               "kolRealisedSol":  0.0,
-                               "kolSolSpent":  0.0,
-                               "kolFlows":  [
-
-                                            ],
-                               "scores":  {
-                                              "runner":  12.9,
-                                              "organic":  31.5,
-                                              "smartMoney":  0.0,
-                                              "kol":  0.0,
-                                              "liquidity":  16.4,
-                                              "holderQuality":  75.2,
-                                              "priceStructure":  70.3,
-                                              "manipulation":  72.0
-                                          },
-                               "scoreComponents":  {
-                                                       "organic":  {
-                                                                       "holderGrowth":  45.0,
-                                                                       "buyerDiversity":  86.5,
-                                                                       "organicVolume":  65.0,
-                                                                       "distribution":  54.9,
-                                                                       "liquidity":  16.4,
-                                                                       "priceStructure":  70.3,
-                                                                       "walletIndependence":  "unavailable",
-                                                                       "smartMoney":  "unavailable",
-                                                                       "manipulationPenalty":  -25.2
-                                                                   },
-                                                       "runner":  {
-                                                                      "momentum":  66.6,
-                                                                      "manipulationPenalty":  -18.0
-                                                                  }
-                                                   },
-                               "classification":  "HIGH MANIPULATION RISK",
-                               "read":  "$OPENAI — 25h-old pair at $856,107 market cap, +599% on the day, $48,111,834 of 24h volume (56.2x market cap), 56% of 19,415 six-hour trades were buys, LP 0% locked or burned, top 10 hold 20%.",
-                               "track":  "NEW",
-                               "tradeUrl":  "https://fomo.family/token/H7LJ3Zg7pGpBDZKLJfVVCTpjFRh5aX7F3gAQHKVk5FGv",
-                               "qr":  [
-                                          "1111111000100001001010000110001111111",
-                                          "1000001001001010110100100011001000001",
-                                          "1011101011001000100111000010101011101",
-                                          "1011101010001101110110001111001011101",
-                                          "1011101010001110000101010000101011101",
-                                          "1000001010010100001010100101101000001",
-                                          "1111111010101010101010101010101111111",
-                                          "0000000010011101100111000011000000000",
-                                          "1011111001111010001011100111001111100",
-                                          "1110110100100011100000011101111100010",
-                                          "1001111111110000001010100001111011111",
-                                          "0010100011000110101001111010100100001",
-                                          "1101001001000010000001111111011010011",
-                                          "0100010001101011111111010000100100011",
-                                          "1111001111000011110000100111001111011",
-                                          "0010100110011110011101111010100110000",
-                                          "0001111000110010100100111011111000111",
-                                          "1101000001111011001010110100000100010",
-                                          "0010011000101111110101001011010011111",
-                                          "1110110101001101000111010001010010001",
-                                          "1000011101011101010110001110011011000",
-                                          "0011100111011111100011110010100001000",
-                                          "0100111001001011001010100001000111011",
-                                          "1001110001011110000101010010101110000",
-                                          "1000001001100000001011010010101010100",
-                                          "1011000010011101100001000111110101000",
-                                          "1011001101101100001010100001110000111",
-                                          "1011000001110100101001111011011000000",
-                                          "1001111010010100100011111101111110011",
-                                          "0000000011000001111101010001100011001",
-                                          "1111111000110101010001001000101010111",
-                                          "1000001011010111111101000011100011001",
-                                          "1011101011010101100101001011111110110",
-                                          "1011101010010111001010000100111010001",
-                                          "1011101011101001111101101110100001011",
-                                          "1000001000111011001111001011111010001",
-                                          "1111111011100001000101110110011010111"
-                                      ],
-                               "dexEvidence":  [
-
-                                               ],
-                               "catalyst":  "",
-                               "xInteractions":  [
-
-                                                 ],
-                               "sources":  [
-                                               {
-                                                   "label":  "Dexscreener",
-                                                   "url":  "https://dexscreener.com/solana/dkglfpammkwp6prdsztqopfpqme95yy8ejimzs8gciae"
-                                               },
-                                               {
-                                                   "label":  "Bubblemaps",
-                                                   "url":  "https://app.bubblemaps.io/sol/token/H7LJ3Zg7pGpBDZKLJfVVCTpjFRh5aX7F3gAQHKVk5FGv"
-                                               }
-                                           ]
-                           }
-                       ],
-    "chains":  [
-
-               ],
-    "loreGroups":  [
-
-                   ],
-    "kolConviction":  [
-
-                      ],
-    "kolProfit":  [
-                      {
-                          "mint":  "94Sm8joZMSRzpQmcNVn5zZpgnRLN2DBesJYDXwuNpump",
-                          "symbol":  "OMO",
-                          "realisedSol":  94.200507635,
-                          "traders":  3
-                      },
-                      {
-                          "mint":  "57UEGdkPJg3e8cT24uVkeqjcePeiz4rg9duu1asPpump",
-                          "symbol":  "DERP",
-                          "realisedSol":  73.74568591100001,
-                          "traders":  2
-                      },
-                      {
-                          "mint":  "zj1jpp7QMveWHLs61vL9KMZf254KvW7j4AAmBF8ry2k",
-                          "symbol":  "BULLSHIT",
-                          "realisedSol":  70.556670505,
-                          "traders":  2
-                      },
-                      {
-                          "mint":  "BcHEaaTCvycPwwsJ9yQTXdHP9X2gCLkznDbZ8VySpump",
-                          "symbol":  "JOTCHUA",
-                          "realisedSol":  54.552570624,
-                          "traders":  1
-                      },
-                      {
-                          "mint":  "ELbFy4v8vzJHjvmqCDw7CEzsYuN9TGkBt7Kz9Kawpump",
-                          "symbol":  "40M",
-                          "realisedSol":  53.160392758,
-                          "traders":  3
-                      },
-                      {
-                          "mint":  "DShht9B8wCRe5t3oqdPB77PnjJbKxbYaZyuWpZQjbonk",
-                          "symbol":  "CONK",
-                          "realisedSol":  42.771175628999984,
-                          "traders":  8
-                      },
-                      {
-                          "mint":  "EKUA5DgGtRaSDsCoJz1hDdon7W3s5iKmbJmjFM7jpump",
-                          "symbol":  "1MILLLIONPIXE",
-                          "realisedSol":  33.580710493000005,
-                          "traders":  1
-                      },
-                      {
-                          "mint":  "eM4AagjvyPcF2ucEC9cyxKw39PsUPZiqChasQLkgfig",
-                          "symbol":  "FIG",
-                          "realisedSol":  31.47952379400001,
-                          "traders":  3
-                      },
-                      {
-                          "mint":  "4ChT49V1iazP2XUGtycGkEsS6pRMqvGfUbqvRC9Z91ZT",
-                          "symbol":  "MOS",
-                          "realisedSol":  29.503930721000003,
-                          "traders":  1
-                      },
-                      {
-                          "mint":  "GdCjSHjmz2UFQPSp7a8PCQnHibHE6RHE6bZdo9tFpump",
-                          "symbol":  "TOLY ",
-                          "realisedSol":  28.247358896999998,
-                          "traders":  2
-                      },
-                      {
-                          "mint":  "CfxVLEtoRiWQj8edFaG7onjf1cN9CP16o7ymVsjfpump",
-                          "symbol":  "HACHI",
-                          "realisedSol":  25.180723323999995,
-                          "traders":  3
-                      },
-                      {
-                          "mint":  "7rMnp9EJd61SvNn8LGc7SAJeQxM36oeECKmP2a7opump",
-                          "symbol":  "KIO",
-                          "realisedSol":  22.983666618999997,
-                          "traders":  1
-                      },
-                      {
-                          "mint":  "EpSjX6gghH8B1Yw6A98pj6iK5yMUiBMscx7jqBnpump",
-                          "symbol":  "PSYCHOSIS",
-                          "realisedSol":  17.65692498,
-                          "traders":  1
-                      },
-                      {
-                          "mint":  "8A9r5CGFoYMsMNJDRRq7XSsBoYTCkrUEywmyBZdApump",
-                          "symbol":  "VEYR",
-                          "realisedSol":  17.168660803000005,
-                          "traders":  4
-                      },
-                      {
-                          "mint":  "DJfUS8LTq2Q5XGpEQ8euRJMfyihYDvDCof1dtfmMpump",
-                          "symbol":  "CHANTY",
-                          "realisedSol":  13.842633837,
-                          "traders":  1
-                      }
-                  ],
-    "sources":  [
-                    {
-                        "name":  "Dexscreener",
-                        "ok":  true,
-                        "detail":  "all discovery feeds available"
-                    },
-                    {
-                        "name":  "Birdeye ranked discovery",
-                        "ok":  true,
-                        "detail":  "492 tokens ranked by 24h volume across 1 chain(s); 100 cleared the motion gate"
-                    },
-                    {
-                        "name":  "On-chain launch collector",
-                        "ok":  false,
-                        "detail":  "2,977 Pump.fun creates stored since 22 Aug 00:51 CEST; partial window while the collector builds history"
-                    },
-                    {
-                        "name":  "Dune PumpFun alpha wallets",
-                        "ok":  true,
-                        "detail":  "25 active wallets accepted from query 4032586; top 25 skipped and bot-sized profit capped"
-                    },
-                    {
-                        "name":  "KOL wallet flow",
-                        "ok":  true,
-                        "detail":  "123/123 wallets scanned; activity in 1188 mints"
-                    },
-                    {
-                        "name":  "KOL mint discovery",
-                        "ok":  true,
-                        "detail":  "69/71 tracked-wallet mints resolved through Dexscreener"
-                    },
-                    {
-                        "name":  "RugCheck (Solana)",
-                        "ok":  true,
-                        "detail":  "192 Solana tokens checked"
-                    },
-                    {
-                        "name":  "Helius",
-                        "ok":  true,
-                        "detail":  "batched authority cross-check available"
-                    },
-                    {
-                        "name":  "Social verification",
-                        "ok":  false,
-                        "detail":  "0/138 linked X accounts resolved; 126 unavailable"
-                    },
-                    {
-                        "name":  "Holder snapshots",
-                        "ok":  false,
-                        "detail":  "0/1 watchlist tokens captured; wallet-history calls 0"
-                    },
-                    {
-                        "name":  "X monitored accounts",
-                        "ok":  false,
-                        "detail":  "X_BEARER_TOKEN is unset; Dexscreener and on-chain evidence remain available"
-                    },
-                    {
-                        "name":  "24h market-indexed launches",
-                        "ok":  false,
-                        "detail":  "144 launches resolved to market data; 2,977 raw Pump.fun creates stored"
-                    },
-                    {
-                        "name":  "Jupiter exit liquidity",
-                        "ok":  true,
-                        "detail":  "0/0 featured tokens quoted below 5% impact"
-                    },
-                    {
-                        "name":  "SOL market context",
-                        "ok":  true,
-                        "detail":  "SOL reference price captured"
-                    }
-                ],
-    "journalRule":  "Organic-runner gate: ranked discovery by volume first, then Dexscreener pair data, RugCheck safety, holder count, LP status, top-10 concentration, trade count, social validity and boost status. Paid boosts, weak holder distribution, dead socials, unlocked LP, high concentration, wash-trading shapes and fading moves are excluded from the public recap.",
-    "selectionRule":  "Every track requires market cap at least $200,000, liquidity at least $20,000, a passed safety gate, and an unreused ticker. NEW: created inside 24h with at least 3 strength and 2 interest signals, maximum 5 names. MOVER: any age up to 2d, at least 25% in 24h on $100,000 volume and 0.50x turnover, maximum 5 names. CTO: takeover claimed within 7d with measurable post-claim activity, maximum 3 names."
+ "generatedAt": "2026-08-22T04:18:55.983807+02:00",
+ "windowStart": "2026-08-21T04:18:55.983807+02:00",
+ "timezone": "CEST",
+ "summary": {
+  "runners": 1,
+  "observedRunners": 12,
+  "launchedToday": 1,
+  "bigMultiples": 1,
+  "kolFlagged": 1,
+  "xMatched": 0,
+  "loreGroups": 0,
+  "walletsTracked": 123
+ },
+ "runners": [
+  {
+   "symbol": "LIZARD",
+   "name": "Tom Lizard",
+   "mint": "2hXHY3DnN7HUGySZEmBsLFKSqLB8nj3aE8wwq44wpump",
+   "url": "https://dexscreener.com/solana/57et71hck613i37onushcv2zcnutbwmnn3kujyzgh45t",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 717958.0,
+   "liquidity": 71401.95,
+   "volume24h": 1666059.9,
+   "change24h": 2036.0,
+   "change6h": 2036.0,
+   "change1h": -0.32,
+   "runMultiple": 21.36,
+   "turnover": 2.3205534307020743,
+   "ageHours": 3.2516621686111113,
+   "buyRatio6h": 0.5778946071384565,
+   "trades24h": 24347,
+   "trades6h": 24347,
+   "top10Pct": 13.348369457267768,
+   "holders": 3670,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "active Dexscreener boost",
+    "ticker also used by 3 other recent mint(s)"
+   ],
+   "lore": "",
+   "loreIsFresh": false,
+   "faded": null,
+   "kolBuyers": [
+    "Chairman",
+    "Daumen",
+    "King Solomon",
+    "Laanie",
+    "Mike",
+    "OGAntD",
+    "Schoen",
+    "Spuno",
+    "cap",
+    "edward",
+    "slingoor"
+   ],
+   "kolHolders": [
+    "Chairman",
+    "Daumen",
+    "King Solomon",
+    "Mike",
+    "Schoen",
+    "Spuno"
+   ],
+   "kolSellers": [
+    "Laanie",
+    "OGAntD",
+    "cap",
+    "edward",
+    "slingoor"
+   ],
+   "kolRealisedSol": -198.081821053,
+   "kolSolSpent": 294.00482216700004,
+   "kolFlows": [
+    {
+     "name": "edward",
+     "bought": true,
+     "sold": true,
+     "holding": false,
+     "realisedSol": 1.2944915129999996,
+     "solSpent": 7.025574079999999
+    },
+    {
+     "name": "OGAntD",
+     "bought": true,
+     "sold": true,
+     "holding": false,
+     "realisedSol": 1.2792695540000025,
+     "solSpent": 30.332074079999998
+    },
+    {
+     "name": "Schoen",
+     "bought": true,
+     "sold": false,
+     "holding": true,
+     "realisedSol": 0.0,
+     "solSpent": 0.0
+    },
+    {
+     "name": "Chairman",
+     "bought": true,
+     "sold": false,
+     "holding": true,
+     "realisedSol": 0.0,
+     "solSpent": 0.0
+    },
+    {
+     "name": "Spuno",
+     "bought": true,
+     "sold": false,
+     "holding": true,
+     "realisedSol": -0.052074079999999995,
+     "solSpent": 0.052074079999999995
+    },
+    {
+     "name": "Laanie",
+     "bought": true,
+     "sold": true,
+     "holding": false,
+     "realisedSol": -2.074506597999985,
+     "solSpent": 35.39817407999999
+    },
+    {
+     "name": "cap",
+     "bought": true,
+     "sold": true,
+     "holding": false,
+     "realisedSol": -6.332305275000003,
+     "solSpent": 29.00022968
+    },
+    {
+     "name": "King Solomon",
+     "bought": true,
+     "sold": false,
+     "holding": true,
+     "realisedSol": -10.10707408,
+     "solSpent": 10.10707408
+    },
+    {
+     "name": "Mike",
+     "bought": true,
+     "sold": false,
+     "holding": true,
+     "realisedSol": -10.108074079999998,
+     "solSpent": 10.108074079999998
+    },
+    {
+     "name": "Daumen",
+     "bought": true,
+     "sold": false,
+     "holding": true,
+     "realisedSol": -52.950880885,
+     "solSpent": 52.950880885
+    },
+    {
+     "name": "slingoor",
+     "bought": true,
+     "sold": true,
+     "holding": false,
+     "realisedSol": -119.03066712200004,
+     "solSpent": 119.03066712200004
+    }
+   ],
+   "scores": {
+    "runner": 53.7,
+    "organic": 63.0,
+    "smartMoney": 0.0,
+    "kol": 73.6,
+    "liquidity": 57.1,
+    "holderQuality": 84.9,
+    "priceStructure": 89.7,
+    "manipulation": 23.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 97.6,
+     "organicVolume": 100.0,
+     "distribution": 72.6,
+     "liquidity": 57.1,
+     "priceStructure": 89.7,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -8.0
+    },
+    "runner": {
+     "momentum": 100.0,
+     "manipulationPenalty": -5.8
+    }
+   },
+   "classification": "KOL-DRIVEN RUNNER",
+   "read": "$LIZARD \u2014 3h-old pair at $717,958 market cap, +2036% on the day, $1,666,060 of 24h volume (2.3x market cap), 58% of 24,347 six-hour trades were buys, LP 100% locked or burned, top 10 hold 13%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/2hXHY3DnN7HUGySZEmBsLFKSqLB8nj3aE8wwq44wpump",
+   "qr": [
+    "1111111011001111011010110101101111111",
+    "1000001010000011101111110000101000001",
+    "1011101000001001100010100110101011101",
+    "1011101011001000100100001111001011101",
+    "1011101001110100110100001011101011101",
+    "1000001000001001000100001110001000001",
+    "1111111010101010101010101010101111111",
+    "0000000011011001011000111000000000000",
+    "1011011101010111100111001000101001011",
+    "1000010101111011110000010110101101010",
+    "0011101110101011001001111010100110100",
+    "1001100110011111000100011111101101100",
+    "1000111101111100111000001111011010111",
+    "1010110001000000101001101111111111010",
+    "1100011010101010011110001100111010110",
+    "0110010010011110011101111000101110011",
+    "0101101001111100111011101100100101101",
+    "0100010010000010100110011011100000111",
+    "1001001111101101110100001011010110111",
+    "1011100101010100011100011011001011010",
+    "1101011011001010001011000011110110101",
+    "1001000101100101101101010010100001000",
+    "1101011100101010110000011100010100000",
+    "0111000001001100101100111111001011110",
+    "0010011011010000001111010110001100111",
+    "0101010101001000101011000101101111111",
+    "0101001010011101100110100100111010110",
+    "1001000101010000101001000010111010000",
+    "0001001001011011111000110111111110000",
+    "0000000010111101011110011100100010100",
+    "1111111010010111110001001110101010111",
+    "1000001010100111100010011000100010011",
+    "1011101000000000001000101010111111001",
+    "1011101010110111001010011110111010001",
+    "1011101010100110111110011101111010100",
+    "1000001001100000101010100110001111100",
+    "1111111011101011000101100110001011011"
+   ],
+   "dexEvidence": [
+    "The pair was 3 hours old at the cutoff and moved +2,036% in 24 hours to a $717,958 market cap.",
+    "Dexscreener recorded $1,666,060 of 24-hour volume, equal to 2.3x market cap, with $71,402 liquidity.",
+    "Six-hour flow was 58% buys across 24,347 trades while the pair moved +2036%.",
+    "11 tracked on-chain wallets bought during the window; 6 still held at the snapshot.",
+    "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 13%."
+   ],
+   "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/57et71hck613i37onushcv2zcnutbwmnn3kujyzgh45t"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/2hXHY3DnN7HUGySZEmBsLFKSqLB8nj3aE8wwq44wpump"
+    }
+   ]
+  }
+ ],
+ "blockedRunners": [
+  {
+   "symbol": "NENEM",
+   "name": "Nenem The Cat",
+   "mint": "DYa7Rcnsy3XoYwh1ZLseMdcAQjBE92pQe4enpYDNpump",
+   "url": "https://dexscreener.com/solana/48hszk7qjxyiiqcdcd4qhndasp5pe69fvgp9uwptfals",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 434638.0,
+   "liquidity": 54356.06,
+   "volume24h": 667739.26,
+   "change24h": 491.0,
+   "change6h": 491.0,
+   "change1h": 101.0,
+   "runMultiple": 5.91,
+   "turnover": 1.5363112751301082,
+   "ageHours": 1.6086066130555554,
+   "buyRatio6h": 0.731358024691358,
+   "trades24h": 12150,
+   "trades6h": 12150,
+   "top10Pct": 1.695621248743606,
+   "holders": 3205,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "same-funder holder cluster: 24 traced top holders hold 3.5% funded by 8txZU\u20266MLq inside 91m; effective top10 after clustering 4.8%",
+    "fresh-wallet holder pack: 24/24 traced top holders were created in the last 24h and hold 3.5%",
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 50.0,
+    "organic": 69.9,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 60.4,
+    "holderQuality": 100.0,
+    "priceStructure": 100.0,
+    "manipulation": 5.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 77.3,
+     "organicVolume": 100.0,
+     "distribution": 100.0,
+     "liquidity": 60.4,
+     "priceStructure": 100.0,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -1.8
+    },
+    "runner": {
+     "momentum": 54.6,
+     "manipulationPenalty": -1.2
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$NENEM \u2014 2h-old pair at $434,638 market cap, +491% on the day, $667,739 of 24h volume (1.5x market cap), 73% of 12,150 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/DYa7Rcnsy3XoYwh1ZLseMdcAQjBE92pQe4enpYDNpump",
+   "qr": [
+    "1111111000101001111100000010001111111",
+    "1000001010000011111101101010101000001",
+    "1011101011101011100111001011001011101",
+    "1011101011111111010101101100101011101",
+    "1011101000110000100111010000101011101",
+    "1000001001010110001000100010101000001",
+    "1111111010101010101010101010101111111",
+    "0000000011110000000110100010000000000",
+    "1000001011101101001110100101111001110",
+    "1110110111010100010011110100000110110",
+    "1011111111111010001010101001011100111",
+    "1101100100011001100000110010000001001",
+    "0011111111100000001111001001101101001",
+    "1010110111001011010111010001100101010",
+    "1110101011101001010011100011000111011",
+    "1100010100111010111110011011000101101",
+    "0010101110010100100000111111111100110",
+    "1100100001110010001010100101101101010",
+    "1001001111100001001011011101100010101",
+    "0000110010010010000110000001010001001",
+    "0000111000111101000101101111011011000",
+    "0110010000111101000100010001000010101",
+    "1011001011100111101001000011001111011",
+    "1011100001110101100100010011100111000",
+    "0000001101011011111101101000001110010",
+    "1101100111010010110001000101001101100",
+    "1000101111101010001011000001110110011",
+    "1011110011010001001010001000111011100",
+    "1001011100010110110010111100111111111",
+    "0000000011010101111010010100100010011",
+    "1111111000001011000101111000101010001",
+    "1000001000001010011110000000100010011",
+    "1011101000110110100001000111111110101",
+    "1011101000110100111000100101011001101",
+    "1011101000011001110101001110100001011",
+    "1000001000011000000110101011111011001",
+    "1111111011110001010000110001101101001"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/48hszk7qjxyiiqcdcd4qhndasp5pe69fvgp9uwptfals"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/DYa7Rcnsy3XoYwh1ZLseMdcAQjBE92pQe4enpYDNpump"
+    }
+   ]
+  },
+  {
+   "symbol": "KERMIT",
+   "name": "Kermit the cat",
+   "mint": "DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump",
+   "url": "https://dexscreener.com/solana/h3qgazgxmkk6ciqj22iymmc4myb7ckgtxtrsg227jm9r",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 422545.0,
+   "liquidity": 53352.58,
+   "volume24h": 675451.32,
+   "change24h": 423.0,
+   "change6h": 423.0,
+   "change1h": 47.43,
+   "runMultiple": 5.23,
+   "turnover": 1.59853109136305,
+   "ageHours": 1.8011066130555555,
+   "buyRatio6h": 0.7231611137936584,
+   "trades24h": 12426,
+   "trades6h": 12426,
+   "top10Pct": 1.993671987526444,
+   "holders": 4878,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "same-funder holder cluster: 23 traced top holders hold 4.7% funded by 58H7q\u2026EQ3u inside 32m; effective top10 after clustering 6.4%",
+    "fresh-wallet holder pack: 23/24 traced top holders were created in the last 24h and hold 4.7%",
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 49.7,
+    "organic": 70.1,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 60.5,
+    "holderQuality": 100.0,
+    "priceStructure": 100.0,
+    "manipulation": 5.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 78.4,
+     "organicVolume": 100.0,
+     "distribution": 100.0,
+     "liquidity": 60.5,
+     "priceStructure": 100.0,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -1.8
+    },
+    "runner": {
+     "momentum": 47.0,
+     "manipulationPenalty": -1.2
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$KERMIT \u2014 2h-old pair at $422,545 market cap, +423% on the day, $675,451 of 24h volume (1.6x market cap), 72% of 12,426 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump",
+   "qr": [
+    "1111111010000101011010110100101111111",
+    "1000001011011101101111110000101000001",
+    "1011101000010100100010100111001011101",
+    "1011101010101001010100001111001011101",
+    "1011101001000100111100001011101011101",
+    "1000001000100101100100001010001000001",
+    "1111111010101010101010101010101111111",
+    "0000000010011011011110111000000000000",
+    "1011011101010101100011001110001001011",
+    "0111010101100011100000010101100101110",
+    "0011001000101101001001110010000111100",
+    "0001100111001001000100000111001101100",
+    "1110011101011000110011111111011010011",
+    "0010000111111000100101001111111111010",
+    "1111011010001000011100001110100010110",
+    "0010010000100111011101111010100110001",
+    "1000011100011101111111100000110111110",
+    "1101110110110110100110011001011000011",
+    "0100001000011011111101101011110111111",
+    "1111010101111000011100000010001011010",
+    "1011111010111100011010010011110111001",
+    "0111110011101000100011010110100001011",
+    "1111011010101110110010011000000100000",
+    "0101100111111000101100111111011011111",
+    "1001001000011011001111011010111110101",
+    "0101110001000000101010011111100011011",
+    "0110101111010101100111000100011111110",
+    "1010000011100010100001111011011100000",
+    "0000001000110011001010100110111110100",
+    "0000000010000010010110011000100010100",
+    "1111111010010101010011001100101010111",
+    "1000001010101111000010011010100010011",
+    "1011101000100010001000100010111111010",
+    "1011101011000111011010000100111010101",
+    "1011101011110100110110010101111011100",
+    "1000001001110100101010110110001111100",
+    "1111111010100011000110000110001011111"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/h3qgazgxmkk6ciqj22iymmc4myb7ckgtxtrsg227jm9r"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump"
+    }
+   ]
+  },
+  {
+   "symbol": "BRO",
+   "name": "Bro The Cat",
+   "mint": "6VNy4YSvkwPVDZqC1JFjPZww5P9TUAkUUBzYnMVUpump",
+   "url": "https://dexscreener.com/solana/9jfzeqggp3mzdekgwpjtsq92zlx1ydexeofb7quvmkiy",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 225270.0,
+   "liquidity": 40203.87,
+   "volume24h": 1471267.9,
+   "change24h": 225.0,
+   "change6h": 225.0,
+   "change1h": 32.09,
+   "runMultiple": 3.25,
+   "turnover": 6.531131087139876,
+   "ageHours": 3.4430510575,
+   "buyRatio6h": 0.7822199685072994,
+   "trades24h": 37469,
+   "trades6h": 37469,
+   "top10Pct": 3.55056478622065,
+   "holders": 9268,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "same-funder holder cluster: 24 traced top holders hold 8.1% funded by 3d6EW\u2026qcq9 inside 197m; effective top10 after clustering 11.0%",
+    "fresh-wallet holder pack: 24/24 traced top holders were created in the last 24h and hold 8.1%",
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 49.4,
+    "organic": 69.8,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 69.6,
+    "holderQuality": 100.0,
+    "priceStructure": 100.0,
+    "manipulation": 5.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 70.6,
+     "organicVolume": 100.0,
+     "distribution": 100.0,
+     "liquidity": 69.6,
+     "priceStructure": 100.0,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -1.8
+    },
+    "runner": {
+     "momentum": 25.0,
+     "manipulationPenalty": -1.2
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$BRO \u2014 3h-old pair at $225,270 market cap, +225% on the day, $1,471,268 of 24h volume (6.5x market cap), 78% of 37,469 six-hour trades were buys, LP 100% locked or burned, top 10 hold 4%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/6VNy4YSvkwPVDZqC1JFjPZww5P9TUAkUUBzYnMVUpump",
+   "qr": [
+    "1111111001000010111100000001001111111",
+    "1000001010000110010101101010101000001",
+    "1011101011101001101111001011101011101",
+    "1011101010011001010101101100101011101",
+    "1011101001011001001111010000101011101",
+    "1000001000101110101010100010101000001",
+    "1111111010101010101010101010101111111",
+    "0000000010110110100100100010000000000",
+    "1000001011011101001010100011111001110",
+    "0010100000100100010011110110011111110",
+    "1101001001010110011010100001111101111",
+    "1100110111011011100000100011000101001",
+    "1111011000110100100100111000101101001",
+    "0011000110011000110011110001100101001",
+    "1000111000100101110011100101001111011",
+    "0010100100010100111010011011001101100",
+    "0010111101101101100100110111001110100",
+    "0010000011110010001010100111110000110",
+    "1001101011111111000010011101000001001",
+    "1101110000100010000110010000010101001",
+    "0111011111111001100111101111011010000",
+    "1000110111010011000000010101000010101",
+    "1110011100001111001001000101000111011",
+    "1100000001101001000010010001111111011",
+    "1000001110000010111101100100101000011",
+    "1101010000000100100000000110111100000",
+    "1001101010110010001010100001110111011",
+    "1011100000001111001010100000011111100",
+    "1011101111011010100011111101111110011",
+    "0000000010010110110100010100100010010",
+    "1111111001000101100101111110101010011",
+    "1000001000101010111000000010100010010",
+    "1011101000110001100101001111111110101",
+    "1011101000110000101001100111011000001",
+    "1011101000011011110100101110100001111",
+    "1000001001011010001110010011011011001",
+    "1111111011000001110000000000111100001"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/9jfzeqggp3mzdekgwpjtsq92zlx1ydexeofb7quvmkiy"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/6VNy4YSvkwPVDZqC1JFjPZww5P9TUAkUUBzYnMVUpump"
+    }
+   ]
+  },
+  {
+   "symbol": "BETUMBO",
+   "name": "Betumbo",
+   "mint": "Ago3mcPqZpjrsaPbXEAYVpEnSrNm2rEkYLLHsB7k1xn1",
+   "url": "https://dexscreener.com/solana/cbbaulouyr85hnqgrcaqdalmgrdqm6nhoriluwf116mz",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 213406.0,
+   "liquidity": 44975.65,
+   "volume24h": 1429446.68,
+   "change24h": 2701.0,
+   "change6h": 2701.0,
+   "change1h": 2701.0,
+   "runMultiple": 28.01,
+   "turnover": 6.69824972118872,
+   "ageHours": 0.4169399463888889,
+   "buyRatio6h": 0.6356489422527158,
+   "trades24h": 13992,
+   "trades6h": 13992,
+   "top10Pct": 20.645282799339896,
+   "holders": 2099,
+   "lpLockedPct": 2.252243480658886e-07,
+   "riskLabels": [
+    "same-funder holder cluster: 21 traced top holders hold 41.0% funded by DvvA3\u2026AopG inside 0m; effective top10 after clustering 55.7%",
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)",
+    "LP only 0% locked or burned",
+    "ticker/name reused by 2 other recent mint(s)",
+    "only 0.4h old; too early for publisher recap",
+    "28x move with 2,099 holders",
+    "28x move with no linked social context",
+    "28x move on recycled ticker/name"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 42.2,
+    "organic": 60.3,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 71.3,
+    "holderQuality": 60.2,
+    "priceStructure": 100.0,
+    "manipulation": 24.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 90.0,
+     "organicVolume": 100.0,
+     "distribution": 52.2,
+     "liquidity": 71.3,
+     "priceStructure": 100.0,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -8.4
+    },
+    "runner": {
+     "momentum": 100.0,
+     "manipulationPenalty": -6.0
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$BETUMBO \u2014 0h-old pair at $213,406 market cap, +2701% on the day, $1,429,447 of 24h volume (6.7x market cap), 64% of 13,992 six-hour trades were buys, LP 0% locked or burned, top 10 hold 21%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/Ago3mcPqZpjrsaPbXEAYVpEnSrNm2rEkYLLHsB7k1xn1",
+   "qr": [
+    "1111111011000110101101110000101111111",
+    "1000001001110010001011100100101000001",
+    "1011101000101111111111110010101011101",
+    "1011101010010010111110110110101011101",
+    "1011101010000001000001010011101011101",
+    "1000001011001101101110000110101000001",
+    "1111111010101010101010101010101111111",
+    "0000000010010110011001111011100000000",
+    "1000101111100001001101100100011111001",
+    "0001110010011010110111011011110010010",
+    "0111111000111100100010011001000110100",
+    "1101000000010010010001000011011000110",
+    "0100011111110011010100111000011101011",
+    "1000000000110101110101010011100011001",
+    "0100111000011101101010011011110111100",
+    "1110100000010001100101100000011110100",
+    "1100111011101100100111011100011011111",
+    "1101110001110110001100110010101010110",
+    "0000001100100001010101111011101010100",
+    "0000100100100111110111001000101110110",
+    "0000101101011100110011101000011101000",
+    "0100010010000100101000010001100110001",
+    "1100101101100011010011111011101111100",
+    "0111100010111001111011001000011110110",
+    "0110001011000010001000010101111101100",
+    "1110110101001100110110011011100011000",
+    "0000111111101010100010010001101101000",
+    "0001000011000010010001000010100100111",
+    "1100011110011001010111101010111111111",
+    "0000000011101011110000010010100010011",
+    "1111111011010101001011110000101010000",
+    "1000001001001010100101111001100011111",
+    "1011101010000110100110001000111111101",
+    "1011101000110010001101000001111100001",
+    "1011101000011011000100011110011001100",
+    "1000001000010011110111000010001010110",
+    "1111111011011010110001000000011100011"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/cbbaulouyr85hnqgrcaqdalmgrdqm6nhoriluwf116mz"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/Ago3mcPqZpjrsaPbXEAYVpEnSrNm2rEkYLLHsB7k1xn1"
+    }
+   ]
+  },
+  {
+   "symbol": "PUFF",
+   "name": "That Little Puff",
+   "mint": "GYFGQXcUFSgGs34BpHJuxSzjMMponA11x28n9pvApump",
+   "url": "https://dexscreener.com/solana/doxbrrtfnnbkt8zssyll45r6ok2uwcuevsk7rohrxn7r",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 513940.0,
+   "liquidity": 58748.78,
+   "volume24h": 468040.79,
+   "change24h": 649.0,
+   "change6h": 649.0,
+   "change1h": 280.0,
+   "runMultiple": 7.49,
+   "turnover": 0.9106915009534187,
+   "ageHours": 1.2433288352777776,
+   "buyRatio6h": 0.8475262368815593,
+   "trades24h": 6670,
+   "trades6h": 6670,
+   "top10Pct": 5.194458580866564,
+   "holders": 3379,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "same-funder holder cluster: 24 traced top holders hold 11.9% funded by 5fHL2\u2026Ne4c inside 8m; effective top10 after clustering 15.9%",
+    "fresh-wallet holder pack: 24/24 traced top holders were created in the last 24h and hold 11.9%",
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)",
+    "ticker/name reused by 1 other recent mint(s)"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 41.3,
+    "organic": 57.4,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 58.6,
+    "holderQuality": 97.5,
+    "priceStructure": 100.0,
+    "manipulation": 29.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 61.9,
+     "organicVolume": 91.6,
+     "distribution": 95.5,
+     "liquidity": 58.6,
+     "priceStructure": 100.0,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -10.1
+    },
+    "runner": {
+     "momentum": 72.1,
+     "manipulationPenalty": -7.2
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$PUFF \u2014 1h-old pair at $513,940 market cap, +649% on the day, $468,041 of 24h volume (0.9x market cap), 85% of 6,670 six-hour trades were buys, LP 100% locked or burned, top 10 hold 5%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/GYFGQXcUFSgGs34BpHJuxSzjMMponA11x28n9pvApump",
+   "qr": [
+    "1111111001101010111100000000001111111",
+    "1000001010101001000101101010101000001",
+    "1011101011100001100111001011001011101",
+    "1011101010010000100101101100101011101",
+    "1011101001110110001011010100101011101",
+    "1000001000001000101010100000101000001",
+    "1111111010101010101010101010101111111",
+    "0000000010111110100100100000000000000",
+    "1000001010000000001010100101111001110",
+    "1010100100011110000011110101101110010",
+    "0101001010110100010010100001111101111",
+    "1000000110110011101000101010000111001",
+    "1010111010001100110111011001101100001",
+    "0010100101111010110111010001100101001",
+    "1110011000101001010001100101010111011",
+    "0110100111100110011010011011011101101",
+    "1001111011011101100100111101111000100",
+    "1011100000111010001010100111010101010",
+    "1001001101101101001010011101000100101",
+    "0010100001111000000110110000010011001",
+    "1100101000000011110111101111011010100",
+    "1111100011101011101000010101000010101",
+    "1110011100000011101011000001001111011",
+    "1100110100001001000000010001101111001",
+    "0001001000111011111101100000101100011",
+    "1100100110100000100001010100100100100",
+    "1010111100011000010011001001010011011",
+    "1011100010010011000010001001011001100",
+    "1001001011100100100011101100111110011",
+    "0000000010110111011010010100100010010",
+    "1111111001001001000101111000101010001",
+    "1000001000000011011110000000100010000",
+    "1011101001000001100001000101111110101",
+    "1011101000010100101000110101011000101",
+    "1011101001111011110100100110100000111",
+    "1000001001111000000110001010110011001",
+    "1111111011111011000011000000100100001"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/doxbrrtfnnbkt8zssyll45r6ok2uwcuevsk7rohrxn7r"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/GYFGQXcUFSgGs34BpHJuxSzjMMponA11x28n9pvApump"
+    }
+   ]
+  },
+  {
+   "symbol": "TNOS",
+   "name": "TNOS",
+   "mint": "n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump",
+   "url": "https://dexscreener.com/solana/fthts2bjnnzbkblprcpyh67c39xqufmtzenube3yrnxj",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 1936382.0,
+   "liquidity": 112946.51,
+   "volume24h": 433711.43,
+   "change24h": 5049.0,
+   "change6h": 22.33,
+   "change1h": 4.26,
+   "runMultiple": 51.49,
+   "turnover": 0.22398030450603237,
+   "ageHours": 19.257495501944444,
+   "buyRatio6h": 0.5004633920296571,
+   "trades24h": 9399,
+   "trades6h": 2158,
+   "top10Pct": 1.5531055921925834,
+   "holders": 1525,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)",
+    "51x move on only $433,711 volume",
+    "51x move on only 0.22x turnover",
+    "51x move with 1,525 holders",
+    "51x move with no linked social context"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 39.0,
+    "organic": 57.7,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 53.8,
+    "holderQuality": 77.9,
+    "priceStructure": 62.7,
+    "manipulation": 12.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 92.1,
+     "organicVolume": 71.5,
+     "distribution": 100.0,
+     "liquidity": 53.8,
+     "priceStructure": 62.7,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -4.2
+    },
+    "runner": {
+     "momentum": 100.0,
+     "manipulationPenalty": -3.0
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$TNOS \u2014 19h-old pair at $1,936,382 market cap, +5049% on the day, $433,711 of 24h volume (0.2x market cap), 50% of 2,158 six-hour trades were buys, LP 100% locked or burned, top 10 hold 2%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump",
+   "qr": [
+    "1111111001111010110000010100101111111",
+    "1000001000110111001010100011001000001",
+    "1011101010010110001001000011101011101",
+    "1011101010101001100000001111001011101",
+    "1011101011000001010110010100101011101",
+    "1000001010011001010011100101101000001",
+    "1111111010101010101010101010101111111",
+    "0000000010000010111001100011000000000",
+    "1011111001110000100000100011101111100",
+    "0100110100111111001010110101100101110",
+    "1111011010001101100100101001111000111",
+    "1000000010101101001111101010000010001",
+    "0100111100011011010110101111011010111",
+    "1100100111010111101111010100100100000",
+    "0000011100010101001011000101001111011",
+    "1111010101000000100101011000111110000",
+    "0011011011010111001111010011111110111",
+    "0001110100010111110000010100001101010",
+    "1101101101111100011010101011010101111",
+    "0001110110010100101001010001110101001",
+    "0010001011000110010000011111011010100",
+    "0111010011110001110111110110100001010",
+    "1110011000010011010011000011001111001",
+    "0110010010000011111101010010100110000",
+    "1000011101110001100001011010111110100",
+    "1000000111111001011010010100001101100",
+    "1000101111100101101101001001010100011",
+    "1011110100010111000111010010011001011",
+    "1000011000101101110111111100111110111",
+    "0000000010111110001100010101100011001",
+    "1111111000101101101010101110101010111",
+    "1000001011000010100000000001100011010",
+    "1011101010010011001011101011111110101",
+    "1011101011101001110000000100111011001",
+    "1011101010111110001011100110100000111",
+    "1000001001111000100001111010001010001",
+    "1111111011001010110011110110000011111"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/fthts2bjnnzbkblprcpyh67c39xqufmtzenube3yrnxj"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump"
+    }
+   ]
+  },
+  {
+   "symbol": "TRUMP",
+   "name": "Trump Coin",
+   "mint": "6QasE5SAPTKjDGFUMgi5VhVwEGrStRcuyUHt21Q7SGhG",
+   "url": "https://dexscreener.com/solana/ad23yhf6erzrs7mx2euszsvoxb4wh7mizhnfc3kwj5se",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 233609.0,
+   "liquidity": 42973.53,
+   "volume24h": 3606203.15,
+   "change24h": 2887.0,
+   "change6h": 2887.0,
+   "change1h": 2887.0,
+   "runMultiple": 29.87,
+   "turnover": 15.43691874028826,
+   "ageHours": 0.8480510575,
+   "buyRatio6h": 0.5570063265580832,
+   "trades24h": 22287,
+   "trades6h": 22287,
+   "top10Pct": 25.49190577921989,
+   "holders": 2137,
+   "lpLockedPct": 2.814254973504961e-07,
+   "riskLabels": [
+    "wash-trading shape: 84x its own liquidity traded in 24h",
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)",
+    "LP only 0% locked or burned",
+    "top 10 hold 25%, above publisher ceiling",
+    "ticker/name reused by 2 other recent mint(s)",
+    "30x move with 2,137 holders",
+    "30x move with no linked social context",
+    "30x move on recycled ticker/name",
+    "only 5/6 organic confirmations (holders, trades, volume, liquidity, two-sided book)"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 31.7,
+    "organic": 47.4,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 49.0,
+    "holderQuality": 53.3,
+    "priceStructure": 100.0,
+    "manipulation": 41.4
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 94.3,
+     "organicVolume": 72.8,
+     "distribution": 38.6,
+     "liquidity": 49.0,
+     "priceStructure": 100.0,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -14.5
+    },
+    "runner": {
+     "momentum": 100.0,
+     "manipulationPenalty": -10.4
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$TRUMP \u2014 1h-old pair at $233,609 market cap, +2887% on the day, $3,606,203 of 24h volume (15.4x market cap), 56% of 22,287 six-hour trades were buys, LP 0% locked or burned, top 10 hold 25%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/6QasE5SAPTKjDGFUMgi5VhVwEGrStRcuyUHt21Q7SGhG",
+   "qr": [
+    "1111111011011000101101000001101111111",
+    "1000001001101111101011100100101000001",
+    "1011101000001110111111100011001011101",
+    "1011101011100110111100110111101011101",
+    "1011101010000101100100010011101011101",
+    "1000001011110001001101100110101000001",
+    "1111111010101010101010101010101111111",
+    "0000000011010010111101011011100000000",
+    "1000101110000111001101100100111111001",
+    "1000110110000000100111000001101010110",
+    "1000011101011010110010011001000100100",
+    "0100100000111000010001001010111101110",
+    "0011011100000011100101001000011101111",
+    "1000100011111010110101110111100011000",
+    "1110001101011101101011111011100111100",
+    "0001000010100110000011100010001110101",
+    "0101011100000010100110110100011111111",
+    "0101000111111100001100011011110011010",
+    "1010011110010001011100011011101110100",
+    "1111100001110011110111110000101100110",
+    "1011011111001100000000101000011101000",
+    "0101000101010010101010110001100110000",
+    "0011001001001011010010011001110111100",
+    "0010110110111000011011001000011110100",
+    "0111001010100010001100010001111001110",
+    "1001000111110010110110000000111011000",
+    "0010111101110000100011111001101011000",
+    "0010100100100100011001010011000100111",
+    "1101111101110111010111101010111110111",
+    "0000000011010000111100010110100010001",
+    "1111111011010011101011110010101010000",
+    "1000001000000101000101111001100011100",
+    "1011101011110000100110000010111111111",
+    "1011101001011110011100011001111100101",
+    "1011101000000001000101110110011001100",
+    "1000001000101101110111000010010010110",
+    "1111111011111010000001100001010101011"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/ad23yhf6erzrs7mx2euszsvoxb4wh7mizhnfc3kwj5se"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/6QasE5SAPTKjDGFUMgi5VhVwEGrStRcuyUHt21Q7SGhG"
+    }
+   ]
+  },
+  {
+   "symbol": "USTF",
+   "name": "USTF",
+   "mint": "bFyj3pZtUSXFyZPRREKTPsfpK3fUXcXnds4GaQ6pump",
+   "url": "https://dexscreener.com/solana/9ugxsl51gkgx7yuuecpazgkqereo94fv7qy5gwca4dxn",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 14366297.0,
+   "liquidity": 309357.63,
+   "volume24h": 557950.0,
+   "change24h": 288.0,
+   "change6h": 34.27,
+   "change1h": 5.36,
+   "runMultiple": 3.88,
+   "turnover": 0.03883742623447086,
+   "ageHours": 24.224995501944445,
+   "buyRatio6h": 0.5041284403669725,
+   "trades24h": 8708,
+   "trades6h": 2180,
+   "top10Pct": 1.4847938615373442,
+   "holders": 1544,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)",
+    "ticker/name reused by 3 other recent mint(s)"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 31.5,
+    "organic": 52.5,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 64.8,
+    "holderQuality": 78.2,
+    "priceStructure": 66.2,
+    "manipulation": 30.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 92.6,
+     "organicVolume": 68.5,
+     "distribution": 100.0,
+     "liquidity": 64.8,
+     "priceStructure": 66.2,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -10.5
+    },
+    "runner": {
+     "momentum": 32.0,
+     "manipulationPenalty": -7.5
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$USTF \u2014 24h-old pair at $14,366,297 market cap, +288% on the day, $557,950 of 24h volume (0.0x market cap), 50% of 2,180 six-hour trades were buys, LP 100% locked or burned, top 10 hold 1%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/bFyj3pZtUSXFyZPRREKTPsfpK3fUXcXnds4GaQ6pump",
+   "qr": [
+    "1111111000000011100011110111001111111",
+    "1000001011011011111110111111001000001",
+    "1011101001100010001010100001001011101",
+    "1011101001101101111110010010001011101",
+    "1011101010100010010101110011001011101",
+    "1000001001101000101101111111101000001",
+    "1111111010101010101010101010101111111",
+    "0000000000010101000001111101000000000",
+    "1010101001101111000111000100100010010",
+    "1111000110000001010110101010101101101",
+    "1000001010000110000111001010111101011",
+    "0101010000101001011011110111011110010",
+    "0110111101100010000101001101111001111",
+    "0000110011100011111111001100111000010",
+    "0000101101011100101010100110101100111",
+    "1000010010000011011101000110101010000",
+    "0100101010101010101000110110011011011",
+    "0011010001010001111101001011111000001",
+    "1101001010000001111001101000010010111",
+    "1100100111000010111101001100001100010",
+    "1111101100110111000000001100111001100",
+    "1010010100011111101011001110111101010",
+    "0101101010010100110000100000111100111",
+    "1010110011111000000001001100111010011",
+    "1101001110011011000010110001111101001",
+    "0001110111110001000111000000100001011",
+    "1001101010111110001111000010110000111",
+    "0111010010001011010011010111000000000",
+    "1001001101111000000101001111111111011",
+    "0000000010010101110000101101100011000",
+    "1111111001100010001011001101101011011",
+    "1000001001011101011000011111100011011",
+    "1011101011111011101100000100111111001",
+    "1011101000011111111100011000100111010",
+    "1011101011001011110000100101000011011",
+    "1000001001000010110101110110000110010",
+    "1111111011010011010011000101111000011"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/9ugxsl51gkgx7yuuecpazgkqereo94fv7qy5gwca4dxn"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/bFyj3pZtUSXFyZPRREKTPsfpK3fUXcXnds4GaQ6pump"
+    }
+   ]
+  },
+  {
+   "symbol": "UOTF",
+   "name": "UOTF",
+   "mint": "GpMNyr1DehzhkRousPrbwNPUZkWzEGFkxtfJu7M9pump",
+   "url": "https://dexscreener.com/solana/dztmnncwkysqzrwbip17ygrgq6b3ao8yovbckaa6hbpq",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 5659857.0,
+   "liquidity": 193773.63,
+   "volume24h": 2243865.01,
+   "change24h": 14867.0,
+   "change6h": -98.68,
+   "change1h": 24.25,
+   "runMultiple": 149.67,
+   "turnover": 0.39645259765396895,
+   "ageHours": 12.034162168611111,
+   "buyRatio6h": 0.9548595530826528,
+   "trades24h": 42525,
+   "trades6h": 11143,
+   "top10Pct": 4.963910363560557,
+   "holders": 2845,
+   "lpLockedPct": 100.0,
+   "riskLabels": [
+    "95% of trades are buys, which is a manufactured book",
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)",
+    "ticker/name reused by 6 other recent mint(s)",
+    "150x move on only 0.40x turnover",
+    "150x move with 2,845 holders",
+    "150x move with no linked social context",
+    "150x move on recycled ticker/name",
+    "only 5/6 organic confirmations (holders, trades, volume, liquidity, distribution)"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 27.3,
+    "organic": 40.7,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 59.7,
+    "holderQuality": 95.5,
+    "priceStructure": 57.1,
+    "manipulation": 48.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 39.7,
+     "organicVolume": 76.6,
+     "distribution": 96.1,
+     "liquidity": 59.7,
+     "priceStructure": 57.1,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -16.8
+    },
+    "runner": {
+     "momentum": 100.0,
+     "manipulationPenalty": -12.0
+    }
+   },
+   "classification": "MIXED RUNNER",
+   "read": "$UOTF \u2014 12h-old pair at $5,659,857 market cap, +14867% on the day, $2,243,865 of 24h volume (0.4x market cap), 95% of 11,143 six-hour trades were buys, LP 100% locked or burned, top 10 hold 5%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/GpMNyr1DehzhkRousPrbwNPUZkWzEGFkxtfJu7M9pump",
+   "qr": [
+    "1111111010000101001010110110101111111",
+    "1000001011110011011111110000101000001",
+    "1011101000111001100010100111101011101",
+    "1011101011010011110100001110001011101",
+    "1011101001101011010000001111101011101",
+    "1000001000110100000110001100001000001",
+    "1111111010101010101010101010101111111",
+    "0000000011001101111010111010000000000",
+    "1011011100000010100111001010101001011",
+    "1000010111001001100000010110100101010",
+    "1110001000100111011001111010000000100",
+    "0001110111101001001100000111001111100",
+    "0111001110101110110011111111011011111",
+    "1110100100000011100111001011111111001",
+    "1010101000011010011100001110101010110",
+    "0101000101011100111101111000110110001",
+    "1000101111111011111011101100000111110",
+    "0010110100110100110110010000010000111",
+    "0011001001110001101100100011110101111",
+    "1011000011000010010100111011101111010",
+    "0110001000011010111011010010110111001",
+    "1100010110001100100111110010100001011",
+    "0001111100110100010000011100000100000",
+    "1111100001111001101100111101011011111",
+    "1101111001110001001111011010011100101",
+    "0101100101010010101010011110101111011",
+    "0110011111011111110110101100011101010",
+    "1010100101111000101001010011111000000",
+    "0001011111100011101000110110111110000",
+    "0000000011010010010010111000100010111",
+    "1111111011101001110001001100101010111",
+    "1000001010011111000100011010100010000",
+    "1011101001010111001000101010111111010",
+    "1011101011100111011010011110111010101",
+    "1011101010101110110110111101111010100",
+    "1000001000000110100010001110101111100",
+    "1111111010111001010101100110000010011"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/dztmnncwkysqzrwbip17ygrgq6b3ao8yovbckaa6hbpq"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/GpMNyr1DehzhkRousPrbwNPUZkWzEGFkxtfJu7M9pump"
+    }
+   ]
+  },
+  {
+   "symbol": "PONK",
+   "name": "Ponk",
+   "mint": "5z7Nx6sVZ3qEvUDE8JhhKUVUbAJQL9oWeWt9EbBwSXZs",
+   "url": "https://dexscreener.com/solana/h4nf69fzcpbmvxpapehao36wvcbcwgf8mzvevpstjvvy",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 611326.0,
+   "liquidity": 53369.4,
+   "volume24h": 4514015.77,
+   "change24h": 7331.0,
+   "change6h": 7331.0,
+   "change1h": 0.78,
+   "runMultiple": 74.31,
+   "turnover": 7.383974785957083,
+   "ageHours": 1.642773279722222,
+   "buyRatio6h": 0.5405747334176758,
+   "trades24h": 27665,
+   "trades6h": 27665,
+   "top10Pct": 46.546670028118456,
+   "holders": 2122,
+   "lpLockedPct": 3.72640564200054e-07,
+   "riskLabels": [
+    "wash-trading shape: 85x its own liquidity traded in 24h",
+    "LP only 0% locked or burned",
+    "top 10 hold 47%, above publisher ceiling",
+    "ticker/name reused by 1 other recent mint(s)",
+    "74x move with 2,122 holders",
+    "74x move with no linked social context",
+    "74x move on recycled ticker/name",
+    "only 5/6 organic confirmations (holders, trades, volume, liquidity, two-sided book)"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [
+    "Loopierr"
+   ],
+   "kolHolders": [
+    "Loopierr"
+   ],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [
+    {
+     "name": "Loopierr",
+     "bought": true,
+     "sold": false,
+     "holding": true,
+     "realisedSol": 0.0,
+     "solSpent": 0.0
+    }
+   ],
+   "scores": {
+    "runner": 21.4,
+    "organic": 31.7,
+    "smartMoney": 0.0,
+    "kol": 34.4,
+    "liquidity": 29.6,
+    "holderQuality": 31.8,
+    "priceStructure": 90.4,
+    "manipulation": 65.4
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 86.3,
+     "organicVolume": 72.3,
+     "distribution": 0.0,
+     "liquidity": 29.6,
+     "priceStructure": 90.4,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -22.9
+    },
+    "runner": {
+     "momentum": 100.0,
+     "manipulationPenalty": -16.3
+    }
+   },
+   "classification": "LOW-HOLDER-QUALITY RUNNER",
+   "read": "$PONK \u2014 2h-old pair at $611,326 market cap, +7331% on the day, $4,514,016 of 24h volume (7.4x market cap), 54% of 27,665 six-hour trades were buys, LP 0% locked or burned, top 10 hold 47%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/5z7Nx6sVZ3qEvUDE8JhhKUVUbAJQL9oWeWt9EbBwSXZs",
+   "qr": [
+    "1111111011110001111100010010001111111",
+    "1000001010011100110011100100101000001",
+    "1011101011001100101011111110001011101",
+    "1011101000000000100101101100101011101",
+    "1011101011011111110000000010101011101",
+    "1000001001100010111010110010001000001",
+    "1111111010101010101010101010101111111",
+    "0000000001101000000010000100000000000",
+    "1001111110011011101111000111010010111",
+    "0111110011110010010011000100001110010",
+    "0010111110011010001000110011101001001",
+    "1010110101011001011000000011010001111",
+    "0001011011101000101100111000101101001",
+    "0011010101000000110001110111100011000",
+    "1110001010100111110100100011101011111",
+    "1010000111001110011100111001011101100",
+    "0000101110011101110010100101001000110",
+    "1101110010110000111010000111011100000",
+    "0100011101000011001011011101000011101",
+    "0100100000010110000000111110010011001",
+    "0011001011000001110010001010111111100",
+    "0010000101111010000110010001000010101",
+    "0110001010001101111010010001010101001",
+    "0011010010010000010000000001010111111",
+    "1101001000110001111001101010001010010",
+    "1000000011100010100111000001011010100",
+    "1100111110001110101110101101110110011",
+    "1000010000011001000010111000011111100",
+    "1000001010101100110000011110111110001",
+    "0000000011101000001110000100100010100",
+    "1111111010011101100111111110101010011",
+    "1000001010101011111000000100100010011",
+    "1011101011110111000001101111111110011",
+    "1011101011101100101000110111011001101",
+    "1011101000001001110110110100110010001",
+    "1000001000110000110110010010111011111",
+    "1111111010111001000011010000101100101"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/h4nf69fzcpbmvxpapehao36wvcbcwgf8mzvevpstjvvy"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/5z7Nx6sVZ3qEvUDE8JhhKUVUbAJQL9oWeWt9EbBwSXZs"
+    }
+   ]
+  },
+  {
+   "symbol": "OPENAI",
+   "name": "OpenAI PreStocks",
+   "mint": "H7LJ3Zg7pGpBDZKLJfVVCTpjFRh5aX7F3gAQHKVk5FGv",
+   "url": "https://dexscreener.com/solana/dkglfpammkwp6prdsztqopfpqme95yy8ejimzs8gciae",
+   "chain": "solana",
+   "dex": "pumpswap",
+   "marketCap": 920155.0,
+   "liquidity": 47505.61,
+   "volume24h": 48208675.27,
+   "change24h": 515.0,
+   "change6h": 54.46,
+   "change1h": 8.34,
+   "runMultiple": 6.15,
+   "turnover": 52.39190709173998,
+   "ageHours": 25.467495501944445,
+   "buyRatio6h": 0.5552994211362123,
+   "trades24h": 72208,
+   "trades6h": 19521,
+   "top10Pct": 19.60202638092117,
+   "holders": 5203,
+   "lpLockedPct": 7.63998527674068e-07,
+   "riskLabels": [
+    "wash-trading shape: 1,015x its own liquidity traded in 24h",
+    "52x its market cap traded in 24h",
+    "no tracked KOL wallet traded it (0/1 required from 123 scanned)",
+    "LP only 0% locked or burned"
+   ],
+   "lore": "",
+   "loreIsFresh": true,
+   "faded": null,
+   "kolBuyers": [],
+   "kolHolders": [],
+   "kolSellers": [],
+   "kolRealisedSol": 0.0,
+   "kolSolSpent": 0.0,
+   "kolFlows": [],
+   "scores": {
+    "runner": 13.1,
+    "organic": 31.9,
+    "smartMoney": 0.0,
+    "kol": 0.0,
+    "liquidity": 18.1,
+    "holderQuality": 75.3,
+    "priceStructure": 72.8,
+    "manipulation": 72.0
+   },
+   "scoreComponents": {
+    "organic": {
+     "holderGrowth": 45.0,
+     "buyerDiversity": 86.4,
+     "organicVolume": 65.0,
+     "distribution": 55.1,
+     "liquidity": 18.1,
+     "priceStructure": 72.8,
+     "walletIndependence": "unavailable",
+     "smartMoney": "unavailable",
+     "manipulationPenalty": -25.2
+    },
+    "runner": {
+     "momentum": 57.2,
+     "manipulationPenalty": -18.0
+    }
+   },
+   "classification": "HIGH MANIPULATION RISK",
+   "read": "$OPENAI \u2014 25h-old pair at $920,155 market cap, +515% on the day, $48,208,675 of 24h volume (52.4x market cap), 56% of 19,521 six-hour trades were buys, LP 0% locked or burned, top 10 hold 20%.",
+   "track": "NEW",
+   "tradeUrl": "https://fomo.family/token/H7LJ3Zg7pGpBDZKLJfVVCTpjFRh5aX7F3gAQHKVk5FGv",
+   "qr": [
+    "1111111000100001001010000110001111111",
+    "1000001001001010110100100011001000001",
+    "1011101011001000100111000010101011101",
+    "1011101010001101110110001111001011101",
+    "1011101010001110000101010000101011101",
+    "1000001010010100001010100101101000001",
+    "1111111010101010101010101010101111111",
+    "0000000010011101100111000011000000000",
+    "1011111001111010001011100111001111100",
+    "1110110100100011100000011101111100010",
+    "1001111111110000001010100001111011111",
+    "0010100011000110101001111010100100001",
+    "1101001001000010000001111111011010011",
+    "0100010001101011111111010000100100011",
+    "1111001111000011110000100111001111011",
+    "0010100110011110011101111010100110000",
+    "0001111000110010100100111011111000111",
+    "1101000001111011001010110100000100010",
+    "0010011000101111110101001011010011111",
+    "1110110101001101000111010001010010001",
+    "1000011101011101010110001110011011000",
+    "0011100111011111100011110010100001000",
+    "0100111001001011001010100001000111011",
+    "1001110001011110000101010010101110000",
+    "1000001001100000001011010010101010100",
+    "1011000010011101100001000111110101000",
+    "1011001101101100001010100001110000111",
+    "1011000001110100101001111011011000000",
+    "1001111010010100100011111101111110011",
+    "0000000011000001111101010001100011001",
+    "1111111000110101010001001000101010111",
+    "1000001011010111111101000011100011001",
+    "1011101011010101100101001011111110110",
+    "1011101010010111001010000100111010001",
+    "1011101011101001111101101110100001011",
+    "1000001000111011001111001011111010001",
+    "1111111011100001000101110110011010111"
+   ],
+   "dexEvidence": [],
+   "catalyst": "",
+   "xInteractions": [],
+   "sources": [
+    {
+     "label": "Dexscreener",
+     "url": "https://dexscreener.com/solana/dkglfpammkwp6prdsztqopfpqme95yy8ejimzs8gciae"
+    },
+    {
+     "label": "Bubblemaps",
+     "url": "https://app.bubblemaps.io/sol/token/H7LJ3Zg7pGpBDZKLJfVVCTpjFRh5aX7F3gAQHKVk5FGv"
+    }
+   ]
+  }
+ ],
+ "chains": [
+  "solana"
+ ],
+ "loreGroups": [],
+ "kolConviction": [
+  {
+   "symbol": "LIZARD",
+   "mint": "2hXHY3DnN7HUGySZEmBsLFKSqLB8nj3aE8wwq44wpump",
+   "url": "https://dexscreener.com/solana/57et71hck613i37onushcv2zcnutbwmnn3kujyzgh45t",
+   "buyers": [
+    "Chairman",
+    "Daumen",
+    "King Solomon",
+    "Laanie",
+    "Mike",
+    "OGAntD",
+    "Schoen",
+    "Spuno",
+    "cap",
+    "edward",
+    "slingoor"
+   ],
+   "holders": [
+    "Chairman",
+    "Daumen",
+    "King Solomon",
+    "Mike",
+    "Schoen",
+    "Spuno"
+   ],
+   "realisedSol": -198.081821053,
+   "runMultiple": 21.36
+  }
+ ],
+ "kolProfit": [
+  {
+   "mint": "94Sm8joZMSRzpQmcNVn5zZpgnRLN2DBesJYDXwuNpump",
+   "symbol": "OMO",
+   "realisedSol": 94.200507635,
+   "traders": 3
+  },
+  {
+   "mint": "57UEGdkPJg3e8cT24uVkeqjcePeiz4rg9duu1asPpump",
+   "symbol": "DERP",
+   "realisedSol": 73.74568591100001,
+   "traders": 2
+  },
+  {
+   "mint": "zj1jpp7QMveWHLs61vL9KMZf254KvW7j4AAmBF8ry2k",
+   "symbol": "BULLSHIT",
+   "realisedSol": 70.556670505,
+   "traders": 2
+  },
+  {
+   "mint": "BcHEaaTCvycPwwsJ9yQTXdHP9X2gCLkznDbZ8VySpump",
+   "symbol": "JOTCHUA",
+   "realisedSol": 54.552570624,
+   "traders": 1
+  },
+  {
+   "mint": "ELbFy4v8vzJHjvmqCDw7CEzsYuN9TGkBt7Kz9Kawpump",
+   "symbol": "40M",
+   "realisedSol": 53.160392758,
+   "traders": 3
+  },
+  {
+   "mint": "DShht9B8wCRe5t3oqdPB77PnjJbKxbYaZyuWpZQjbonk",
+   "symbol": "CONK",
+   "realisedSol": 42.771175628999984,
+   "traders": 8
+  },
+  {
+   "mint": "EKUA5DgGtRaSDsCoJz1hDdon7W3s5iKmbJmjFM7jpump",
+   "symbol": "1MILLLIONPIXE",
+   "realisedSol": 33.580710493000005,
+   "traders": 1
+  },
+  {
+   "mint": "eM4AagjvyPcF2ucEC9cyxKw39PsUPZiqChasQLkgfig",
+   "symbol": "FIG",
+   "realisedSol": 31.47952379400001,
+   "traders": 3
+  },
+  {
+   "mint": "4ChT49V1iazP2XUGtycGkEsS6pRMqvGfUbqvRC9Z91ZT",
+   "symbol": "MOS",
+   "realisedSol": 29.503930721000003,
+   "traders": 1
+  },
+  {
+   "mint": "GdCjSHjmz2UFQPSp7a8PCQnHibHE6RHE6bZdo9tFpump",
+   "symbol": "TOLY ",
+   "realisedSol": 28.247358896999998,
+   "traders": 2
+  },
+  {
+   "mint": "CfxVLEtoRiWQj8edFaG7onjf1cN9CP16o7ymVsjfpump",
+   "symbol": "HACHI",
+   "realisedSol": 25.180723323999995,
+   "traders": 3
+  },
+  {
+   "mint": "7rMnp9EJd61SvNn8LGc7SAJeQxM36oeECKmP2a7opump",
+   "symbol": "KIO",
+   "realisedSol": 22.983666618999997,
+   "traders": 1
+  },
+  {
+   "mint": "EpSjX6gghH8B1Yw6A98pj6iK5yMUiBMscx7jqBnpump",
+   "symbol": "PSYCHOSIS",
+   "realisedSol": 17.65692498,
+   "traders": 1
+  },
+  {
+   "mint": "8A9r5CGFoYMsMNJDRRq7XSsBoYTCkrUEywmyBZdApump",
+   "symbol": "VEYR",
+   "realisedSol": 17.168660803000005,
+   "traders": 4
+  },
+  {
+   "mint": "DJfUS8LTq2Q5XGpEQ8euRJMfyihYDvDCof1dtfmMpump",
+   "symbol": "CHANTY",
+   "realisedSol": 13.842633837,
+   "traders": 1
+  }
+ ],
+ "sources": [
+  {
+   "name": "Dexscreener",
+   "ok": true,
+   "detail": "all discovery feeds available"
+  },
+  {
+   "name": "Birdeye ranked discovery",
+   "ok": true,
+   "detail": "495 tokens ranked by 24h volume across 1 chain(s); 93 cleared the motion gate"
+  },
+  {
+   "name": "On-chain launch collector",
+   "ok": false,
+   "detail": "3,992 Pump.fun creates stored since 22 Aug 00:51 CEST; partial window while the collector builds history"
+  },
+  {
+   "name": "Dune PumpFun alpha wallets",
+   "ok": true,
+   "detail": "25 active wallets accepted from query 4032586; top 25 skipped and bot-sized profit capped"
+  },
+  {
+   "name": "KOL wallet flow",
+   "ok": true,
+   "detail": "123/123 wallets scanned; activity in 1188 mints"
+  },
+  {
+   "name": "KOL mint discovery",
+   "ok": true,
+   "detail": "73/75 tracked-wallet mints resolved through Dexscreener"
+  },
+  {
+   "name": "RugCheck (Solana)",
+   "ok": true,
+   "detail": "191 Solana tokens checked"
+  },
+  {
+   "name": "Helius",
+   "ok": true,
+   "detail": "batched authority cross-check available"
+  },
+  {
+   "name": "Social verification",
+   "ok": false,
+   "detail": "0/133 linked X accounts resolved; 124 unavailable"
+  },
+  {
+   "name": "Holder snapshots",
+   "ok": false,
+   "detail": "0/1 watchlist tokens captured; wallet-history calls 0"
+  },
+  {
+   "name": "Runner holder clusters",
+   "ok": false,
+   "detail": "15/20 top Solana runners traced; 5 flagged; 0 partial; wallet-history calls 287; 5 failed"
+  },
+  {
+   "name": "Intraday pulse memory",
+   "ok": true,
+   "detail": "0 faded/earlier runners recovered from 7 pulse-tracked mint(s)"
+  },
+  {
+   "name": "X monitored accounts",
+   "ok": false,
+   "detail": "X_BEARER_TOKEN is unset; Dexscreener and on-chain evidence remain available"
+  },
+  {
+   "name": "24h market-indexed launches",
+   "ok": false,
+   "detail": "144 launches resolved to market data; 3,992 raw Pump.fun creates stored"
+  },
+  {
+   "name": "Jupiter exit liquidity",
+   "ok": true,
+   "detail": "0/0 featured tokens quoted below 5% impact"
+  },
+  {
+   "name": "SOL market context",
+   "ok": true,
+   "detail": "SOL reference price captured"
+  }
+ ],
+ "journalRule": "Organic-runner gate: ranked discovery by volume first, then Dexscreener pair data, RugCheck safety, holder count, LP status, top-10 concentration, trade count, social validity and boost status. Paid boosts, weak holder distribution, dead socials, unlocked LP, high concentration, wash-trading shapes and fading moves are excluded from the public recap.",
+ "selectionRule": "Every track requires market cap at least $200,000, liquidity at least $20,000, a passed safety gate, and an unreused ticker. NEW: created inside 24h with at least 3 strength and 2 interest signals, maximum 5 names. MOVER: any age up to 2d, at least 25% in 24h on $100,000 volume and 0.50x turnover, maximum 5 names. CTO: takeover claimed within 7d with measurable post-claim activity, maximum 3 names."
 }
