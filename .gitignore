@@ -28,3 +28,8 @@ web/.playwright-mcp/
 *.exe
 *.crdownload
 /output/*.png
+
+# Local scratch and one-off artefacts that keep landing in the root.
+/tmp-debug/
+/runners-newsletter.html
+/x post example.jpg
