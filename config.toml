@@ -15,10 +15,10 @@ archive_compress = true
 # fixture_path = "tests/fixtures/run.json" # Uncomment for deterministic offline runs.
 
 [thresholds]
-# Client product is Solana memecoin tape only. Other chains can show large
-# percentages, but they do not have the same wallet/Kolscan/on-chain context and
-# polluted the morning read.
-chains = ["solana"]
+# Daily meme tape across the four established GMGN/Dexscreener markets. Each
+# chain uses its own contract-safety adapter; Solana additionally gets Helius
+# holder forensics.
+chains = ["solana", "base", "bsc", "ethereum"]
 min_market_cap = 200000.0
 min_liquidity = 20000.0
 # Strength has to show up in the tape. Without these two floors a thin float
@@ -75,7 +75,10 @@ min_strength_signals = 2
 # Requires BIRDEYE_API_KEY; without it discovery falls back to Dexscreener.
 [birdeye]
 enabled = true
-max_tokens = 600
+# GMGN is the wide runner backbone. Birdeye is a secondary volume cross-check,
+# so its free quota is reserved for the top tape rather than duplicating 600
+# rows per chain before the safety stage.
+max_tokens = 200
 page_size = 50
 requests_per_minute = 50
 # The free tier allows roughly one request per second, and the per-minute
@@ -94,6 +97,30 @@ pairs_ttl_seconds = 60
 discovery_ttl_seconds = 600
 safety_ttl_seconds = 3600
 keyed_ttl_seconds = 900
+openintel_ttl_seconds = 900
+
+# GMGN is a read-only intelligence provider. The scanner never invokes swap,
+# order, cooking, token launch, or private-key commands. Its free allowance is
+# weighted, so CLI calls are cached, serialized, and stopped after the first
+# rate-limit response instead of extending a temporary provider ban.
+[gmgn]
+enabled = true
+kline_verification_enabled = true
+# Hourly candles prove the actual trailing-day high for the most relevant
+# KOL-backed names, including 24-30h launches and moves that faded before close.
+kline_candidate_limit = 40
+runner_trader_enrichment = true
+runner_trader_limit = 25
+runner_trader_rows = 20
+timeout_seconds = 35
+cache_ttl_seconds = 900
+min_interval_seconds = 1.25
+
+[openintel]
+# OpenNews' free hot feed works without a token. OPENNEWS_TOKEN unlocks precise
+# per-finalist news and OpenTwitter evidence searches.
+enabled = true
+finalist_limit = 25
 
 # Deep holder forensics for the editorial tracks. Expensive in Helius credits
 # and not used by the daily journal, so it runs on a small watchlist.
@@ -102,7 +129,11 @@ enabled = true
 watchlist_limit = 1
 snapshot_cache_seconds = 60
 holder_page_limit = 1000
-max_holder_pages = 12
+# The watchlist is deliberately small, so every selected token can be paginated
+# to completion instead of silently treating the first 12,000 accounts as the
+# full holder set. The source still fails closed if this defensive ceiling is
+# ever reached.
+max_holder_pages = 100
 helius_requests_per_minute = 100
 cluster_top_holders = 100
 history_concurrency = 2
@@ -129,6 +160,11 @@ runner_cluster_check_limit = 20
 runner_cluster_top_holders = 24
 runner_cluster_min_market_cap = 200000.0
 runner_cluster_min_volume_24h = 250000.0
+# Cluster tracing is a launch-structure check. Mature/high-holder movers still
+# remain in the recap, but do not consume hundreds of Helius pages here; the
+# one-token daily snapshot watchlist above continues to paginate in full.
+runner_cluster_max_age_hours = 48.0
+runner_cluster_max_holder_count = 30000
 runner_cluster_max_history_calls = 420
 same_funder_cluster_min_wallets = 6
 same_funder_cluster_min_supply_pct = 2.0
@@ -192,7 +228,7 @@ x_post_enabled = false
 x_timeout_seconds = 30.0
 # The hourly pulse is meant to be cheap. The daily report still performs holder
 # snapshots and tracked-wallet flow unless those sections are disabled above.
-solana_only = true
+solana_only = false
 max_ranked_tokens = 600
 disable_helius_enrichment = true
 disable_holder_snapshots = true
@@ -207,6 +243,10 @@ capture_max_manipulation = 65.0
 # Free contract security for the EVM chains. No key, so the only limit worth
 # respecting is the request rate.
 requests_per_minute = 30
+# Verify the likely public runners first. GMGN organic/KOL evidence controls
+# priority; spending the free tier on hundreds of raw discovery rows delays the
+# report without improving the shortlist.
+max_tokens_per_chain = 20
 
 [sources]
 dexscreener_base_url = "https://api.dexscreener.com"
@@ -219,6 +259,7 @@ jupiter_price_url = "https://lite-api.jup.ag/price/v3"
 geckoterminal_base_url = "https://api.geckoterminal.com/api/v2"
 x_public_metadata_url = "https://cdn.syndication.twimg.com/widgets/followbutton/info.json"
 x_recent_search_url = "https://api.x.com/2/tweets/search/recent"
+openintel_base_url = "https://ai.6551.io"
 
 # Public X posts from this bounded desk list become source-linked catalyst
 # evidence. Likes are not treated as observable interactions; posts, replies,
@@ -315,7 +356,10 @@ excluded_mints = [
   "DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump", # KERMIT
 ]
 max_runners = 0
-target_min_runners = 6
+# Never manufacture a daily quota. Publish every organic runner that clears the
+# evidence gate; a quiet day may contain fewer names and a busy day may contain
+# many more.
+target_min_runners = 0
 include_intraday_pulse_runners = true
 # The recap is the ledger of hourly alerts: include every pulse runner that was
 # actually claimed for delivery in the preceding 24 hours, even if it faded or
@@ -331,16 +375,20 @@ intraday_min_runner_score = 25.0
 intraday_max_manipulation = 55.0
 min_volume_24h = 250000.0
 min_liquidity = 40000.0
-# Nothing older than this reaches the record, whatever it did. The report is
-# about coins that launched and worked, so age is a wall rather than something
-# a large multiple can buy past.
-max_age_hours = 24
-# Inside the wall the bar eases with age: a pair in its first day only has to be
-# up this much, while one in its second has to have done a real multiple.
-fresh_window_hours = 24
+# Peak-led recap: an established token may belong if it made a measured move in
+# this 24h window. GMGN lifetime ATH is only trusted for <=24h-old launches.
+max_age_hours = 0
+peak_market_cap_floor = 250000.0
+min_window_multiple = 1.50
+# Launch discovery extends to 30h so the morning cutoff does not lose coins born
+# just before yesterday's 24h window. GMGN candles still prove that their peak
+# happened inside the trailing day.
+fresh_window_hours = 30
 min_fresh_change_pct = 30.0
 older_than_a_day_multiple = 0.0
-min_daily_change_pct = 25.0
+min_daily_change_pct = 50.0
+new_ath_tolerance_pct = 2.0
+min_new_ath_move_pct = 10.0
 # Above this multiple, expect at least one tracked wallet to have been in it.
 # Measured on live data, 66 wallets touch only about one runner in seven, so
 # silence is the norm and flagging it at 5x accused nearly every coin. Set where
@@ -393,6 +441,12 @@ one_sided_min_trades = 300
 
 # Disqualifying: a top 10 this large means the supply was never distributed.
 bundle_top10_pct = 50.0
+# GMGN launch-structure hard stops. Rug ratio alone is not a hard stop because
+# established community coins can score high there; observed wash/bundle/
+# insider/dev concentration is direct manipulation evidence.
+gmgn_max_bundler_rate = 0.30
+gmgn_max_insider_rate = 0.30
+gmgn_max_dev_team_hold_rate = 0.15
 # Not disqualifying, shown on the row.
 caution_top10_pct = 25.0
 thin_liquidity_ratio = 60.0
@@ -419,9 +473,9 @@ organic_min_buy_ratio = 0.42
 organic_max_buy_ratio = 0.72
 blocked_symbol_terms = ["oil", "gas", "usa"]
 
-# If clean runners are fewer than target_min_runners, fill with the best
-# caveated names that are not rug/bundle/wash/LP-pull shapes.
-fill_with_caveated_runners = true
+# No quota fill: failed candidates remain in the private audit tape and never
+# enter the client newsletter merely to reach a target count.
+fill_with_caveated_runners = false
 fill_min_runner_score = 25.0
 fill_min_organic_score = 40.0
 fill_max_manipulation = 55.0
@@ -455,7 +509,10 @@ fill_hard_block_terms = [
 # crowd-forming signal; realised SOL per mint is reconstructed from each
 # wallet's own balance deltas.
 [kol]
-enabled = true
+# GMGN is the broad KOL/smart-money provider. The legacy 125-wallet Helius
+# reconstruction remains available for audits, but is disabled for daily runs;
+# it is too slow and burns credits before finalist selection.
+enabled = false
 window_hours = 24
 min_buyers_to_flag = 2
 # Ignore unsolicited token dust. A wallet counts only when at least this much
@@ -613,7 +670,7 @@ wallets = [
 ]
 
 [dune]
-enabled = true
+enabled = false
 base_url = "https://api.dune.com/api/v1"
 # Adam Tehc / PumpFun Alpha Wallets: Top Pump Fun Wallet (by profit).
 # Dune query results are used only to expand the tracked-wallet set. They are

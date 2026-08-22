@@ -675,7 +675,7 @@ def test_a_coin_with_almost_no_holders_is_removed(tmp_path):
 
 def test_the_pump_and_die_shape_is_removed(tmp_path):
     """An insta-x that stopped trading hours ago is not today's market."""
-    from brief.journal import inorganic_reasons
+    from brief.journal import inorganic_reasons, risk_labels
 
     settings = build_settings(tmp_path / "dead")
     dead = _tape("DEADCAT", mcap=400_000, vol24=2_000_000, vol6=40_000, liq=60_000,
@@ -690,6 +690,13 @@ def test_the_pump_and_die_shape_is_removed(tmp_path):
     alive.token.txns_24h = alive.token.txns_6h
     alive.token.price_change_24h = 1400.0
     assert not any("the move is over" in r for r in inorganic_reasons(alive, settings))
+
+    # A server-filtered GMGN organic result has already cleared volume,
+    # liquidity, holders, distribution and wash checks. Cooling after its run
+    # is recap context, not evidence that the earlier move was fake.
+    dead.provider_evidence["gmgn"] = {"organicQualified": True}
+    assert not any("the move is over" in r for r in inorganic_reasons(dead, settings))
+    assert any("peaked earlier" in r for r in risk_labels(dead, settings, NOW))
 
 
 def test_a_token_rugcheck_calls_rugged_is_removed(tmp_path):
@@ -715,7 +722,7 @@ def test_a_book_with_no_sellers_is_removed(tmp_path):
 
 def test_a_genuine_runner_survives_every_organic_check(tmp_path):
     """$FOMO: real volume, human cadence, two-sided book, original ticker."""
-    from brief.journal import inorganic_reasons
+    from brief.journal import inorganic_reasons, risk_labels
 
     settings = build_settings(tmp_path / "org5")
     assert inorganic_reasons(
@@ -1302,6 +1309,12 @@ def test_a_pair_with_no_known_creation_time_is_excluded(tmp_path):
     coin.token.pair_created_at = None
     assert not belongs_in_journal(coin, settings, NOW)
 
+    # Production disables the absolute age ceiling so measured in-window peaks
+    # can survive after a fade.  Missing creation time must still not make an
+    # unverified daily-change candidate eligible.
+    settings.values["journal"]["max_age_hours"] = 0
+    assert not belongs_in_journal(coin, settings, NOW)
+
 
 def test_the_first_day_bar_is_lower_than_the_second(tmp_path):
     from brief.journal import belongs_in_journal
@@ -1316,3 +1329,104 @@ def test_the_first_day_bar_is_lower_than_the_second(tmp_path):
 
     coin.token.pair_created_at = NOW - timedelta(hours=30)
     assert not belongs_in_journal(coin, settings, NOW), "past a day it needs a multiple"
+
+
+def test_production_runner_window_keeps_30h_launches_but_old_coins_need_a_real_move(tmp_path):
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "production-bands")
+    settings.values["journal"].update({
+        "max_age_hours": 0,
+        "fresh_window_hours": 30,
+        "peak_market_cap_floor": 250_000,
+        "older_than_a_day_multiple": 0,
+        "min_daily_change_pct": 50,
+    })
+    coin = _tape("WINDOW", mcap=400_000, vol24=900_000, vol6=300_000, liq=60_000,
+                 trades6=1_400, buys6=740)
+    coin.token.price_change_24h = 0
+    coin.token.pair_created_at = NOW - timedelta(hours=29.9)
+    assert belongs_in_journal(coin, settings, NOW), "a launch just inside 30h belongs"
+
+    coin.token.pair_created_at = NOW - timedelta(hours=31)
+    coin.token.price_change_24h = 49
+    assert not belongs_in_journal(coin, settings, NOW), "an older static name cannot ride its market cap"
+
+    coin.provider_evidence["gmgn"] = {
+        "kline24hCandleCount": 24,
+        "kline24hPeakFromOpenPct": 55,
+    }
+    assert belongs_in_journal(coin, settings, NOW), "GMGN candles can prove an intraday run that faded"
+
+    coin.start_market_cap = 100_000
+    coin.peak_market_cap = 400_000
+    coin.provider_evidence["gmgn"]["kline24hPeakFromOpenPct"] = 39
+    assert not belongs_in_journal(coin, settings, NOW), "GMGN candles override a conflicting local cap estimate"
+
+
+def test_old_coin_new_ath_exception_requires_an_in_window_gmgn_candle(tmp_path):
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "ath-band")
+    settings.values["journal"].update({
+        "max_age_hours": 0,
+        "fresh_window_hours": 30,
+        "peak_market_cap_floor": 250_000,
+        "older_than_a_day_multiple": 0,
+        "min_daily_change_pct": 50,
+        "new_ath_tolerance_pct": 2,
+        "min_new_ath_move_pct": 10,
+    })
+    coin = _tape("ATH", mcap=990_000, vol24=900_000, vol6=300_000, liq=80_000,
+                 trades6=1_400, buys6=740)
+    coin.token.pair_created_at = NOW - timedelta(days=10)
+    coin.token.price_change_24h = 20
+    coin.provider_evidence["gmgn"] = {"athMarketCap": 1_000_000}
+    assert not belongs_in_journal(coin, settings, NOW), "a stale lifetime ATH is not today's event"
+
+    coin.provider_evidence["gmgn"].update({
+        "kline24hPeakMarketCap": 995_000,
+        "kline24hPeakFromOpenPct": 20,
+        "kline24hPeakAt": NOW.isoformat(),
+    })
+    assert belongs_in_journal(coin, settings, NOW), "the trailing-day candle verifies the ATH"
+
+
+def test_kol_publish_gate_applies_to_every_supported_chain(tmp_path):
+    from brief.journal import publisher_quality_reasons
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "all-chain-kol")
+    settings.values.setdefault("journal", {})["require_kol_trade_for_publish"] = True
+    settings.values["journal"]["min_kol_trades_for_publish"] = 1
+    coin = _tape("BASEMISS", mcap=600_000, vol24=2_500_000, vol6=800_000, liq=100_000,
+                 trades6=2_000, buys6=1_050)
+    coin.token.chain_id = "base"
+    coin.safety = SafetyReport("m", holder_count=2_500, top10_pct=12.0, lp_locked_or_burned_pct=100.0)
+    coin.provider_evidence["gmgn"] = {"kolCount": 0}
+    assert any("no tracked KOL wallet traded" in r for r in publisher_quality_reasons(coin, settings, NOW))
+
+    coin.provider_evidence["gmgn"]["kolCount"] = 2
+    assert not any("no tracked KOL wallet traded" in r for r in publisher_quality_reasons(coin, settings, NOW))
+
+
+def test_gmgn_direct_manipulation_evidence_is_a_hard_stop(tmp_path):
+    from brief.journal import rug_or_bundle
+
+    settings = build_settings(tmp_path / "gmgn-risk")
+    coin = _tape("BUNDLE", mcap=900_000, vol24=2_000_000, vol6=600_000,
+                 liq=120_000, trades6=2_000, buys6=1_050)
+
+    coin.provider_evidence["gmgn"] = {"washTrading": True}
+    assert "GMGN detected wash trading" in rug_or_bundle(coin, settings)
+
+    coin.provider_evidence["gmgn"] = {"bundlerRate": 0.41}
+    assert any("bundled launch flow" in reason for reason in rug_or_bundle(coin, settings))
+
+    coin.provider_evidence["gmgn"] = {"insiderRate": 0.35}
+    assert any("insider/rat-trader" in reason for reason in rug_or_bundle(coin, settings))
+
+    # A high heuristic rug ratio is context, not an automatic rejection; the
+    # GMGN data itself shows established community coins can score high here.
+    coin.provider_evidence["gmgn"] = {"rugRatio": 0.95}
+    assert rug_or_bundle(coin, settings) == []

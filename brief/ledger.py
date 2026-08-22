@@ -277,7 +277,235 @@ class Ledger:
               key TEXT PRIMARY KEY,
               value TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS lifecycle_tokens (
+              mint TEXT PRIMARY KEY,
+              chain TEXT NOT NULL,
+              symbol TEXT NOT NULL,
+              name TEXT NOT NULL,
+              created_at TEXT,
+              first_seen TEXT NOT NULL,
+              last_seen TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS lifecycle_pools (
+              mint TEXT NOT NULL,
+              pair_address TEXT NOT NULL,
+              dex_id TEXT NOT NULL,
+              created_at TEXT,
+              first_seen TEXT NOT NULL,
+              last_seen TEXT NOT NULL,
+              PRIMARY KEY(mint,pair_address)
+            );
+            CREATE TABLE IF NOT EXISTS market_snapshots (
+              mint TEXT NOT NULL,
+              taken_at TEXT NOT NULL,
+              provider TEXT NOT NULL,
+              price_usd REAL,
+              market_cap REAL,
+              liquidity_usd REAL,
+              volume_24h REAL,
+              holder_count INTEGER,
+              top10_pct REAL,
+              raw_json TEXT NOT NULL DEFAULT '{}',
+              PRIMARY KEY(mint,taken_at,provider)
+            );
+            CREATE INDEX IF NOT EXISTS idx_market_snapshots_mint_time
+              ON market_snapshots(mint,taken_at);
+            CREATE TABLE IF NOT EXISTS market_milestones (
+              mint TEXT NOT NULL,
+              level TEXT NOT NULL,
+              reached_at TEXT NOT NULL,
+              market_cap REAL NOT NULL,
+              source TEXT NOT NULL,
+              PRIMARY KEY(mint,level)
+            );
+            CREATE TABLE IF NOT EXISTS lifecycle_events (
+              event_key TEXT PRIMARY KEY,
+              mint TEXT NOT NULL,
+              event_type TEXT NOT NULL,
+              occurred_at TEXT NOT NULL,
+              payload TEXT NOT NULL DEFAULT '{}'
+            );
+            CREATE INDEX IF NOT EXISTS idx_lifecycle_events_mint_time
+              ON lifecycle_events(mint,occurred_at);
+            CREATE TABLE IF NOT EXISTS wallet_events (
+              event_key TEXT PRIMARY KEY,
+              mint TEXT NOT NULL,
+              wallet TEXT NOT NULL,
+              wallet_kind TEXT NOT NULL,
+              side TEXT NOT NULL,
+              occurred_at TEXT NOT NULL,
+              amount_usd REAL,
+              realised_profit REAL,
+              payload TEXT NOT NULL DEFAULT '{}'
+            );
+            CREATE INDEX IF NOT EXISTS idx_wallet_events_mint_time
+              ON wallet_events(mint,occurred_at);
+            CREATE TABLE IF NOT EXISTS provider_health (
+              provider TEXT PRIMARY KEY,
+              last_success TEXT,
+              last_failure TEXT,
+              consecutive_failures INTEGER NOT NULL DEFAULT 0,
+              circuit_open_until TEXT,
+              detail TEXT NOT NULL DEFAULT ''
+            );
+            CREATE TABLE IF NOT EXISTS daily_recaps (
+              recap_date TEXT PRIMARY KEY,
+              generated_at TEXT NOT NULL,
+              window_start TEXT NOT NULL,
+              window_end TEXT NOT NULL,
+              payload TEXT NOT NULL
+            );
             """
+        )
+        self.db.commit()
+
+    def record_provider_health(
+        self, provider: str, ok: bool, now: datetime, detail: str = "", *,
+        circuit_open_until: datetime | None = None,
+    ) -> None:
+        stamp = iso(now)
+        if ok:
+            self.db.execute(
+                """INSERT INTO provider_health(provider,last_success,consecutive_failures,circuit_open_until,detail)
+                   VALUES(?,?,0,NULL,?)
+                   ON CONFLICT(provider) DO UPDATE SET last_success=excluded.last_success,
+                   consecutive_failures=0,circuit_open_until=NULL,detail=excluded.detail""",
+                (provider, stamp, detail),
+            )
+        else:
+            self.db.execute(
+                """INSERT INTO provider_health(provider,last_failure,consecutive_failures,circuit_open_until,detail)
+                   VALUES(?,?,1,?,?)
+                   ON CONFLICT(provider) DO UPDATE SET last_failure=excluded.last_failure,
+                   consecutive_failures=provider_health.consecutive_failures+1,
+                   circuit_open_until=excluded.circuit_open_until,detail=excluded.detail""",
+                (provider, stamp, iso(circuit_open_until) if circuit_open_until else None, detail),
+            )
+        self.db.commit()
+
+    def provider_state(self, provider: str) -> sqlite3.Row | None:
+        return self.db.execute(
+            "SELECT * FROM provider_health WHERE provider=?", (provider,)
+        ).fetchone()
+
+    def provider_states(self) -> list[sqlite3.Row]:
+        return self.db.execute(
+            "SELECT * FROM provider_health ORDER BY provider"
+        ).fetchall()
+
+    def record_market_snapshot(
+        self, token: Any, now: datetime, *, provider: str,
+        holder_count: int | None = None, top10_pct: float | None = None,
+        raw: dict[str, Any] | None = None,
+    ) -> list[str]:
+        """Persist one market observation and return newly crossed milestones."""
+        stamp = iso(now)
+        created = iso(token.pair_created_at) if token.pair_created_at else None
+        self.db.execute(
+            """INSERT INTO lifecycle_tokens(mint,chain,symbol,name,created_at,first_seen,last_seen)
+               VALUES(?,?,?,?,?,?,?)
+               ON CONFLICT(mint) DO UPDATE SET chain=excluded.chain,symbol=excluded.symbol,
+               name=excluded.name,created_at=COALESCE(lifecycle_tokens.created_at,excluded.created_at),
+               last_seen=excluded.last_seen""",
+            (token.mint, token.chain_id, token.symbol, token.name, created, stamp, stamp),
+        )
+        if token.pair_address:
+            self.db.execute(
+                """INSERT INTO lifecycle_pools(mint,pair_address,dex_id,created_at,first_seen,last_seen)
+                   VALUES(?,?,?,?,?,?)
+                   ON CONFLICT(mint,pair_address) DO UPDATE SET dex_id=excluded.dex_id,
+                   created_at=COALESCE(lifecycle_pools.created_at,excluded.created_at),last_seen=excluded.last_seen""",
+                (token.mint, token.pair_address, token.dex_id, created, stamp, stamp),
+            )
+        self.db.execute(
+            """INSERT OR REPLACE INTO market_snapshots(
+                 mint,taken_at,provider,price_usd,market_cap,liquidity_usd,volume_24h,
+                 holder_count,top10_pct,raw_json
+               ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (
+                token.mint, stamp, provider, token.price_usd, token.market_cap,
+                token.liquidity_usd, token.volume_24h, holder_count, top10_pct,
+                json.dumps(raw or {}, separators=(",", ":"), ensure_ascii=False),
+            ),
+        )
+        crossed: list[str] = []
+        levels = (
+            ("TIER_B_250K", 250_000.0), ("TIER_A_500K", 500_000.0),
+            ("TIER_S_1M", 1_000_000.0),
+            ("MAJOR_5M", 5_000_000.0), ("MAJOR_10M", 10_000_000.0),
+        )
+        for level, floor in levels:
+            if float(token.market_cap or 0) < floor:
+                continue
+            cursor = self.db.execute(
+                "INSERT OR IGNORE INTO market_milestones(mint,level,reached_at,market_cap,source) VALUES(?,?,?,?,?)",
+                (token.mint, level, stamp, token.market_cap, provider),
+            )
+            if cursor.rowcount:
+                crossed.append(level)
+                self.db.execute(
+                    "INSERT OR IGNORE INTO lifecycle_events(event_key,mint,event_type,occurred_at,payload) VALUES(?,?,?,?,?)",
+                    (
+                        f"milestone:{token.mint}:{level}", token.mint, "milestone", stamp,
+                        json.dumps({"level": level, "marketCap": token.market_cap, "source": provider}),
+                    ),
+                )
+        self.db.commit()
+        return crossed
+
+    def lifecycle(self, mint: str, window_start: datetime, now: datetime) -> dict[str, Any] | None:
+        rows = self.db.execute(
+            """SELECT * FROM market_snapshots WHERE mint=? AND taken_at>=? AND taken_at<=?
+               AND market_cap IS NOT NULL AND market_cap>0 ORDER BY taken_at""",
+            (mint, iso(window_start), iso(now)),
+        ).fetchall()
+        if not rows:
+            return None
+        first = rows[0]
+        latest = rows[-1]
+        peak = max(rows, key=lambda row: float(row["market_cap"] or 0))
+        events = self.db.execute(
+            "SELECT event_type,occurred_at,payload FROM lifecycle_events WHERE mint=? AND occurred_at>=? AND occurred_at<=? ORDER BY occurred_at",
+            (mint, iso(window_start), iso(now)),
+        ).fetchall()
+        return {
+            "first_seen_at": first["taken_at"],
+            "last_seen_at": latest["taken_at"],
+            "start_market_cap": float(first["market_cap"]),
+            "current_market_cap": float(latest["market_cap"]),
+            "peak_market_cap": float(peak["market_cap"]),
+            "peak_at": peak["taken_at"],
+            "providers": sorted({str(row["provider"]) for row in rows}),
+            "events": [
+                {"type": row["event_type"], "occurredAt": row["occurred_at"], **json.loads(row["payload"] or "{}")}
+                for row in events
+            ],
+        }
+
+    def record_wallet_event(
+        self, *, event_key: str, mint: str, wallet: str, wallet_kind: str,
+        side: str, occurred_at: datetime, amount_usd: float | None,
+        realised_profit: float | None = None, payload: dict[str, Any] | None = None,
+    ) -> bool:
+        cursor = self.db.execute(
+            """INSERT OR IGNORE INTO wallet_events(event_key,mint,wallet,wallet_kind,side,
+               occurred_at,amount_usd,realised_profit,payload) VALUES(?,?,?,?,?,?,?,?,?)""",
+            (event_key, mint, wallet, wallet_kind, side, iso(occurred_at), amount_usd,
+             realised_profit, json.dumps(payload or {}, separators=(",", ":"))),
+        )
+        self.db.commit()
+        return bool(cursor.rowcount)
+
+    def wallet_events_for(self, mint: str, window_start: datetime, now: datetime) -> list[sqlite3.Row]:
+        return self.db.execute(
+            "SELECT * FROM wallet_events WHERE mint=? AND occurred_at>=? AND occurred_at<=? ORDER BY occurred_at",
+            (mint, iso(window_start), iso(now)),
+        ).fetchall()
+
+    def save_daily_recap(self, recap_date: str, generated_at: datetime, window_start: datetime, payload: dict[str, Any]) -> None:
+        self.db.execute(
+            "INSERT OR REPLACE INTO daily_recaps(recap_date,generated_at,window_start,window_end,payload) VALUES(?,?,?,?,?)",
+            (recap_date, iso(generated_at), iso(window_start), iso(generated_at), json.dumps(payload, ensure_ascii=False)),
         )
         self.db.commit()
 
@@ -1018,5 +1246,10 @@ class Ledger:
             "raw_responses": self.db.execute("SELECT COUNT(*) FROM raw_responses").fetchone()[0],
             "watcher_samples": self.db.execute("SELECT COUNT(*) FROM watcher_samples").fetchone()[0],
             "trade_feedback": self.db.execute("SELECT COUNT(*) FROM trade_feedback").fetchone()[0],
+            "lifecycle_tokens": self.db.execute("SELECT COUNT(*) FROM lifecycle_tokens").fetchone()[0],
+            "market_snapshots": self.db.execute("SELECT COUNT(*) FROM market_snapshots").fetchone()[0],
+            "market_milestones": self.db.execute("SELECT COUNT(*) FROM market_milestones").fetchone()[0],
+            "wallet_events": self.db.execute("SELECT COUNT(*) FROM wallet_events").fetchone()[0],
+            "daily_recaps": self.db.execute("SELECT COUNT(*) FROM daily_recaps").fetchone()[0],
             "database_megabytes": self.database_bytes() // (1024 * 1024),
         }

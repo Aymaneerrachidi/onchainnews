@@ -93,14 +93,14 @@ def render_markdown(brief: Brief) -> str:
     current_launch_mints = {launch.token.mint for launch in brief.launches_last_24h}
     daily_onchain = [finding for finding in brief.onchain if finding.mint in current_launch_mints]
     lines = [
-        f"# SOLANA BRIEF - {when}",
+        f"# MULTI-CHAIN MEMECOIN RECAP - {when}",
         "",
         "## LAST 24 HOURS",
         "",
         f"Window: {window_start.strftime('%d %b %Y, %H:%M')} to {brief.generated_at.strftime('%d %b %Y, %H:%M')} ({brief.generated_at.tzname() or 'local'})",
         f"{brief.raw_launch_count:,} raw Pump.fun creates stored | {len(brief.launches_last_24h)} launches resolved to market data | {brief.cleared_launch_count} cleared hard/safety filters | {len(daily_onchain)} current-launch on-chain findings",
         "",
-        brief.discovery_note or "Dexscreener discovery-feed coverage; not an exhaustive index of every Solana mint.",
+        brief.discovery_note or "GMGN and Dexscreener discovery coverage across configured chains; peak evidence is retained through the report window.",
         "",
         f"Strongest means: {brief.strongest_definition}",
         f"Interesting means: {brief.interesting_definition}",
@@ -109,18 +109,23 @@ def render_markdown(brief: Brief) -> str:
         "## RUNNERS OF THE DAY",
         "",
     ]
-    if brief.runners:
-        fresh = sum(1 for c in brief.runners if c.signals.age_hours is not None and c.signals.age_hours <= 24)
-        big = sum(1 for c in brief.runners if c.run_multiple >= 5)
-        lines.append(
-            f"{len(brief.runners)} runners | {fresh} launched today | {big} did 5x or better | "
-            "publisher-grade organic gate applied"
-        )
-        lines.append("")
-        for candidate in brief.runners:
-            lines.append(_runner_line(candidate))
+    recap_rows = list((brief.recap or {}).get("all", []))
+    if recap_rows:
+        lines.append(f"{len(recap_rows)} coins verifiably crossed $250K during the window.")
+        for tier, label in (("S", "$1M+"), ("A", "$500K-$1M"), ("B", "$250K-$500K")):
+            rows = list(((brief.recap or {}).get("tiers", {}) or {}).get(tier, []))
+            if not rows:
+                continue
+            lines += ["", f"### {label}", ""]
+            for row in rows:
+                symbol = str(row.get("symbol") or "?")
+                peak = float(row.get("observedPeakMarketCap") or row.get("peakMarketCap") or 0)
+                current = float(row.get("currentMarketCap") or 0)
+                category = str(row.get("category") or "runner").replace("_", " ")
+                move = f"; now ${current:,.0f}" if current and current < peak * 0.95 else ""
+                lines.append(f"- **${symbol}** hit ${peak:,.0f}{move} - {category}")
     else:
-        lines.append("- Nothing ran today that cleared the floors.")
+        lines.append("- Nothing in the observed feeds verifiably crossed $250K during this window.")
     if brief.lore_groups:
         lines += ["", "## SHARED LORE", ""]
         for name, members in sorted(brief.lore_groups.items(), key=lambda item: len(item[1]), reverse=True):
@@ -130,8 +135,12 @@ def render_markdown(brief: Brief) -> str:
         lines += ["", f"## TRACKED WALLETS ({brief.kol_wallet_count})", ""]
         if brief.kol_flagged:
             for c in brief.kol_flagged:
+                gmgn = c.provider_evidence.get("gmgn", {}) or {}
+                count = max(len(c.kol_buyers), int(gmgn.get("kolCount") or 0))
+                names = ", ".join(c.kol_buyers)
+                detail = f": {names}" if names else " via GMGN renowned-wallet data"
                 lines.append(
-                    f"- **${c.token.symbol}** bought by {len(c.kol_buyers)}: {', '.join(c.kol_buyers)}"
+                    f"- **${c.token.symbol}**: {count} KOL{detail}"
                 )
         else:
             lines.append("- No coin was bought by enough tracked wallets today.")

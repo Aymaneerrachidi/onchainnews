@@ -111,3 +111,31 @@ def test_pulse_prunes_old_passes():
 
     assert len(state["passes"]["MINTA"]) == 1
     assert state["passes"]["MINTA"][0]["symbol"] == "ALPHA"
+
+
+def test_pulse_alerts_again_only_after_a_higher_milestone():
+    state = {"version": 1, "passes": {}, "posted": {}}
+    now = datetime(2026, 8, 20, 12, tzinfo=timezone.utc)
+    candidate = runner()
+    candidate.token.market_cap = 400_000
+    candidate.peak_market_cap = 400_000
+
+    tier_b = record_runner_passes(
+        state, [candidate], now,
+        window_hours=24, required_passes=1, repost_after_hours=24, min_gap_minutes=45,
+    )
+    duplicate = record_runner_passes(
+        state, [candidate], now + timedelta(hours=1),
+        window_hours=24, required_passes=1, repost_after_hours=24, min_gap_minutes=45,
+    )
+    candidate.token.market_cap = 650_000
+    candidate.peak_market_cap = 650_000
+    tier_a = record_runner_passes(
+        state, [candidate], now + timedelta(hours=2),
+        window_hours=24, required_passes=1, repost_after_hours=24, min_gap_minutes=45,
+    )
+
+    assert tier_b[0][2] == "B"
+    assert duplicate == []
+    assert tier_a[0][2] == "A"
+    assert set(state["posted"]) == {"MINTA:B", "MINTA:A"}

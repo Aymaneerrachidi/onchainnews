@@ -26,6 +26,15 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "dex": token.dex_id,
         "marketCap": token.market_cap,
         "observedPeakMarketCap": candidate.observed_peak_market_cap,
+        "startMarketCap": candidate.start_market_cap,
+        "peakMarketCap": candidate.peak_market_cap,
+        "peakAt": candidate.peak_at.isoformat() if candidate.peak_at else None,
+        "peakMultiple": candidate.peak_multiple,
+        "drawdownFromPeakPct": candidate.drawdown_from_peak_pct,
+        "runnerTier": candidate.runner_tier,
+        "roundTrip": candidate.round_trip,
+        "firstSeenAt": candidate.first_seen_at.isoformat() if candidate.first_seen_at else None,
+        "lastSeenAt": candidate.last_seen_at.isoformat() if candidate.last_seen_at else None,
         "liquidity": token.liquidity_usd,
         "volume24h": token.volume_24h,
         "change24h": token.price_change_24h,
@@ -61,6 +70,7 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
             for flow in candidate.kol_flows
         ],
         "scores": candidate.scores,
+        "scoreConfidence": candidate.score_confidence,
         "scoreComponents": candidate.score_components,
         "classification": candidate.classification,
         "read": candidate.read,
@@ -86,9 +96,17 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
             }
             for item in candidate.x_interactions
         ],
+        "newsEvidence": candidate.news_evidence,
+        "providerEvidence": candidate.provider_evidence,
+        "lifecycleEvents": candidate.lifecycle_events,
         "sources": [
             {"label": "Dexscreener", "url": token.url},
+            {"label": "GMGN", "url": f"https://gmgn.ai/sol/token/{token.mint}"},
             {"label": "Bubblemaps", "url": f"https://app.bubblemaps.io/sol/token/{token.mint}"},
+            *[
+                {"label": item.get("source") or "News", "url": item.get("url")}
+                for item in candidate.news_evidence if item.get("url")
+            ],
             *[
                 {"label": f"@{item.author_handle} on X", "url": item.url}
                 for item in candidate.x_interactions
@@ -119,6 +137,7 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
         if candidate.signals.age_hours is not None and candidate.signals.age_hours <= 24
     )
     return {
+        "schemaVersion": 3,
         "generatedAt": brief.generated_at.isoformat(),
         "windowStart": brief.window_start.isoformat() if brief.window_start else None,
         "timezone": brief.generated_at.tzname() or "local",
@@ -131,7 +150,13 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
             "xMatched": sum(bool(candidate.x_interactions) for candidate in brief.runners),
             "loreGroups": len(brief.lore_groups),
             "walletsTracked": brief.kol_wallet_count,
+            "tierS": len((brief.recap.get("tiers", {}) or {}).get("S", [])),
+            "tierA": len((brief.recap.get("tiers", {}) or {}).get("A", [])),
+            "tierB": len((brief.recap.get("tiers", {}) or {}).get("B", [])),
+            "questionable": len(brief.recap.get("questionable", []) or []),
+            "roundTrips": len(brief.recap.get("roundTrips", []) or []),
         },
+        "recap": brief.recap,
         "runners": runners,
         "blockedRunners": blocked,
         "chains": sorted({c.token.chain_id for c in brief.runners}),

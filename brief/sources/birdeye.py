@@ -125,6 +125,7 @@ class BirdeyeSource:
             page = self._tokens(payload)
             if not page:
                 break
+            seen_before = len(seen)
             for item in page:
                 address = str(item.get("address") or "")
                 if not address or address in seen or address.lower() in MAJORS or address in MAJORS:
@@ -135,6 +136,11 @@ class BirdeyeSource:
                 if number(item.get("mc")) < min_market_cap:
                     continue
                 found.append(address)
+            # When the provider rejects an offset the cache can legally return
+            # a stale page. Do not walk the same page through every remaining
+            # offset and pretend it expanded discovery.
+            if len(seen) == seen_before:
+                break
             if len(page) < self.page_size:
                 break
         log.info("birdeye_discovery chain=%s addresses=%s scanned=%s", self.chain, len(found), len(seen))

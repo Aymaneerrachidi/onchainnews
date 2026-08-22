@@ -95,3 +95,31 @@ def test_payload_contains_runner_score_and_classification(tmp_path):
     assert row["scores"]["runner"] >= 0
     assert row["scoreComponents"]["organic"]
     assert row["classification"]
+
+
+def test_gmgn_organic_lane_is_positive_corroboration_not_a_requirement(tmp_path):
+    settings = build_settings(tmp_path / "gmgn-organic-score")
+    ordinary = _tape(
+        "ORDINARY", mcap=700_000, vol24=2_000_000, vol6=600_000,
+        liq=120_000, trades6=2_000, buys6=1_100,
+    )
+    qualified = _tape(
+        "QUALIFIED", mcap=700_000, vol24=2_000_000, vol6=600_000,
+        liq=120_000, trades6=2_000, buys6=1_100,
+    )
+    for candidate in (ordinary, qualified):
+        candidate.token.txns_24h = candidate.token.txns_6h
+        candidate.safety = SafetyReport(
+            candidate.token.mint, holder_count=3_000, top10_pct=18.0,
+            lp_locked_or_burned_pct=100.0,
+        )
+        candidate.run_multiple = 5.0
+    qualified.provider_evidence["gmgn"] = {"organicQualified": True}
+
+    score_candidate(ordinary, settings)
+    score_candidate(qualified, settings)
+
+    assert ordinary.scores["runner"] > 0
+    assert qualified.scores["runner"] > ordinary.scores["runner"]
+    assert qualified.scores["organic"] > ordinary.scores["organic"]
+    assert qualified.score_components["runner"]["gmgnOrganicLane"] == 100.0

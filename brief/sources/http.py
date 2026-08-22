@@ -135,6 +135,12 @@ class CachedHttpClient:
                 return payload
             except (httpx.HTTPError, json.JSONDecodeError) as exc:
                 last_error = _safe_http_error(exc)
+                if (
+                    isinstance(exc, httpx.HTTPStatusError)
+                    and exc.response.status_code < 500
+                    and exc.response.status_code != 429
+                ):
+                    break
                 if attempt < 2:
                     await asyncio.sleep(0.5 * (2**attempt))
         stale = self.ledger.cache_get(cache_key, ttl=None)
@@ -205,6 +211,12 @@ class CachedHttpClient:
                 return payload
             except (httpx.HTTPError, json.JSONDecodeError) as exc:
                 last_error = _safe_http_error(exc)
+                if (
+                    isinstance(exc, httpx.HTTPStatusError)
+                    and exc.response.status_code < 500
+                    and exc.response.status_code != 429
+                ):
+                    break
                 if attempt < 2:
                     await asyncio.sleep(0.5 * (2**attempt))
         stale = self.ledger.cache_get(cache_key, ttl=None)

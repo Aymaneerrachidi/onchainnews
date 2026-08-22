@@ -1,4 +1,42 @@
-# Daily Solana Memecoin Brief
+# Daily Multi-Chain Memecoin Brief
+
+## Production runner model (V3)
+
+The current scanner is a read-only multi-chain market historian covering Solana, Base, BNB Chain, and Ethereum. It stores the market tape first and decides how to describe it second. Every hourly run unions Dexscreener, Birdeye, the official GMGN CLI, the local launch collector, and saved pulse history. No provider is allowed to erase a candidate found by another provider. GMGN supplies cross-chain ATH, KOL, smart-money, holder, launch, security, social, and signal evidence; RugCheck/Helius deepen Solana and GoPlus verifies EVM contracts.
+
+```text
+provider union -> SQLite snapshots/events -> lifecycle reconstruction
+               -> strength / organic / manipulation scores
+               -> canonical recap JSON -> email + dashboard + alerts
+```
+
+The observed 24-hour peak determines the run tier:
+
+- Tier S: peak market cap at least $1,000,000.
+- Tier A: $500,000 to $999,999.
+- Tier B: $250,000 to $499,999.
+
+Start, peak, and current market cap are separate values. A Tier B or better token that gives back at least 65% from its stored peak is labelled a round trip. Manipulation and safety evidence are labels on the historical record; they never cancel the fact that a measured run happened.
+
+Three scores remain independent:
+
+- **Runner strength** measures peak multiple, peak cap, volume, trades, attention, and informed-wallet participation.
+- **Organic quality** measures participation breadth, holder growth/distribution, liquidity, price structure, and wallet independence.
+- **Manipulation risk** measures holder/funder concentration, bundled or insider supply, wash-like flow, authority/LP problems, and fresh-wallet packs.
+
+Each score includes data confidence. Missing holder or wallet coverage is `unavailable`, never converted into a false zero. Provider failures are persisted in `provider_health`, surfaced in the report, and inspected with `uv run solana-brief providers`.
+
+GMGN is integrated only through read-only market/token/tracking data commands. The project never invokes GMGN swap, order, cooking, token-launch, or private-key functionality. CLI calls are cached, serialized, and circuit-broken on the first 429 because continuing would extend the provider ban. OpenNews' free crypto feed works without credentials; exact OpenNews/OpenTwitter finalist searches require `OPENNEWS_TOKEN`.
+
+The V3 model above supersedes older threshold descriptions retained later in this document for implementation history.
+
+### V3 setup and unattended operation
+
+Local credentials live in ignored `.env`; copy names from `.env.example`. `gmgn-cli config --apply` configures a developer machine, while GitHub Actions needs a repository secret named `GMGN_API_KEY`. The other unattended secret names are `HELIUS_API_KEY`, `BIRDEYE_API_KEY`, `DUNE_API_KEY`, `BREVO_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and optionally `OPENNEWS_TOKEN` plus `X_BEARER_TOKEN`.
+
+The workflow installs the pinned official GMGN CLI, runs the pulse every hour, and runs the full 24-hour recap at 04:45 UTC. The pulse sends only newly crossed lifecycle levels; the daily job renders the complete stored window from the same canonical recap object. Both jobs update the static web snapshot for Vercel. GitHub Actions must be enabled and the account billing state healthy before this can run with the laptop off.
+
+The lifecycle migration is automatic when the SQLite ledger opens. New tables are `lifecycle_tokens`, `lifecycle_pools`, `market_snapshots`, `market_milestones`, `lifecycle_events`, `wallet_events`, `provider_health`, and `daily_recaps`. Existing holder `snapshots` and `balances` remain intact.
 
 A local, novelty-first Solana intelligence brief. It reports measurable changes, never recommendations, and uses Dexscreener, RugCheck, Helius free tier, Jupiter's no-key lite quote API, Telegram Bot API, plus an optional operator-supplied X API account. Bubblemaps is linked for inspection but is not queried.
 
@@ -106,6 +144,7 @@ Useful commands:
 uv run solana-brief run
 uv run solana-brief run --dry-run
 uv run solana-brief status
+uv run solana-brief providers
 uv run solana-brief watch add <MINT> --symbol TICKER
 uv run solana-brief watch list
 uv run solana-brief watch remove <MINT>
@@ -165,9 +204,9 @@ It does not send price, volume, or recommendation alerts. Run one diagnostic cyc
 
 ## Hourly runner pulse
 
-`uv run solana-brief pulse` runs one market check, refreshes `web/data/latest.json`, and records every runner that survives the journal screen into `web/data/pulse-state.json`. When the same mint passes 3 times inside 12 hours, it renders a clean signal image in `output/pulse-images/` and sends a Telegram pulse. If X posting credentials are present, it uploads that image to X and posts it.
+`uv run solana-brief pulse` runs one market check, refreshes `web/data/latest.json`, and records the provider union before publication gates. A new qualifying mint alerts once; later alerts occur only after it crosses a higher 250k, 500k, 1m, 5m, or 10m milestone. Empty hours send no email. X posting is disabled in the production config.
 
-The hourly pulse intentionally runs as a cheap Solana-only market check by default: smaller Birdeye ranked scan, no holder snapshots, no Helius enrichment, no tracked-wallet history, and no monitored-account X search. Those deep checks stay in the morning report; running them hourly would burn API credits fast. Edit `[pulse]` in `config.toml` if you want a different window, pass count, cooldown, image template path, or posting behavior. When you share the final image template, set `pulse.image_template_path` to that PNG/JPG and the token logo/stats will be rendered on top.
+The hourly pulse runs a cheap multi-chain market check: GMGN/Dexscreener discovery stays on, while holder snapshots, Helius enrichment, legacy tracked-wallet history, and monitored-account X search stay off. Those deep checks remain in the morning report. Edit `[pulse]` in `config.toml` if you want a different window, pass count, cooldown, image template path, or posting behavior.
 
 ## Replay and tuning
 
@@ -209,7 +248,7 @@ The broad launch count comes from the continuous Helius collector, not Dexscreen
 
 Every decision threshold is in `config.toml`: hard filters, novelty, retirement, Helius request/page budgets, daily/weekly comparison age, divergence bounds, cluster and whale thresholds, anomaly baseline/sample size, social age, smart-money history, LP removal, reappearance, DEX dominance, Jupiter impact, and watcher cadence.
 
-`[thresholds].chains` controls which chains are screened and defaults to `["solana"]`. The Dexscreener discovery and pair endpoints are chain-agnostic, so adding a chain is a configuration change—but RugCheck authority/LP checks and every Helius holder, cluster and creator analysis are Solana-only. Names on another chain would therefore ship with the safety layer marked unavailable, which is why the default stays as it is.
+`[thresholds].chains` controls which chains are screened and currently covers Solana, Base, BNB Chain, and Ethereum. GMGN and Dexscreener provide cross-chain discovery; RugCheck and Helius cover Solana-specific safety/holder forensics, while GoPlus supplies EVM contract safety.
 
 No automated execution, wallet connection, sentiment scoring, or generated hype narrative is included. X API usage is optional and uses the operator's own API plan.
 

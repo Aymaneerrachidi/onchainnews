@@ -191,6 +191,23 @@ class Candidate:
     scores: dict[str, float] = field(default_factory=dict)
     score_components: dict[str, dict[str, float | str | None]] = field(default_factory=dict)
     classification: str = ""
+    # Historical lifecycle fields. These are sourced from the local SQLite
+    # tape, never inferred solely from the current provider response.
+    first_seen_at: datetime | None = None
+    last_seen_at: datetime | None = None
+    start_market_cap: float | None = None
+    peak_market_cap: float | None = None
+    peak_at: datetime | None = None
+    peak_multiple: float | None = None
+    drawdown_from_peak_pct: float | None = None
+    runner_tier: str = ""
+    round_trip: bool = False
+    lifecycle_events: list[dict[str, Any]] = field(default_factory=list)
+    # Provider-derived evidence is kept separate from editorial prose so the
+    # renderer can show provenance and distinguish zero from unavailable.
+    provider_evidence: dict[str, Any] = field(default_factory=dict)
+    score_confidence: dict[str, float] = field(default_factory=dict)
+    news_evidence: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -349,3 +366,6 @@ class Brief:
     raw_launch_count: int = 0
     indexed_launch_count: int = 0
     collector_started_at: datetime | None = None
+    # Canonical machine-readable daily recap. Email, web and Telegram render
+    # from this same object to prevent channel-specific selection drift.
+    recap: dict[str, Any] = field(default_factory=dict)

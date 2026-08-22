@@ -52,16 +52,13 @@ def implausible_run(candidate: Candidate, settings: Settings) -> bool:
 
 
 def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) -> bool:
-    """Only coins created inside the age ceiling, and only if they ran.
+    """Record anything that verifiably crossed the daily runner floor.
 
-    The record is about what launched and worked, so age is a hard wall rather
-    than something a big multiple can buy past. A pair with no known creation
-    time is excluded too: it cannot be shown to be new, and the whole point of
-    the ceiling is that everything in the record provably is.
-
-    Inside the wall the bar eases with age. A pair still in its first day only
-    has to be up `min_fresh_change_pct`; past that it has to have done a real
-    multiple, because a day-old coin that is only up a third is not news.
+    New launches can use GMGN ATH because their lifetime is wholly inside the
+    report window. Older tokens need either a measured local 24h move, a
+    reconstructed chart peak, or the configured daily change. Current market
+    cap is never required to remain above the floor: a runner that died is still
+    part of the day's tape.
     """
     section = settings.section("journal")
     token = candidate.token
@@ -78,23 +75,79 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     if venues and token.dex_id.lower() not in venues:
         return False
 
+    ceiling = float(section.get("max_age_hours", 36))
+    if ceiling > 0 and (age is None or age > ceiling):
+        return False
+
+    peak = max(
+        float(candidate.peak_market_cap or 0),
+        float(candidate.observed_peak_market_cap or 0),
+        float(token.market_cap or 0),
+    )
+    peak_floor = float(section.get("peak_market_cap_floor", 250_000) or 250_000)
+    start = float(candidate.start_market_cap or 0)
+    measured_window_multiple = peak / start if start > 0 else 1.0
+    fresh_window = float(section.get("fresh_window_hours", 24) or 24)
+    new_launch_peak = age is not None and age <= fresh_window and peak >= peak_floor
+    if new_launch_peak:
+        return True
+
     if token.volume_24h < float(section.get("min_volume_24h", 50_000)):
         return False
     if implausible_run(candidate, settings):
         return False
 
-
-    ceiling = float(section.get("max_age_hours", 36))
-    if age is None or (ceiling and age > ceiling):
+    # A raw daily-change fallback is only meaningful when the pair age is
+    # known.  Peak-tape candidates with a measured in-window peak have already
+    # returned above; an undated coin must not slip into a 24-hour recap merely
+    # because a provider reports a large percentage change.
+    if age is None:
         return False
 
-    fresh_window = float(section.get("fresh_window_hours", 24))
     if age <= fresh_window:
         return token.price_change_24h >= float(section.get("min_fresh_change_pct", 30))
+
+    # Established coins need a move that actually occurred inside this report
+    # window.  KOL count, market cap and a lifetime ATH are context, not proof
+    # that the token ran today.  GMGN candles preserve a spike even when the
+    # close gave it back; the local hourly tape supplies the same proof once it
+    # has accumulated enough observations.
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    kline_peak_change = float(gmgn.get("kline24hPeakFromOpenPct") or 0)
+    kline_close_change = float(gmgn.get("kline24hChangePct") or 0)
+    has_gmgn_candles = int(gmgn.get("kline24hCandleCount") or 0) > 0
+    measured_peak_change = max(0.0, (measured_window_multiple - 1.0) * 100.0)
     older_multiple = float(section.get("older_than_a_day_multiple", 5.0))
     if older_multiple > 0:
-        return run_multiple(token) >= older_multiple
-    return token.price_change_24h >= float(section.get("min_daily_change_pct", 25.0))
+        required_change = (older_multiple - 1.0) * 100.0
+    else:
+        required_change = float(section.get("min_daily_change_pct", 50.0) or 50.0)
+    # When GMGN candles exist they are the authority. This prevents a noisy
+    # local market-cap estimate or a conflicting aggregate percentage from
+    # promoting a flat/falling old token. Without candles, Dex and our own
+    # hourly tape remain the graceful fallback.
+    observed_move = (
+        max(kline_peak_change, kline_close_change)
+        if has_gmgn_candles
+        else max(token.price_change_24h, measured_peak_change)
+    )
+    if observed_move >= required_change:
+        return True
+
+    # The only lower-change exception for an older pair is a high printed in
+    # this trailing-day candle set that reaches its GMGN lifetime ATH.  Requiring
+    # an in-window candle prevents a stale historical ATH from qualifying it.
+    lifetime_ath = float(gmgn.get("athMarketCap") or 0)
+    kline_peak_cap = float(gmgn.get("kline24hPeakMarketCap") or 0)
+    ath_tolerance = float(section.get("new_ath_tolerance_pct", 2.0) or 2.0) / 100.0
+    min_ath_move = float(section.get("min_new_ath_move_pct", 10.0) or 10.0)
+    verified_fresh_ath = (
+        lifetime_ath >= peak_floor
+        and kline_peak_cap >= lifetime_ath * (1.0 - ath_tolerance)
+        and bool(gmgn.get("kline24hPeakAt"))
+        and kline_peak_change >= min_ath_move
+    )
+    return verified_fresh_ath
 
 
 def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
@@ -106,6 +159,7 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     section = settings.section("journal")
     report = candidate.safety
     enrichment = candidate.enrichment
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     reasons: list[str] = []
 
     if report.rugged:
@@ -119,6 +173,22 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     bundle_pct = float(section.get("bundle_top10_pct", 50))
     if report.top10_pct is not None and report.top10_pct > bundle_pct:
         reasons.append(f"bundled supply, top 10 circulating wallets hold {report.top10_pct:.0f}%")
+
+    # GMGN sees launch-specific manipulation that a contract audit cannot:
+    # bundled buys, insider flow and coordinated wash volume. These are direct
+    # adverse observations, not arbitrary score cut-offs, so they fail closed
+    # while KOL absence, boosts and a high standalone rug heuristic do not.
+    if gmgn.get("washTrading") is True:
+        reasons.append("GMGN detected wash trading")
+    for field, label, setting, default in (
+        ("bundlerRate", "GMGN bundled launch flow", "gmgn_max_bundler_rate", 0.30),
+        ("insiderRate", "GMGN insider/rat-trader flow", "gmgn_max_insider_rate", 0.30),
+        ("devTeamHoldRate", "GMGN dev-team holding", "gmgn_max_dev_team_hold_rate", 0.15),
+    ):
+        value = gmgn.get(field)
+        ceiling = float(section.get(setting, default) or default)
+        if value is not None and float(value) > ceiling:
+            reasons.append(f"{label} is {float(value):.0%}, above {ceiling:.0%}")
     for flag in report.risk_flags:
         lowered = flag.lower()
         if "sell tax" in lowered:
@@ -152,18 +222,25 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     token = candidate.token
     report = candidate.safety
     enrichment = candidate.enrichment
-    kol_touch_count = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+    local_kol_touch_count = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    gmgn_flow = gmgn.get("walletFlow", {}) or {}
+    gmgn_touch_count = max(
+        len(set(gmgn_flow.get("kolBuyers", [])) | set(gmgn_flow.get("kolSellers", []))),
+        int(gmgn.get("kolCount") or 0),
+    )
+    kol_touch_count = max(local_kol_touch_count, gmgn_touch_count)
     strong_kol_flow = kol_touch_count >= int(section.get("strong_kol_wallets", 3) or 3)
 
     if bool(section.get("require_kol_trade_for_publish", False)):
         min_kol_touches = int(section.get("min_kol_trades_for_publish", 1) or 1)
-        if candidate.token.chain_id.lower() == "solana" and candidate.kol_wallets_scanned:
+        coverage_available = bool(candidate.kol_wallets_scanned or gmgn_flow.get("coverageAvailable") or "kolCount" in gmgn)
+        if coverage_available:
             if kol_touch_count < min_kol_touches:
                 reasons.append(
-                    f"no tracked KOL wallet traded it "
-                    f"({kol_touch_count}/{min_kol_touches} required from {candidate.kol_wallets_scanned} scanned)"
+                    f"no tracked KOL wallet traded it ({kol_touch_count}/{min_kol_touches} required)"
                 )
-        elif candidate.token.chain_id.lower() == "solana":
+        else:
             reasons.append("tracked KOL wallet scan unavailable")
 
     if bool(section.get("exclude_boosted", False)) and token.active_boosts:
@@ -245,7 +322,10 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
             reasons.append(f"{candidate.run_multiple:.0f}x move with {holder_text}")
         if min_extreme_recent_share and token.volume_24h:
             recent_share = token.volume_6h / token.volume_24h
-            if recent_share < min_extreme_recent_share:
+            if (
+                recent_share < min_extreme_recent_share
+                and gmgn.get("organicQualified") is not True
+            ):
                 reasons.append(
                     f"{candidate.run_multiple:.0f}x move but only {recent_share:.0%} of volume stayed active in 6h"
                 )
@@ -353,7 +433,10 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
     min_share = float(section.get("min_recent_volume_share", 0.08))
     if token.volume_24h and run_multiple(token) >= float(section.get("dead_check_above_multiple", 5)):
         share = token.volume_6h / token.volume_24h
-        if share < min_share:
+        gmgn_organic = bool(
+            (candidate.provider_evidence.get("gmgn", {}) or {}).get("organicQualified")
+        )
+        if share < min_share and not gmgn_organic:
             reasons.append(
                 f"the move is over: only {share:.0%} of the day's volume traded in the last six hours"
             )
@@ -479,6 +562,18 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
     fade = faded_from_peak(token)
     if fade is not None:
         labels.append(f"fading, down {abs(fade):.0f}% in the last hour")
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    if (
+        gmgn.get("organicQualified") is True
+        and token.volume_24h
+        and run_multiple(token) >= float(section.get("dead_check_above_multiple", 5))
+    ):
+        share = token.volume_6h / token.volume_24h
+        min_share = float(section.get("min_recent_volume_share", 0.08))
+        if share < min_share:
+            labels.append(
+                f"peaked earlier; only {share:.0%} of 24h volume remained in the last six hours"
+            )
     if untouched_by_tracked_wallets(candidate, settings):
         labels.append(
             f"{candidate.run_multiple:.0f}x and not one tracked wallet touched it"

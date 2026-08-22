@@ -26,8 +26,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  GMGN_API_KEY: ${{ secrets.GMGN_API_KEY }}
+  OPENNEWS_TOKEN: ${{ secrets.OPENNEWS_TOKEN }}
   HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
   BIRDEYE_API_KEY: ${{ secrets.BIRDEYE_API_KEY }}
+  DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
+  X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   OPENAI_IMAGE_MODEL: ${{ vars.OPENAI_IMAGE_MODEL || 'gpt-image-2' }}
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -46,6 +50,13 @@ jobs:
           fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install official GMGN CLI
+        run: npm install --global gmgn-cli@1.5.8
 
       - uses: actions/cache/restore@v4
         with:
@@ -92,6 +103,13 @@ jobs:
           fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install official GMGN CLI
+        run: npm install --global gmgn-cli@1.5.8
 
       - uses: actions/cache/restore@v4
         with:

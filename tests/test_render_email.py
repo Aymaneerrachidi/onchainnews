@@ -262,3 +262,54 @@ def test_email_leads_with_verified_peak_not_faded_cutoff_cap(tmp_path):
     assert "Hit $260k" in body
     assert "Hit $4k" not in body
     assert "candle-verified $260,000" in body
+
+
+def test_email_uses_verified_news_as_coin_thesis(tmp_path):
+    from brief.models import Brief, Scorecard
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    runner = _tape("STORY", mcap=1_200_000, vol24=2_000_000, vol6=500_000,
+                   liq=120_000, trades6=1_300, buys6=700)
+    runner.news_evidence = [{
+        "source": "OpenNews",
+        "summary": "The project shipped a privacy payment app after its public beta went viral.",
+        "url": "https://example.com/story",
+    }]
+    brief = Brief(
+        generated_at=NOW, scorecard=Scorecard(), metas=[], new_and_moving=[],
+        ctos=[], follow_ups=[], onchain=[], excluded=[], source_statuses=[],
+        runners=[runner], blocked_runners=[],
+    )
+
+    body = render_email(brief, settings)
+
+    assert "verified news catalyst" in body
+    assert "privacy payment app" in body
+    assert "running laps on everything" not in body
+
+
+def test_email_never_lets_raw_blocked_peak_displace_approved_runner(tmp_path):
+    """The audit recap keeps rugs; the public email must lead with approved names."""
+    from brief.models import Brief, Scorecard
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    approved = _tape("GOOD", mcap=1_200_000, vol24=2_000_000, vol6=500_000,
+                     liq=120_000, trades6=1_300, buys6=700)
+    approved.peak_market_cap = 1_400_000
+    blocked = _tape("RUG", mcap=9_000_000_000, vol24=100_000, vol6=5_000,
+                    liq=0, trades6=12, buys6=11)
+    blocked.peak_market_cap = 10_000_000_000
+    blocked.risk_labels = ["liquidity neither locked nor burned, it can be pulled"]
+    brief = Brief(
+        generated_at=NOW, scorecard=Scorecard(), metas=[], new_and_moving=[],
+        ctos=[], follow_ups=[], onchain=[], excluded=[], source_statuses=[],
+        runners=[approved], blocked_runners=[blocked],
+        recap={"all": [{"mint": blocked.token.mint}, {"mint": approved.token.mint}]},
+    )
+
+    body = render_email(brief, settings)
+
+    assert "$GOOD" in body
+    assert "$RUG" not in body

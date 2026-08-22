@@ -198,7 +198,19 @@ def _lore_section(brief: Brief) -> str:
 
 def _kol_detail(candidate: Candidate) -> str:
     if not candidate.kol_buyers:
-        return '<p class="quiet">None of the tracked wallets bought this.</p>'
+        gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+        traders = [row for row in (gmgn.get("renownedTraders") or []) if not row.get("suspicious")]
+        if traders:
+            names = "".join(
+                f"<li>{_e(str(row.get('name') or row.get('address') or '')[:40])}"
+                f"{' (holding)' if row.get('holding') else ' (closed)'}</li>"
+                for row in traders[:12]
+            )
+            return f"<ul>{names}</ul>"
+        count = int(gmgn.get("kolCount") or 0)
+        if count:
+            return f'<p class="quiet">GMGN mapped {count} renowned/KOL wallets on this token.</p>'
+        return '<p class="quiet">No KOL participation was verified.</p>'
     names = "".join(
         f"<li>{_e(name)}{' (holding)' if name in candidate.kol_holders else ' (closed)'}</li>"
         for name in candidate.kol_buyers
@@ -217,9 +229,9 @@ def _kol_section(brief: Brief) -> str:
         f"""
 <li class="searchable" data-search="{_e(c.token.symbol)} {_e(c.token.mint)} kol">
   <b>${_e(c.token.symbol)}</b>
-  <data>{len(c.kol_buyers)} buyers</data>
-  <span>{_e(", ".join(c.kol_buyers[:10]))}{"..." if len(c.kol_buyers) > 10 else ""}</span>
-  <i>{_e("still holding: " + ", ".join(c.kol_holders[:4]) if c.kol_holders else "all closed")}</i>
+  <data>{max(len(c.kol_buyers), int((c.provider_evidence.get("gmgn", {}) or {}).get("kolCount") or 0))} KOL</data>
+  <span>{_e(", ".join(c.kol_buyers[:10]) or "GMGN renowned-wallet coverage")}{"..." if len(c.kol_buyers) > 10 else ""}</span>
+  <i>{_e("still holding: " + ", ".join(c.kol_holders[:4]) if c.kol_holders else "see token-specific GMGN outcomes")}</i>
 </li>"""
         for c in brief.kol_flagged
     ) or '<li class="empty-state">No coin was bought by enough tracked wallets today.</li>'

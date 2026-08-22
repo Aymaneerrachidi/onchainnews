@@ -108,18 +108,35 @@ def _organic_volume_score(candidate: Candidate) -> float:
 
 
 def _kol_score(candidate: Candidate, settings: Settings) -> float:
-    if not candidate.kol_wallets_scanned:
+    gmgn = candidate.provider_evidence.get("gmgn", {})
+    gmgn_buyers = len((gmgn.get("walletFlow") or {}).get("kolBuyers", []))
+    gmgn_count = int(gmgn.get("kolCount") or 0)
+    if not candidate.kol_wallets_scanned and not gmgn_buyers and not gmgn_count:
         return 0.0
     buyers = len(set(candidate.kol_buyers))
     holders = len(set(candidate.kol_holders))
     sellers = len(set(candidate.kol_sellers))
     min_flag = int(settings.get("kol", "min_buyers_to_flag", 2) or 2)
-    buyer_score = _scale(buyers, max(min_flag * 3, 1))
+    buyer_score = _scale(max(buyers, gmgn_buyers, gmgn_count), max(min_flag * 3, 1))
     retention = holders / buyers if buyers else 0.0
     retention_score = _clamp(retention * 100.0)
     realised_score = _scale(max(candidate.kol_realised_sol, 0.0), 25.0)
     participation_score = _scale(buyers + sellers, 8.0)
     return _clamp(buyer_score * 0.45 + retention_score * 0.25 + realised_score * 0.15 + participation_score * 0.15)
+
+
+def _smart_money_score(candidate: Candidate) -> float:
+    gmgn = candidate.provider_evidence.get("gmgn", {})
+    flow = gmgn.get("walletFlow") or {}
+    buyers = len(flow.get("smartMoneyBuyers", []))
+    sellers = len(flow.get("smartMoneySellers", []))
+    holders = int(gmgn.get("smartMoneyCount") or 0)
+    if not buyers and not sellers and not holders:
+        return 0.0
+    convergence = _scale(buyers, 5.0)
+    breadth = _scale(holders, 12.0)
+    balance = _clamp(65.0 + (buyers - sellers) * 10.0)
+    return _clamp(convergence * 0.45 + breadth * 0.35 + balance * 0.20)
 
 
 def _manipulation_score(candidate: Candidate, settings: Settings) -> float:
@@ -148,6 +165,16 @@ def _manipulation_score(candidate: Candidate, settings: Settings) -> float:
             score += 15.0
         if (candidate.safety.holder_count or 0) < int(settings.get("journal", "extreme_min_holders", 5000) or 5000):
             score += 15.0
+    gmgn = candidate.provider_evidence.get("gmgn", {})
+    if gmgn.get("washTrading") is True:
+        score += 45.0
+    rug_ratio = gmgn.get("rugRatio")
+    if rug_ratio is not None:
+        score += _clamp((float(rug_ratio) - 0.15) * 55.0, 0.0, 35.0)
+    for field, weight in (("bundlerRate", 45.0), ("insiderRate", 35.0), ("freshWalletRate", 20.0)):
+        value = gmgn.get(field)
+        if value is not None:
+            score += _clamp((float(value) - 0.15) * weight, 0.0, weight * 0.6)
     return _clamp(score)
 
 
@@ -170,7 +197,13 @@ def _classify(scores: dict[str, float], candidate: Candidate) -> str:
 
 
 def score_candidate(candidate: Candidate, settings: Settings) -> None:
-    """Attach normalized runner scores derived only from measured fields."""
+    """Attach three independent scores plus explicit data confidence.
+
+    Strength answers how large/fast the observed run was. Organic quality asks
+    whether the participation looks broad and durable. Manipulation risk asks
+    whether the tape/holders look manufactured. None is algebraically derived
+    from another, so a huge suspicious run remains visible as exactly that.
+    """
     holder_growth = _holder_growth_score(candidate)
     buyer_diversity = _buyer_diversity_score(candidate)
     organic_volume = _organic_volume_score(candidate)
@@ -179,11 +212,24 @@ def score_candidate(candidate: Candidate, settings: Settings) -> None:
     price_structure = _price_structure_score(candidate)
     wallet_independence = 50.0  # unavailable without a completed cluster snapshot
     kol = _kol_score(candidate, settings)
-    smart_money = 0.0  # separate non-KOL smart-money source not configured yet
+    smart_money = _smart_money_score(candidate)
     manipulation = _manipulation_score(candidate, settings)
-    momentum = _scale(candidate.token.price_change_24h, 900.0)
+    peak_multiple = float(candidate.peak_multiple or candidate.run_multiple or 1.0)
+    multiple_strength = _scale(max(0.0, peak_multiple - 1.0), 9.0)
+    peak_strength = _scale(float(candidate.peak_market_cap or candidate.token.market_cap), 1_000_000.0)
+    volume_strength = _scale(candidate.token.volume_24h, 2_000_000.0)
+    trade_strength = _scale(float(candidate.token.txns_24h.total), 10_000.0)
+    attention_strength = _scale(
+        float((candidate.provider_evidence.get("gmgn", {}) or {}).get("searchHeat") or 0), 500.0
+    )
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    # This flag means the token independently cleared GMGN's 24h participation,
+    # liquidity, holder-distribution, and chain-native safety filters. Treat it
+    # as corroboration, not a gate: the capped/rate-limited lane can miss a real
+    # runner, while direct adverse evidence is handled by manipulation scoring.
+    gmgn_organic = 100.0 if gmgn.get("organicQualified") is True else 0.0
 
-    organic_pre_penalty = (
+    organic = _clamp(
         holder_growth * 0.20
         + buyer_diversity * 0.15
         + organic_volume * 0.15
@@ -192,17 +238,19 @@ def score_candidate(candidate: Candidate, settings: Settings) -> None:
         + price_structure * 0.10
         + wallet_independence * 0.10
         + smart_money * 0.05
+        + gmgn_organic * 0.05
     )
-    organic = _clamp(organic_pre_penalty - manipulation * 0.35)
+    # Deliberately independent: strength is not reduced because a run looks
+    # manipulated. That risk appears in the separate manipulation score.
     runner = _clamp(
-        organic * 0.25
-        + smart_money * 0.20
-        + kol * 0.15
-        + price_structure * 0.15
-        + holder_quality * 0.10
-        + liquidity * 0.10
-        + momentum * 0.05
-        - manipulation * 0.25
+        multiple_strength * 0.25
+        + peak_strength * 0.20
+        + volume_strength * 0.20
+        + trade_strength * 0.15
+        + kol * 0.08
+        + smart_money * 0.08
+        + attention_strength * 0.04
+        + gmgn_organic * 0.06
     )
 
     scores = {
@@ -225,13 +273,47 @@ def score_candidate(candidate: Candidate, settings: Settings) -> None:
             "liquidity": round(liquidity, 1),
             "priceStructure": round(price_structure, 1),
             "walletIndependence": "unavailable",
-            "smartMoney": "unavailable",
-            "manipulationPenalty": round(-manipulation * 0.35, 1),
+            "smartMoney": round(smart_money, 1),
+            "gmgnOrganicLane": round(gmgn_organic, 1),
         },
         "runner": {
-            "momentum": round(momentum, 1),
-            "manipulationPenalty": round(-manipulation * 0.25, 1),
+            "peakMultiple": round(multiple_strength, 1),
+            "peakMarketCap": round(peak_strength, 1),
+            "volume": round(volume_strength, 1),
+            "trades": round(trade_strength, 1),
+            "attention": round(attention_strength, 1),
+            "gmgnOrganicLane": round(gmgn_organic, 1),
         },
+        "manipulation": {
+            "score": round(manipulation, 1),
+            "gmgnRiskFieldsAvailable": sum(
+                candidate.provider_evidence.get("gmgn", {}).get(key) is not None
+                for key in ("rugRatio", "washTrading", "bundlerRate", "insiderRate", "freshWalletRate")
+            ),
+        },
+    }
+    organic_known = sum(
+        value is not None
+        for value in (
+            candidate.enrichment.holder_change_24h,
+            candidate.safety.top10_pct,
+            candidate.safety.holder_count,
+            candidate.signals.buy_imbalance_6h,
+            candidate.token.liquidity_usd if candidate.token.liquidity_usd else None,
+            candidate.token.volume_24h if candidate.token.volume_24h else None,
+        )
+    )
+    risk_known = sum(
+        candidate.provider_evidence.get("gmgn", {}).get(key) is not None
+        for key in ("rugRatio", "washTrading", "bundlerRate", "insiderRate", "freshWalletRate")
+    ) + int(candidate.safety.top10_pct is not None)
+    candidate.score_confidence = {
+        "runner": round(min(1.0, 0.45 + 0.11 * sum(bool(v) for v in (
+            candidate.peak_market_cap, candidate.start_market_cap, candidate.token.volume_24h,
+            candidate.token.txns_24h.total, candidate.first_seen_at,
+        ))), 2),
+        "organic": round(organic_known / 6.0, 2),
+        "manipulation": round(min(1.0, risk_known / 6.0), 2),
     }
     candidate.classification = _classify(scores, candidate)
 

@@ -11,6 +11,7 @@ import html
 from datetime import datetime
 
 from brief.config import Settings
+from brief.lifecycle import tier_for_peak
 from brief.models import Brief, Candidate
 from brief.render.formatting import money, pct
 
@@ -89,12 +90,19 @@ def email_subject(brief: Brief, settings: Settings) -> str:
     return f"{prefix} | ${top.token.symbol} {top.run_multiple:.0f}x and {len(runners) - 1} more | {date}"
 
 
-def pulse_email_subject(items: list[tuple[Candidate, int]], settings: Settings) -> str:
+def _pulse_item(item: tuple) -> tuple[Candidate, int, str]:
+    candidate, passes = item[:2]
+    level = str(item[2]) if len(item) >= 3 else ""
+    return candidate, int(passes), level
+
+
+def pulse_email_subject(items: list[tuple], settings: Settings) -> str:
     """A compact, recognisable subject for a confirmed hourly runner alert."""
     prefix = str(settings.get("delivery", "email_subject_prefix", "Fomo Onchain"))
-    first = items[0][0]
+    first, _, level = _pulse_item(items[0])
     extra = f" +{len(items) - 1}" if len(items) > 1 else ""
-    return f"{prefix} runner alert | ${first.token.symbol}{extra}"
+    milestone = f" {level}" if level else ""
+    return f"{prefix} runner alert | ${first.token.symbol}{milestone}{extra}"
 
 
 def _age(candidate: Candidate) -> str:
@@ -109,9 +117,21 @@ def _age(candidate: Candidate) -> str:
 
 
 def _size(candidate: Candidate) -> str:
-    if candidate.run_multiple >= 2:
-        return f"{candidate.run_multiple:.1f}x"
+    run = float(candidate.peak_multiple or candidate.run_multiple or 1.0)
+    if run >= 2:
+        return f"{run:.1f}x"
     return pct(candidate.token.price_change_24h, 0)
+
+
+def _candidate_tier(candidate: Candidate) -> str:
+    if candidate.runner_tier:
+        return candidate.runner_tier
+    peak = max(
+        float(candidate.peak_market_cap or 0),
+        float(candidate.observed_peak_market_cap or 0),
+        float(candidate.token.market_cap or 0),
+    )
+    return tier_for_peak(peak)
 
 
 def _is_unknown(label: str) -> bool:
@@ -133,6 +153,27 @@ def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candi
     questionable moves into endorsements.
     """
     limit = int(settings.get("delivery", "newsletter_observed_limit", 14) or 14)
+    recap_rows = brief.recap.get("all", []) if brief.recap else []
+    if recap_rows:
+        # The machine recap deliberately retains every measured threshold
+        # crossing, including contract-risk and wash-shaped moves. That is
+        # useful audit tape, but it is not the public newsletter. Once the
+        # engine has produced an approved runner set, never let a larger blocked
+        # cap displace those names merely because the raw ledger sorts by peak.
+        approved = [
+            candidate
+            for candidate in brief.runners
+            if _candidate_tier(candidate) in {"S", "A", "B"}
+        ]
+        approved.sort(
+            key=lambda candidate: float(
+                candidate.peak_market_cap
+                or candidate.observed_peak_market_cap
+                or candidate.token.market_cap
+            ),
+            reverse=True,
+        )
+        return approved[:limit]
     min_score = float(settings.get("delivery", "newsletter_min_observed_runner_score", 25) or 25)
     max_manip = float(settings.get("delivery", "newsletter_max_observed_manipulation", 70) or 70)
     min_volume = float(settings.get("delivery", "newsletter_min_observed_volume", 250_000) or 250_000)
@@ -270,8 +311,126 @@ def _descriptor(candidate: Candidate) -> str:
     return ", ".join(bits[:2]).lower()
 
 
+def _compact_copy(value: object, limit: int = 190) -> str:
+    text = " ".join(str(value or "").split()).strip(" .")
+    if len(text) <= limit:
+        return text
+    clipped = text[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:-")
+    return (clipped or text[: limit - 1]).rstrip() + "…"
+
+
+def _coin_thesis(candidate: Candidate) -> str:
+    """Choose one sourced, coin-specific lead instead of metric boilerplate."""
+    news = [
+        _compact_copy(row.get("summary"))
+        for row in candidate.news_evidence
+        if _compact_copy(row.get("summary"))
+    ]
+    if news:
+        return news[0]
+
+    if candidate.x_interactions:
+        interaction = max(
+            candidate.x_interactions,
+            key=lambda row: row.like_count + row.repost_count * 2 + row.reply_count + row.quote_count * 2,
+        )
+        summary = _compact_copy(interaction.summary, 155)
+        if summary:
+            return f"X thesis — @{interaction.author_handle}: {summary}"
+
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    wallet_flow = gmgn.get("walletFlow", {}) or {}
+    kol_count = max(
+        len(set(candidate.kol_buyers)),
+        int(wallet_flow.get("kolCount") or 0),
+        int(gmgn.get("kolCount") or 0),
+    )
+    smart_count = max(
+        int(wallet_flow.get("smartMoneyCount") or 0),
+        int(gmgn.get("smartMoneyCount") or 0),
+    )
+    renowned_traders = int(gmgn.get("renownedTraderCount") or 0)
+    profitable_traders = int(gmgn.get("renownedProfitableCount") or 0)
+    holding_traders = int(gmgn.get("renownedHoldingCount") or 0)
+    lore = _clean_lore(candidate.lore)
+    descriptor = _descriptor(candidate)
+    if renowned_traders >= 2:
+        return (
+            f"GMGN mapped {renowned_traders} renowned traders: "
+            f"{profitable_traders} profitable and {holding_traders} still holding"
+        )
+    if gmgn.get("cto") and (kol_count or smart_count):
+        return f"community takeover with {smart_count} smart-money and {kol_count} renowned/KOL wallets mapped by GMGN"
+    if lore:
+        return f"the {lore.lower()} narrative produced one of the window's strongest verified peaks"
+    if descriptor not in {"solana", "base", "bnb chain", "ethereum", "unknown"}:
+        return descriptor
+    if kol_count >= 20 and smart_count:
+        return f"an unusually KOL-heavy move with {kol_count} renowned and {smart_count} smart-money wallets on GMGN"
+    if kol_count >= 2:
+        outcome = "finished net profitable" if candidate.kol_realised_sol > 0.1 else "clustered around the same ticker"
+        return f"KOL consensus trade: {kol_count} tracked or GMGN-tagged wallets {outcome}"
+    if smart_count:
+        return f"GMGN maps {smart_count} smart-money wallet{'s' if smart_count != 1 else ''} around the token"
+
+    if candidate.drawdown_from_peak_pct is not None and candidate.drawdown_from_peak_pct >= 40:
+        return f"an early runner that gave back {candidate.drawdown_from_peak_pct:.0f}% from its window high"
+    if candidate.token.txns_24h.total >= 1_000:
+        return f"a broad tape move with {candidate.token.txns_24h.total:,} trades in the window"
+    return _descriptor(candidate)
+
+
 def _reason_bits(candidate: Candidate) -> list[str]:
     bits: list[str] = []
+    if candidate.drawdown_from_peak_pct is not None and candidate.drawdown_from_peak_pct >= 20:
+        bits.append(
+            f"Peaked earlier in the window and is now {candidate.drawdown_from_peak_pct:.0f}% off the high"
+        )
+    for evidence in candidate.news_evidence[:1]:
+        summary = str(evidence.get("summary") or "").strip()
+        if summary:
+            bits.append(summary)
+    if candidate.x_interactions:
+        interaction = max(
+            candidate.x_interactions,
+            key=lambda row: row.like_count + row.repost_count * 2 + row.reply_count,
+        )
+        summary = " ".join(str(interaction.summary or "").split())
+        if summary:
+            bits.append(f"@{interaction.author_handle}: {summary[:190]}")
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    wallet_flow = gmgn.get("walletFlow", {}) or {}
+    renowned = max(int(gmgn.get("kolCount") or 0), int(wallet_flow.get("kolCount") or 0))
+    smart = max(int(gmgn.get("smartMoneyCount") or 0), int(wallet_flow.get("smartMoneyCount") or 0))
+    structure: list[str] = []
+    if smart:
+        structure.append(f"{smart} smart-money")
+    if renowned:
+        structure.append(f"{renowned} renowned/KOL")
+    if candidate.safety.top10_pct is not None:
+        structure.append(f"top 10 at {candidate.safety.top10_pct:.0f}%")
+    bundler = gmgn.get("bundlerRate")
+    insider = gmgn.get("insiderRate")
+    if bundler is not None:
+        structure.append(f"bundlers {float(bundler):.1%}")
+    if insider is not None:
+        structure.append(f"insiders {float(insider):.1%}")
+    if structure:
+        bits.append("GMGN structure: " + ", ".join(structure[:4]))
+    traders = list(gmgn.get("renownedTraders") or [])
+    if traders:
+        trusted = [row for row in traders if not row.get("suspicious")]
+        leaders = sorted(
+            trusted,
+            key=lambda row: float(row.get("profitUsd") or 0),
+            reverse=True,
+        )[:2]
+        names = ", ".join(
+            f"{row.get('name') or str(row.get('address') or '')[:8]} {money(float(row.get('profitUsd') or 0))}"
+            for row in leaders
+        )
+        if names:
+            bits.append(f"GMGN KOL outcomes: {names}")
     # For a faded runner, its current-cap turnover sentences use the wrong
     # denominator. The verified peak recap is the useful first read.
     if candidate.observed_peak_market_cap and candidate.read:
@@ -327,6 +486,21 @@ def _kol_wallet_recap(candidate: Candidate) -> str:
         if best.realised_sol > 0.1:
             bits.append(f"best wallet {best.name} +{best.realised_sol:.1f} SOL")
         return "Tracked wallets — " + "; ".join(bits)
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    traders = list(gmgn.get("renownedTraders") or [])
+    if traders:
+        count = int(gmgn.get("renownedTraderCount") or len(traders))
+        profitable = int(gmgn.get("renownedProfitableCount") or 0)
+        holding = int(gmgn.get("renownedHoldingCount") or 0)
+        realised = float(gmgn.get("renownedRealizedProfitUsd") or 0)
+        trusted = [row for row in traders if not row.get("suspicious")]
+        best = max(trusted, key=lambda row: float(row.get("profitUsd") or 0), default=None)
+        bits = [f"{count} renowned traded", f"{profitable} profitable", f"{holding} holding"]
+        if abs(realised) >= 1:
+            bits.append(f"realised {money(realised)}")
+        if best and float(best.get("profitUsd") or 0) > 0:
+            bits.append(f"best {best.get('name') or str(best.get('address') or '')[:8]} {money(float(best.get('profitUsd') or 0))}")
+        return "GMGN KOL tape — " + "; ".join(bits)
     if candidate.kol_wallets_scanned:
         return f"Tracked wallets — none of {candidate.kol_wallets_scanned} scanned wallets touched it"
     return ""
@@ -359,7 +533,28 @@ def _theme_groups(brief: Brief, runners: list[Candidate]) -> list[tuple[str, lis
 
 def _lead_recap(candidate: Candidate) -> str:
     token = candidate.token
-    hit_mcap = max(token.market_cap, float(candidate.observed_peak_market_cap or 0.0))
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    hit_mcap = max(
+        token.market_cap,
+        float(candidate.peak_market_cap or 0.0),
+        float(candidate.observed_peak_market_cap or 0.0),
+        float(gmgn.get("kline24hPeakMarketCap") or 0.0),
+    )
+    thesis = _coin_thesis(candidate)
+    if candidate.news_evidence:
+        headline = f"${token.symbol} led on a verified news catalyst"
+    elif candidate.x_interactions:
+        interaction = max(
+            candidate.x_interactions,
+            key=lambda row: row.like_count + row.repost_count * 2 + row.reply_count + row.quote_count * 2,
+        )
+        headline = f"${token.symbol} caught @{interaction.author_handle}'s attention"
+    elif len(set(candidate.kol_buyers)) >= 2:
+        headline = f"${token.symbol} became the KOL consensus trade"
+    elif candidate.drawdown_from_peak_pct is not None and candidate.drawdown_from_peak_pct >= 40:
+        headline = f"${token.symbol} ran early, then faded"
+    else:
+        headline = f"${token.symbol} led the day's tape"
     return (
         '<tr><td style="padding:28px 30px 0">'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
@@ -367,9 +562,9 @@ def _lead_recap(candidate: Candidate) -> str:
         f'<td style="padding:25px 25px 23px">'
         f'<div style="{_txt(13, 800, BLUE, 1.2, 0.10, "uppercase")}">Lead read</div>'
         f'<div style="{_txt(30, 850, INK, 1.12, -0.035)};padding-top:10px">'
-        f'${_e(token.symbol)} running laps on everything</div>'
+        f'{_e(headline)}</div>'
         f'<div style="{_txt(16, 450, INK_2, 1.65)};padding-top:13px">'
-        f'Hit {_e(money(hit_mcap))} after a {_e(_size(candidate))} move; {_e(_descriptor(candidate))}.</div>'
+        f'Hit {_e(money(hit_mcap))} after a {_e(_size(candidate))} move. {_e(thesis)}.</div>'
         f'<div style="{_txt(13, 500, MUTED, 1.55)};padding-top:12px">'
         f'{_e(money(token.volume_24h))} volume / {_e(money(token.liquidity_usd))} liquidity / {_e(_age(candidate))}</div>'
         f'<div style="padding-top:17px"><a href="{_e(token.url)}" target="_blank" '
@@ -381,8 +576,19 @@ def _lead_recap(candidate: Candidate) -> str:
 
 def _coin_recap_line(candidate: Candidate) -> str:
     token = candidate.token
-    hit_mcap = max(token.market_cap, float(candidate.observed_peak_market_cap or 0.0))
-    reasons = _reason_bits(candidate)
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    hit_mcap = max(
+        token.market_cap,
+        float(candidate.peak_market_cap or 0.0),
+        float(candidate.observed_peak_market_cap or 0.0),
+        float(gmgn.get("kline24hPeakMarketCap") or 0.0),
+    )
+    thesis = _coin_thesis(candidate)
+    thesis_key = thesis.casefold()
+    reasons = [
+        reason for reason in _reason_bits(candidate)
+        if reason.casefold() not in thesis_key and thesis_key not in reason.casefold()
+    ]
     kol_recap = _kol_wallet_recap(candidate)
     kol_html = (
         '<tr><td width="18" style="vertical-align:top;padding-top:7px">'
@@ -392,14 +598,40 @@ def _coin_recap_line(candidate: Candidate) -> str:
         if kol_recap
         else ""
     )
+    # The email is a morning read, not the analyst console. One supporting
+    # sentence plus the KOL outcome is enough; the linked app keeps every raw
+    # metric and risk label for readers who want to drill down.
+    supporting = reasons[:1]
+    caveat = next((reason for reason in reasons if reason.lower().startswith(("flag:", "gap:"))), None)
+    if caveat and caveat not in supporting:
+        supporting.append(caveat)
     reason_html = "".join(
         '<tr><td width="18" style="vertical-align:top;padding-top:7px">'
         f'<div style="width:5px;height:5px;border-radius:999px;background:{BLUE};font-size:0;line-height:0">&nbsp;</div>'
         '</td>'
         f'<td style="{_txt(13, 450, MUTED, 1.58)};padding-top:3px">{_e(reason)}</td></tr>'
-        for reason in reasons
+        for reason in supporting
     )
-    kol = f" / {len(candidate.kol_buyers)} KOL" if candidate.kol_buyers else ""
+    wallet_flow = gmgn.get("walletFlow", {}) or {}
+    gmgn_kols = max(int(wallet_flow.get("kolCount") or 0), int(gmgn.get("kolCount") or 0))
+    gmgn_smart = max(
+        int(wallet_flow.get("smartMoneyCount") or 0),
+        int(gmgn.get("smartMoneyCount") or 0),
+    )
+    holders = int(candidate.safety.holder_count or gmgn.get("holders") or 0)
+    move_to_high = float(gmgn.get("kline24hPeakFromOpenPct") or 0)
+    move = (
+        f"+{move_to_high:.0f}% to 24h high"
+        if move_to_high >= 0
+        else f"{move_to_high:.0f}% to 24h high"
+    ) if gmgn.get("kline24hPeakFromOpenPct") is not None else f"{token.price_change_24h:+.0f}% in 24h"
+    facts = [move, _age(candidate)]
+    if max(len(candidate.kol_buyers), gmgn_kols):
+        facts.append(f"{max(len(candidate.kol_buyers), gmgn_kols)} KOL")
+    if gmgn_smart:
+        facts.append(f"{gmgn_smart} smart money")
+    if holders:
+        facts.append(f"{holders:,} holders")
     details = (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:7px">'
         f"{kol_html}{reason_html}</table>"
@@ -411,9 +643,9 @@ def _coin_recap_line(candidate: Candidate) -> str:
         f'<div style="{_txt(17, 750, INK, 1.35)}">'
         f'<a href="{_e(token.url)}" target="_blank" style="color:{INK};text-decoration:none">${_e(token.symbol)}</a>'
         f' <span style="color:{MUTED};font-weight:500">-&gt; hit</span> {_e(money(hit_mcap))}'
-        f'<span style="color:{MUTED};font-weight:500">, {_e(_descriptor(candidate))}</span></div>'
+        f'<span style="color:{MUTED};font-weight:500">, {_e(thesis)}</span></div>'
         f'<div style="{_txt(12, 600, SOFT, 1.45)};padding-top:4px">'
-        f'{_e(_size(candidate))} / {_e(_age(candidate))} / {_e(money(token.volume_24h))} vol{_e(kol)}</div>'
+        f'{_e(" / ".join(facts))}</div>'
         f"{details}"
         '</td></tr>'
     )
@@ -432,11 +664,22 @@ def _theme_section(title: str, members: list[Candidate]) -> str:
     )
 
 
+def _peak_tier_section(title: str, members: list[Candidate]) -> str:
+    ordered = sorted(
+        members,
+        key=lambda candidate: float(
+            candidate.peak_market_cap or candidate.observed_peak_market_cap or candidate.token.market_cap
+        ),
+        reverse=True,
+    )
+    return _theme_section(title, ordered)
+
+
 def _masthead(brief: Brief, runners: list[Candidate]) -> str:
     when = brief.generated_at.strftime("%d %b %Y")
     window = f"{brief.generated_at.strftime('%H:%M')} {brief.generated_at.tzname() or ''}".strip()
     lead = (
-        f"{len(runners)} coins made the recap. Grouped by what they are, not just where they ranked."
+        f"{len(runners)} coins crossed $250K. Peak first, then the context behind the move."
         if runners
         else "No runner cleared the desk today. That is still a useful morning read."
     )
@@ -459,7 +702,7 @@ def _masthead(brief: Brief, runners: list[Candidate]) -> str:
         "</td></tr></table>"
         f'<div style="height:1px;background:{LINE_DARK};line-height:1px;font-size:0;margin-top:26px">&nbsp;</div>'
         f'<div style="{_txt(12, 650, "#AAB3E8", 1.55)};padding-top:18px">'
-        "Simple read: theme, coins, market cap hit, and the reason it mattered."
+        "Simple read: what hit, where it peaked, what drove attention, and what changed after."
         "</div>"
         "</td></tr></table></td></tr>"
     )
@@ -665,7 +908,7 @@ def _pulse_masthead(
     )
 
 
-def _pulse_runner(candidate: Candidate, pass_count: int) -> str:
+def _pulse_runner(candidate: Candidate, pass_count: int, alert_level: str = "") -> str:
     token = candidate.token
     kol = f"{len(candidate.kol_buyers)} tracked wallets" if candidate.kol_buyers else "hourly market confirmation"
     pass_label = "scan" if pass_count == 1 else "scans"
@@ -682,7 +925,8 @@ def _pulse_runner(candidate: Candidate, pass_count: int) -> str:
         f'{_e(token.name)} / {_e(_age(candidate))} / {_e(kol)}</div></td>'
         '<td align="right" style="vertical-align:top;white-space:nowrap">'
         f'<div style="{_txt(29, 850, BLUE, 1.0, -0.03)}">{pass_count} {pass_label}</div>'
-        f'<div style="{_txt(11, 750, MUTED, 1.2, 0.08, "uppercase")};padding-top:7px">new runner</div>'
+        f'<div style="{_txt(11, 750, MUTED, 1.2, 0.08, "uppercase")};padding-top:7px">'
+        f'{_e(alert_level + " milestone" if alert_level else "new runner")}</div>'
         '</td></tr></table>'
         f'<div style="{_txt(15, 450, INK_2, 1.65)};padding-top:19px">{_e(candidate.read)}</div>'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:20px"><tr>'
@@ -700,7 +944,7 @@ def _pulse_runner(candidate: Candidate, pass_count: int) -> str:
 
 
 def render_pulse_email(
-    items: list[tuple[Candidate, int]],
+    items: list[tuple],
     settings: Settings,
     generated_at: datetime,
 ) -> str:
@@ -710,9 +954,13 @@ def render_pulse_email(
     report_url = str(settings.get("delivery", "report_url", "") or "")
     window_hours = float(settings.get("pulse", "window_hours", 24.0))
     rows = [_pulse_masthead(items, generated_at, window_hours)]
-    rows.extend(_pulse_runner(candidate, passes) for candidate, passes in items)
+    unpacked = [_pulse_item(item) for item in items]
+    rows.extend(_pulse_runner(candidate, passes, level) for candidate, passes, level in unpacked)
     rows.append(_footer(report_url))
-    preheader = ", ".join(f"${candidate.token.symbol} appeared as a new runner" for candidate, _ in items)
+    preheader = ", ".join(
+        f"${candidate.token.symbol} crossed {level}" if level else f"${candidate.token.symbol} appeared as a new runner"
+        for candidate, _, level in unpacked
+    )
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -738,8 +986,25 @@ def render_email(brief: Brief, settings: Settings) -> str:
 
     if runners:
         rows.append(_lead_recap(runners[0]))
-        rows.append(_section("Runners of the day", "Grouped like a trader recap: theme first, then the coins and why they mattered."))
-        rows.extend(_theme_section(title, members) for title, members in _theme_groups(brief, runners))
+        rows.append(_section(
+            "Runners of the day",
+            "Ranked by the highest market cap reached in the last 24 hours. Faded moves remain in the record; material risks are written beneath them.",
+        ))
+        bands = (
+            ("S", "$1M+ runners"),
+            ("A", "$500K–$1M runners"),
+            ("B", "$250K–$500K runners"),
+        )
+        # ASCII punctuation renders consistently in Gmail and Outlook.
+        bands = (
+            ("S", "$1M+ runners"),
+            ("A", "$500K-$1M runners"),
+            ("B", "$250K-$500K runners"),
+        )
+        for tier, title in bands:
+            members = [candidate for candidate in runners if _candidate_tier(candidate) == tier]
+            if members:
+                rows.append(_peak_tier_section(title, members))
     else:
         rows.append(_section("Runners of the day"))
         rows.append(_empty_state())

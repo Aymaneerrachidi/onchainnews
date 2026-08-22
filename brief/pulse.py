@@ -31,6 +31,7 @@ log = logging.getLogger("brief.pulse")
 class PulseTrigger:
     candidate: Candidate
     passes: list[dict[str, Any]]
+    alert_level: str = ""
     image_path: Path | None = None
     x_post_id: str | None = None
     error: str | None = None
@@ -109,6 +110,12 @@ def _pass_entry(candidate: Candidate, now: datetime) -> dict[str, Any]:
         "change6h": getattr(token, "price_change_6h", token.price_change_24h),
         "change1h": token.price_change_1h,
         "runMultiple": candidate.run_multiple,
+        "startMarketCap": getattr(candidate, "start_market_cap", None),
+        "peakMarketCap": getattr(candidate, "peak_market_cap", None),
+        "peakMultiple": getattr(candidate, "peak_multiple", None),
+        "drawdownFromPeakPct": getattr(candidate, "drawdown_from_peak_pct", None),
+        "runnerTier": getattr(candidate, "runner_tier", ""),
+        "roundTrip": getattr(candidate, "round_trip", False),
         "turnover": getattr(signals, "turnover", token.volume_24h / token.market_cap if token.market_cap else 0),
         "ageHours": getattr(signals, "age_hours", None),
         "buyRatio6h": getattr(signals, "buy_imbalance_6h", None),
@@ -133,12 +140,12 @@ def record_runner_passes(
     required_passes: int,
     repost_after_hours: float,
     min_gap_minutes: float,
-) -> list[tuple[Candidate, list[dict[str, Any]]]]:
+) -> list[tuple[Candidate, list[dict[str, Any]], str]]:
     cutoff = now.astimezone(timezone.utc) - timedelta(hours=window_hours)
     posted_cutoff = now.astimezone(timezone.utc) - timedelta(hours=repost_after_hours)
     passes = state.setdefault("passes", {})
     posted = state.setdefault("posted", {})
-    triggered: list[tuple[Candidate, list[dict[str, Any]]]] = []
+    triggered: list[tuple[Candidate, list[dict[str, Any]], str]] = []
 
     active_mints = {candidate.token.mint for candidate in runners}
     for mint in list(passes):
@@ -163,11 +170,27 @@ def record_runner_passes(
         ]
         passes[mint] = entries
 
-        last_posted = _parse_time(posted.get(mint))
+        peak = float(getattr(candidate, "peak_market_cap", None) or candidate.token.market_cap or 0)
+        if peak >= 10_000_000:
+            alert_level = "10M"
+        elif peak >= 5_000_000:
+            alert_level = "5M"
+        elif peak >= 1_000_000:
+            alert_level = "S"
+        elif peak >= 500_000:
+            alert_level = "A"
+        elif peak >= 250_000:
+            alert_level = "B"
+        else:
+            # Below the lifecycle floor is still stored in the market tape but
+            # is not an hourly runner alert.
+            continue
+        alert_key = f"{mint}:{alert_level}"
+        last_posted = _parse_time(posted.get(alert_key) or posted.get(mint))
         already_posted = last_posted is not None and last_posted >= posted_cutoff
         if len(entries) >= required_passes and not already_posted:
-            triggered.append((candidate, entries))
-            posted[mint] = _iso(now)
+            triggered.append((candidate, entries, alert_level))
+            posted[alert_key] = _iso(now)
 
     state["updatedAt"] = _iso(now)
     return triggered
@@ -808,6 +831,8 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
         for mint in manually_excluded_mints:
             state_passes.pop(mint, None)
             state_posted.pop(mint, None)
+            for alert_key in [key for key in state_posted if key.startswith(f"{mint}:")]:
+                state_posted.pop(alert_key, None)
     allowed_chains = {
         str(chain).strip().lower()
         for chain in (pulse_settings.get("thresholds", "chains", ["solana"]) or ["solana"])
@@ -842,8 +867,8 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
     telegram_lines: list[str] = []
     max_posts = int(settings.get("pulse", "max_posts_per_run", 0) or 0)
     delivery_batch = triggered if max_posts <= 0 else triggered[:max_posts]
-    for candidate, passes in delivery_batch:
-        trigger = PulseTrigger(candidate=candidate, passes=passes)
+    for candidate, passes, alert_level in delivery_batch:
+        trigger = PulseTrigger(candidate=candidate, passes=passes, alert_level=alert_level)
         try:
             if bool(settings.get("pulse", "openai_image_enabled", True)) and openai_image_configured():
                 try:
@@ -864,7 +889,7 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
             log.warning("pulse_trigger_failed mint=%s error=%s", candidate.token.mint, exc)
         triggers.append(trigger)
         telegram_lines.append(
-            f"${candidate.token.symbol} appeared as a new hourly runner - "
+            f"${candidate.token.symbol} crossed {alert_level} - "
             f"{candidate.run_multiple:.1f}x, {money(candidate.token.market_cap)} mcap"
         )
     save_state(state_path, state)

@@ -20,6 +20,7 @@ from brief.intelligence import (
     pool_liquidity_proxy,
 )
 from brief.journal import build_journal, assign_lore, journal_rank_key, inorganic_reasons, rug_or_bundle, risk_labels
+from brief.lifecycle import attach_lifecycles, build_structured_recap, persist_market_tape
 from brief.kol import KolTracker
 from brief.ledger import Ledger, iso
 from brief.models import (
@@ -49,9 +50,11 @@ from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
 from brief.sources.dune import DuneSource
 from brief.sources.goplus import GoPlusSource, supports as goplus_supports
 from brief.sources.geckoterminal import GeckoTerminalSource
+from brief.sources.gmgn import GmgnDiscovery, GmgnSource, aggregate_wallet_evidence
 from brief.sources.helius import HeliusSource
 from brief.sources.http import CachedHttpClient
 from brief.sources.jupiter import JupiterSource
+from brief.sources.openintel import OpenIntelSource
 from brief.sources.rugcheck import RugCheckSource
 from brief.sources.social import (
     SocialVerifier,
@@ -106,7 +109,11 @@ def kol_discovery_mints(kol_activity: dict[str, object], settings: Settings) -> 
 
 
 def _kol_touch_count(candidate: Candidate) -> int:
-    return len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+    local = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    flow = gmgn.get("walletFlow", {}) or {}
+    gmgn_wallets = set(flow.get("kolBuyers", [])) | set(flow.get("kolSellers", []))
+    return max(local, len(gmgn_wallets), int(gmgn.get("kolCount") or 0))
 
 
 def _kol_record_touch_count(record: object) -> int:
@@ -498,6 +505,8 @@ async def _apply_holder_cluster_precheck(
     top_n = int(holder_settings.get("runner_cluster_top_holders", 24) or 24)
     min_market_cap = float(holder_settings.get("runner_cluster_min_market_cap", 200_000) or 200_000)
     min_volume = float(holder_settings.get("runner_cluster_min_volume_24h", 250_000) or 250_000)
+    max_age_hours = float(holder_settings.get("runner_cluster_max_age_hours", 48) or 48)
+    max_holder_count = int(holder_settings.get("runner_cluster_max_holder_count", 30_000) or 30_000)
     min_members = int(holder_settings.get("same_funder_cluster_min_wallets", 6) or 6)
     min_cluster_pct = float(holder_settings.get("same_funder_cluster_min_supply_pct", 2.0) or 2.0)
     max_window = float(holder_settings.get("same_funder_cluster_window_minutes", 240) or 240)
@@ -511,11 +520,16 @@ async def _apply_holder_cluster_precheck(
         if candidate.token.chain_id.lower() == "solana"
         and candidate.token.market_cap >= min_market_cap
         and candidate.token.volume_24h >= min_volume
+        and candidate.signals.age_hours is not None
+        and candidate.signals.age_hours <= max_age_hours
+        and (
+            (candidate.safety.holder_count or candidate.enrichment.holder_count or 0) <= max_holder_count
+        )
     ]
     if bool(settings.get("journal", "require_kol_trade_for_publish", False)):
         eligible = [
             candidate for candidate in eligible
-            if candidate.kol_buyers or candidate.kol_sellers or candidate.kol_holders
+            if _kol_touch_count(candidate) > 0
         ]
     eligible.sort(
         key=lambda candidate: (
@@ -774,6 +788,50 @@ async def build_brief(
             metas, tokens, ctos = [], [], {}
             statuses.append(SourceStatus("Dexscreener", False, str(exc)))
 
+        # GMGN adds launch-stage breadth, attention ranks, platform-tagged KOL
+        # and smart-money trades, ATH context, and manipulation fields. It is a
+        # union source: no GMGN flag can erase a run found by another provider.
+        gmgn = GmgnSource(
+            timeout=float(settings.get("gmgn", "timeout_seconds", 35)),
+            ledger=ledger,
+            cache_ttl=int(settings.get("gmgn", "cache_ttl_seconds", 900)),
+            min_interval_seconds=float(settings.get("gmgn", "min_interval_seconds", 1.25)),
+            chains=chains,
+        )
+        gmgn_evidence: dict[str, dict[str, object]] = {}
+        gmgn_wallet_events: list[dict[str, object]] = []
+        gmgn_discovery = (
+            await gmgn.discover(now)
+            if bool(settings.get("gmgn", "enabled", True)) and not fixture_path and not replay_date
+            else GmgnDiscovery(statuses=[SourceStatus(
+                "GMGN", False,
+                "disabled for deterministic fixture/replay" if (fixture_path or replay_date) else "disabled in [gmgn]",
+            )])
+        )
+        statuses.extend(gmgn_discovery.statuses)
+        if commit and gmgn_discovery.statuses:
+            gmgn_status = gmgn_discovery.statuses[-1]
+            ledger.record_provider_health("gmgn", gmgn_status.available, now, gmgn_status.detail)
+        if gmgn_discovery.tokens:
+            tokens = merge_token_snapshots([*tokens, *gmgn_discovery.tokens])
+        gmgn_evidence = gmgn_discovery.evidence
+        gmgn_wallet_events = gmgn_discovery.wallet_events
+        if commit:
+            for event in gmgn_wallet_events:
+                occurred = event.get("occurredAt")
+                if not isinstance(occurred, datetime) or occurred < window_start or occurred > now:
+                    continue
+                ledger.record_wallet_event(
+                    event_key=str(event.get("eventKey") or ""),
+                    mint=str(event.get("mint") or ""),
+                    wallet=str(event.get("wallet") or ""),
+                    wallet_kind=str(event.get("walletKind") or "unknown"),
+                    side=str(event.get("side") or "unknown"),
+                    occurred_at=occurred,
+                    amount_usd=float(event.get("amountUsd") or 0) or None,
+                    payload={"name": event.get("name")},
+                )
+
         # Birdeye ranks the whole token universe by 24h volume. Those names
         # enter the brief only as mover candidates, so they are pre-filtered on
         # the motion gate before reaching the expensive safety path.
@@ -920,9 +978,14 @@ async def build_brief(
                 log.warning("kol_tracking_failed error=%s", exc)
                 statuses.append(SourceStatus("KOL wallet flow", False, str(exc)))
         else:
+            kol_detail = (
+                "legacy Helius wallet sweep disabled; GMGN is the primary broad KOL/smart-money source"
+                if not bool(settings.get("kol", "enabled", True))
+                else "no wallets configured; add addresses to [kol].wallets in config.toml"
+            )
             statuses.append(SourceStatus(
                 "KOL wallet flow", False,
-                "no wallets configured; add addresses to [kol].wallets in config.toml",
+                kol_detail,
             ))
 
         if kol_activity:
@@ -961,7 +1024,58 @@ async def build_brief(
                     log.warning("pulse_mint_discovery_failed error=%s", exc)
                     statuses.append(SourceStatus("Intraday tape discovery", False, str(exc)))
 
+        # GMGN hourly candles verify what happened inside the actual trailing
+        # day.  This is especially important for 24-30h-old launches and for
+        # older coins that spiked and faded before the morning report.
+        if (
+            bool(settings.get("gmgn", "kline_verification_enabled", True))
+            and not fixture_path
+            and not replay_date
+        ):
+            statuses.append(await gmgn.enrich_runner_klines(
+                tokens,
+                gmgn_evidence,
+                now=now,
+                limit=int(settings.get("gmgn", "kline_candidate_limit", 40) or 40),
+                min_kol_count=int(settings.get("journal", "min_kol_trades_for_publish", 1) or 1),
+            ))
+
+        # Store the complete provider union before any safety/editorial gate.
+        # This is what lets tomorrow's recap prove that a questionable token
+        # still ran, peaked, and round-tripped instead of disappearing.
+        new_milestones = persist_market_tape(
+            ledger, tokens, now, provider="provider-union", commit=commit
+        )
+        statuses.append(SourceStatus(
+            "Lifecycle market tape",
+            True,
+            f"{len(tokens)} current observations stored; {sum(len(v) for v in new_milestones.values())} new milestones",
+        ))
         token_by_mint = {token.mint: token for token in tokens}
+        peak_floor = float(settings.get("journal", "peak_market_cap_floor", 250_000) or 250_000)
+
+        def peak_provenance(token: TokenSnapshot) -> float:
+            """Best peak that can honestly be assigned to this 24h window."""
+            age = _token_age_hours(token, now)
+            token_gmgn = gmgn_evidence.get(token.mint, {}) or {}
+            gmgn_ath = float(token_gmgn.get("athMarketCap") or 0)
+            kline_peak = float(token_gmgn.get("kline24hPeakMarketCap") or 0)
+            # Lifetime ATH is a valid daily peak only when the whole token life
+            # sits inside this report window.
+            young_ath = gmgn_ath if age is not None and age <= 24 else 0.0
+            lifecycle = ledger.lifecycle(token.mint, window_start, now)
+            local_peak = float((lifecycle or {}).get("peak_market_cap") or 0)
+            daily_move_peak = float(token.market_cap or 0) if token.price_change_24h >= float(
+                settings.get("journal", "min_daily_change_pct", 25.0) or 25.0
+            ) else 0.0
+            return max(young_ath, kline_peak, local_peak, daily_move_peak)
+
+        peak_tape = {
+            token.mint: peak
+            for token in tokens
+            if token.chain_id.lower() in chains
+            and (peak := peak_provenance(token)) >= peak_floor
+        }
         hard_pass_mints = [
             token.mint for token in tokens
             if token.chain_id.lower() in chains
@@ -985,7 +1099,7 @@ async def build_brief(
         chain_of = {token.mint: token.chain_id.lower() for token in tokens}
         solana_mints = sorted(
             {
-                m for m in [*hard_pass_mints, *kol_tape_mints]
+                m for m in [*hard_pass_mints, *kol_tape_mints, *peak_tape]
                 if chain_of.get(m) == "solana"
             }
         )
@@ -1007,7 +1121,7 @@ async def build_brief(
         evm_mints: dict[str, list[str]] = {}
         unchecked_chains: set[str] = set()
         skipped = 0
-        for mint in hard_pass_mints:
+        for mint in dict.fromkeys([*hard_pass_mints, *peak_tape]):
             chain = chain_of.get(mint, "")
             if chain == "solana":
                 continue
@@ -1015,10 +1129,25 @@ async def build_brief(
                 unchecked_chains.add(chain)
                 continue
             token = token_by_mint.get(mint)
-            if token is not None and not could_be_reported(token):
+            if token is not None and mint not in peak_tape and not could_be_reported(token):
                 skipped += 1
                 continue
             evm_mints.setdefault(chain, []).append(mint)
+        max_goplus_per_chain = int(settings.get("goplus", "max_tokens_per_chain", 20) or 20)
+        if max_goplus_per_chain > 0:
+            for chain, mints in list(evm_mints.items()):
+                ranked_mints = sorted(
+                    dict.fromkeys(mints),
+                    key=lambda mint: (
+                        bool((gmgn_evidence.get(mint, {}) or {}).get("organicQualified")),
+                        int((gmgn_evidence.get(mint, {}) or {}).get("kolCount") or 0),
+                        float(token_by_mint[mint].volume_24h or 0) if mint in token_by_mint else 0.0,
+                        float(token_by_mint[mint].market_cap or 0) if mint in token_by_mint else 0.0,
+                    ),
+                    reverse=True,
+                )
+                skipped += max(0, len(ranked_mints) - max_goplus_per_chain)
+                evm_mints[chain] = ranked_mints[:max_goplus_per_chain]
         if skipped:
             log.info("goplus_prefilter skipped=%s of %s evm tokens", skipped, skipped + sum(len(v) for v in evm_mints.values()))
 
@@ -1064,7 +1193,7 @@ async def build_brief(
             ))
 
         enrichments: dict[str, Enrichment] = {
-            mint: Enrichment() for mint in {*hard_pass_mints, *kol_tape_mints}
+            mint: Enrichment() for mint in {*hard_pass_mints, *kol_tape_mints, *peak_tape}
         }
         if helius.configured and solana_mints:
             try:
@@ -1080,6 +1209,19 @@ async def build_brief(
             ))
         else:
             statuses.append(SourceStatus("Helius", False, "not configured; holder and authority cross-checks unavailable"))
+
+        # Fill only missing values from GMGN. RugCheck/Helius remain independent
+        # checks; agreement is preserved as provenance, disagreement is not
+        # overwritten by whichever provider happened to return last.
+        for mint, evidence in gmgn_evidence.items():
+            report = safety.setdefault(mint, SafetyReport(mint))
+            if report.holder_count is None and evidence.get("holders") is not None:
+                report.holder_count = int(evidence["holders"])
+            if report.top10_pct is None and evidence.get("top10Pct") is not None:
+                report.top10_pct = float(evidence["top10Pct"])
+            enrichment = enrichments.setdefault(mint, Enrichment())
+            if enrichment.holder_count is None and evidence.get("holders") is not None:
+                enrichment.holder_count = int(evidence["holders"])
 
         # A morning snapshot cannot prove where a faded coin traded earlier.
         # Reconstruct the 30-hour high from free hourly candles. KOL profit by
@@ -1190,7 +1332,10 @@ async def build_brief(
                 except Exception as exc:
                     statuses.append(SourceStatus("Watchlist pair lookup", False, str(exc)))
             auto_candidates = sorted(
-                [token_by_mint[mint] for mint in hard_pass_mints if mint in token_by_mint],
+                [
+                    token_by_mint[mint] for mint in hard_pass_mints
+                    if mint in token_by_mint and token_by_mint[mint].chain_id.lower() == "solana"
+                ],
                 key=lambda token: (
                     1 if token.mint in ctos else 0,
                     token.pair_created_at.timestamp() if token.pair_created_at else 0,
@@ -1365,6 +1510,27 @@ async def build_brief(
         candidates, exclusions, journal_pool = screen(
             tokens, safety, enrichments, ctos, ledger, settings, now
         )
+        # The ordinary screen starts from the current $200k floor. Re-add every
+        # independently proven 24h peak so a coin that touched $1m and returned
+        # to $80k still appears in the recap with its current drawdown and risk.
+        existing_journal_mints = {candidate.token.mint for candidate in journal_pool}
+        for mint, peak in peak_tape.items():
+            if mint in existing_journal_mints:
+                continue
+            token = token_by_mint.get(mint)
+            if token is None:
+                continue
+            candidate = Candidate(
+                token=token,
+                signals=compute_signals(token, enrichments.get(mint, Enrichment()), ctos.get(mint), now),
+                safety=safety.get(mint, SafetyReport(mint)),
+                enrichment=enrichments.get(mint, Enrichment()),
+                cto=ctos.get(mint),
+            )
+            candidate.observed_peak_market_cap = peak
+            populate_editorial_reasons(candidate)
+            journal_pool.append(candidate)
+            existing_journal_mints.add(mint)
         scanned_wallets = kol_tracker.scanned if kol_tracker.enabled else 0
         for candidate in journal_pool:
             # The tracked wallets are Solana wallets. Recording zero coverage on
@@ -1438,6 +1604,31 @@ async def build_brief(
         )
         if kol_tape_extra:
             journal_pool = [*journal_pool, *kol_tape_extra]
+        if (
+            bool(settings.get("gmgn", "runner_trader_enrichment", True))
+            and journal_pool
+            and not fixture_path
+            and not replay_date
+        ):
+            statuses.append(await gmgn.enrich_runner_traders(
+                journal_pool,
+                gmgn_evidence,
+                limit=int(settings.get("gmgn", "runner_trader_limit", 25) or 25),
+                rows_per_token=int(settings.get("gmgn", "runner_trader_rows", 20) or 20),
+            ))
+        for candidate in journal_pool:
+            evidence = dict(gmgn_evidence.get(candidate.token.mint, {}))
+            wallet_flow = aggregate_wallet_evidence(
+                gmgn_wallet_events, candidate.token.mint, candidate.token.chain_id.lower()
+            )
+            wallet_flow["coverageAvailable"] = (
+                candidate.token.chain_id.lower() in gmgn_discovery.wallet_flow_chains
+            )
+            evidence["walletFlow"] = wallet_flow
+            candidate.provider_evidence["gmgn"] = evidence
+            candidate.kol_buyers = sorted(set(candidate.kol_buyers) | set(wallet_flow.get("kolBuyerNames", [])))
+            candidate.kol_sellers = sorted(set(candidate.kol_sellers) | set(wallet_flow.get("kolSellerNames", [])))
+        attach_lifecycles(journal_pool, ledger, now)
         score_candidates(journal_pool, settings)
         if bool(settings.get("holders", "enabled", True)):
             statuses.append(await _apply_holder_cluster_precheck(
@@ -1512,6 +1703,20 @@ async def build_brief(
                         recovered.append(candidate)
                         existing.add(mint)
                     if recovered:
+                        for candidate in recovered:
+                            evidence = dict(gmgn_evidence.get(candidate.token.mint, {}))
+                            wallet_flow = aggregate_wallet_evidence(
+                                gmgn_wallet_events, candidate.token.mint, candidate.token.chain_id.lower()
+                            )
+                            wallet_flow["coverageAvailable"] = (
+                                candidate.token.chain_id.lower() in gmgn_discovery.wallet_flow_chains
+                            )
+                            evidence["walletFlow"] = wallet_flow
+                            candidate.provider_evidence["gmgn"] = evidence
+                            candidate.kol_buyers = sorted(set(candidate.kol_buyers) | set(wallet_flow.get("kolBuyerNames", [])))
+                            candidate.kol_sellers = sorted(set(candidate.kol_sellers) | set(wallet_flow.get("kolSellerNames", [])))
+                        attach_lifecycles(recovered, ledger, now)
+                        score_candidates(recovered, settings)
                         blocked_mints = {candidate.token.mint for candidate in recovered}
                         blocked_runners = [
                             candidate for candidate in blocked_runners
@@ -1571,8 +1776,8 @@ async def build_brief(
             ]
         min_kol = int(settings.get("kol", "min_buyers_to_flag", 2))
         kol_flagged = sorted(
-            (c for c in runners if len(c.kol_buyers) >= min_kol),
-            key=lambda c: len(c.kol_buyers),
+            (c for c in runners if _kol_touch_count(c) >= min_kol),
+            key=_kol_touch_count,
             reverse=True,
         )
         # Where the money was actually made, whether or not the coin ran today.
@@ -1608,7 +1813,11 @@ async def build_brief(
         # every run; social associations are labelled by match confidence.
         evidence_candidates: list[Candidate] = []
         seen_evidence: set[str] = set()
-        for candidate in [*runners, *selected]:
+        peak_context_candidates = [
+            candidate for candidate in blocked_runners
+            if candidate.runner_tier in {"S", "A", "B"}
+        ]
+        for candidate in [*runners, *peak_context_candidates, *selected]:
             if candidate.token.mint not in seen_evidence:
                 evidence_candidates.append(candidate)
                 seen_evidence.add(candidate.token.mint)
@@ -1653,6 +1862,27 @@ async def build_brief(
                 else "no monitored accounts configured"
             )
             statuses.append(SourceStatus("X monitored accounts", False, detail))
+
+        open_intel = OpenIntelSource(
+            http,
+            str(urls.get("openintel_base_url", "https://ai.6551.io")),
+            ttl=int(cache.get("openintel_ttl_seconds", 900)),
+        )
+        if bool(settings.get("openintel", "enabled", True)):
+            _, free_status = await open_intel.free_market_context()
+            statuses.append(free_status)
+            open_status = await open_intel.enrich(
+                evidence_candidates,
+                now,
+                limit=int(settings.get("openintel", "finalist_limit", 10)),
+            )
+        else:
+            open_status = SourceStatus("OpenNews/OpenTwitter token evidence", False, "disabled in [openintel]")
+        statuses.append(open_status)
+        if commit:
+            ledger.record_provider_health(
+                "opennews-opentwitter", open_status.available, now, open_status.detail
+            )
 
         def rundown_rank(candidate: Candidate) -> tuple[float, ...]:
             confidence = {"confirmed": 3.0, "probable": 2.0, "possible": 1.0}
@@ -1732,26 +1962,17 @@ async def build_brief(
                 "and is not an exhaustive Solana launch count."
             )
         strongest_definition = (
-            "Measurable market structure: turnover, liquidity relative to market cap, broad six-hour buying, "
-            "locked or burned LP, improving holders, and acceptable concentration."
+            "The highest market cap verifiably reached inside the report window, followed by volume, liquidity, "
+            "holders, KOL or smart-money activity, and whether the move held or faded."
         )
         interesting_definition = (
             "A genuinely fresh pair, new profile discovery, measurable CTO activity, linked context, or holder growth; "
             "reused tickers are withheld by a transparent originality proxy."
         )
         selection_rule = (
-            f"Every track requires market cap at least ${float(settings.get('thresholds', 'min_market_cap', 250000)):,.0f}, "
-            f"liquidity at least ${float(settings.get('thresholds', 'min_liquidity', 20000)):,.0f}, a passed safety gate, "
-            "and an unreused ticker. NEW: created inside 24h with at least "
-            f"{int(settings.get('editorial', 'min_strength_signals', 3))} strength and "
-            f"{int(settings.get('editorial', 'min_interest_signals', 2))} interest signals, maximum {top_limit} names. "
-            f"MOVER: any age up to {float(settings.get('movers', 'max_age_days', 120)):.0f}d, at least "
-            f"{float(settings.get('movers', 'min_price_change_24h', 25)):.0f}% in 24h on "
-            f"${float(settings.get('movers', 'min_volume_24h', 100000)):,.0f} volume and "
-            f"{float(settings.get('movers', 'min_turnover', 0.5)):.2f}x turnover, maximum "
-            f"{int(settings.get('movers', 'max_movers', 5))} names. "
-            f"CTO: takeover claimed within {float(settings.get('cto', 'max_claim_age_days', 7)):.0f}d with measurable "
-            f"post-claim activity, maximum {int(settings.get('cto', 'max_ctos', 3))} names."
+            "KOL-backed recap across Solana, Base, BNB Chain, and Ethereum: launches up to 30h old that crossed $250K, "
+            "plus older coins that rose at least 50% to their GMGN-verified 24h high or printed a fresh ATH. "
+            "Faded moves remain visible; contract, bundle, holder, and wash evidence is attached as context."
         )
         statuses.append(SourceStatus(
             "24h market-indexed launches",
@@ -1840,6 +2061,21 @@ async def build_brief(
                 )
         onchain = _merge_material(onchain, material, token_by_mint)
 
+        recap_candidates: list[Candidate] = []
+        recap_seen: set[str] = set()
+        for candidate in runners:
+            candidate.provider_evidence["editorial"] = {"published": True}
+        for candidate in blocked_runners:
+            candidate.provider_evidence["editorial"] = {"published": False}
+        for candidate in [*runners, *blocked_runners]:
+            if candidate.token.mint in recap_seen:
+                continue
+            recap_seen.add(candidate.token.mint)
+            recap_candidates.append(candidate)
+        recap = build_structured_recap(recap_candidates, now)
+        if commit:
+            ledger.save_daily_recap(now.date().isoformat(), now, window_start, recap)
+
         return Brief(
             generated_at=now,
             scorecard=ledger.scorecard(now),
@@ -1852,7 +2088,10 @@ async def build_brief(
             blocked_runners=blocked_runners,
             lore_groups=lore_groups,
             kol_flagged=kol_flagged,
-            kol_wallet_count=len(kol_tracker.wallets),
+            kol_wallet_count=(
+                kol_tracker.scanned
+                + len({str(event.get("wallet")) for event in gmgn_wallet_events if event.get("wallet")})
+            ),
             kol_profit_table=kol_profit_table,
             onchain=sorted(onchain, key=lambda finding: (finding.priority, finding.symbol)),
             excluded=exclusions,
@@ -1870,6 +2109,7 @@ async def build_brief(
             raw_launch_count=len(collector_rows),
             indexed_launch_count=len(indexed_launch_mints),
             collector_started_at=collector_started_at,
+            recap=recap,
         )
     finally:
         await http.close()

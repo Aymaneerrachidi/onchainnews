@@ -35,6 +35,7 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("--no-telegram", action="store_true", help="skip Telegram even when configured")
     run.add_argument("--no-email", action="store_true", help="skip email even when configured")
     sub.add_parser("status", help="show ledger statistics")
+    sub.add_parser("providers", help="show persisted provider health and circuit state")
     prune = sub.add_parser("prune", help="delete archived HTTP bodies older than the retention window")
     prune.add_argument("--days", type=int, help="override run.archive_retention_days")
     prune.add_argument("--vacuum", action="store_true", help="rewrite the database file to reclaim space")
@@ -267,6 +268,33 @@ async def watcher(args: argparse.Namespace) -> int:
         ledger.close()
 
 
+def providers(args: argparse.Namespace) -> int:
+    settings = load_settings(args.config)
+    ledger = open_ledger(settings)
+    try:
+        table = Table(title="Provider Health")
+        table.add_column("Provider")
+        table.add_column("State")
+        table.add_column("Last success")
+        table.add_column("Last failure")
+        table.add_column("Failures", justify="right")
+        table.add_column("Detail")
+        rows = ledger.provider_states()
+        for row in rows:
+            state = "degraded" if int(row["consecutive_failures"] or 0) else "available"
+            table.add_row(
+                row["provider"], state, row["last_success"] or "never",
+                row["last_failure"] or "never", str(row["consecutive_failures"] or 0),
+                row["detail"] or "",
+            )
+        if not rows:
+            table.add_row("none", "unknown", "never", "never", "0", "Run the scanner once to populate health.")
+        Console().print(table)
+        return 0
+    finally:
+        ledger.close()
+
+
 async def pulse(args: argparse.Namespace) -> int:
     settings = load_settings(args.config)
     logging.basicConfig(
@@ -292,7 +320,10 @@ async def pulse(args: argparse.Namespace) -> int:
                     f"[yellow]Hourly email enabled but {required_key}/email_to unset; delivery skipped.[/yellow]"
                 )
             else:
-                items = [(trigger.candidate, len(trigger.passes)) for trigger in result.triggers]
+                items = [
+                    (trigger.candidate, len(trigger.passes), trigger.alert_level)
+                    for trigger in result.triggers
+                ]
                 generated_at = datetime.now(ZoneInfo(str(settings.get("run", "timezone", "UTC"))))
                 try:
                     count = await send_email(
@@ -308,6 +339,7 @@ async def pulse(args: argparse.Namespace) -> int:
                     posted = state.setdefault("posted", {})
                     for trigger in result.triggers:
                         posted.pop(trigger.candidate.token.mint, None)
+                        posted.pop(f"{trigger.candidate.token.mint}:{trigger.alert_level}", None)
                     save_state(result.state_path, state)
                     logging.getLogger("brief.delivery").error("Hourly email failed: %s", exc)
                     console.print("[bold red]Hourly email failed; trigger will retry next run.[/bold red]")
@@ -407,6 +439,8 @@ def cli() -> None:
         code = asyncio.run(run(args))
     elif args.command == "status":
         code = status(args)
+    elif args.command == "providers":
+        code = providers(args)
     elif args.command == "prune":
         code = prune(args)
     elif args.command == "unretire":
