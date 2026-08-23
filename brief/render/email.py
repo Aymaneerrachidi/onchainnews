@@ -8,10 +8,12 @@ inline-styled so the report reads like a polished morning memo everywhere.
 from __future__ import annotations
 
 import html
+import re
 from datetime import datetime
 
 from brief.config import Settings
 from brief.lifecycle import tier_for_peak
+from brief.journal import kol_trade_count
 from brief.models import Brief, Candidate
 from brief.render.formatting import money, pct
 
@@ -46,7 +48,7 @@ CHAIN_NAMES = {
     "robinhood": "Robinhood",
 }
 
-UNKNOWN_MARKERS = ("unknown", "no contract safety source", "not published")
+UNKNOWN_MARKERS = ("unknown", "unavailable", "no contract safety source", "not published")
 
 
 def _e(value: object) -> str:
@@ -80,14 +82,77 @@ def _chain_name(chain: str) -> str:
     return CHAIN_NAMES.get(str(chain or "").lower(), str(chain or "unknown"))
 
 
+def _chart_url(candidate: Candidate) -> str:
+    """Keep data-vendor branding out of the reader-facing newsletter."""
+    chain = {
+        "solana": "solana",
+        "ethereum": "ethereum",
+        "bsc": "bsc",
+        "base": "base",
+    }.get(candidate.token.chain_id.lower(), candidate.token.chain_id.lower())
+    return f"https://dexscreener.com/{chain}/{candidate.token.mint}"
+
+
+def _provider_neutral_email(body: str) -> str:
+    """The product is Fomo Onchain; upstream vendors stay behind the curtain."""
+    body = re.sub(r"(?i)\bGMGN-tagged\b", "tracked", body)
+    body = re.sub(r"(?i)\bGMGN\b", "on-chain", body)
+    return body
+
+
+def _intraday_peak_pct(candidate: Candidate) -> float:
+    evidence = candidate.provider_evidence.get("gmgn", {}) or {}
+    value = evidence.get("kline24hPeakFromOpenPct")
+    if value is not None:
+        return float(value)
+    return float(candidate.token.price_change_24h or 0.0)
+
+
+def _intraday_multiple(candidate: Candidate) -> float:
+    return max(0.0, 1.0 + _intraday_peak_pct(candidate) / 100.0)
+
+
+def _window_open_market_cap(candidate: Candidate) -> float:
+    evidence = candidate.provider_evidence.get("gmgn", {}) or {}
+    peak_cap = float(evidence.get("kline24hPeakMarketCap") or 0.0)
+    open_price = float(evidence.get("kline24hOpenPrice") or 0.0)
+    high_price = float(evidence.get("kline24hHighPrice") or 0.0)
+    if peak_cap > 0 and open_price > 0 and high_price > 0:
+        return peak_cap * open_price / high_price
+    return 0.0
+
+
+def _window_path(candidate: Candidate) -> str:
+    """Explain why an old or faded coin belongs in today's tape."""
+    evidence = candidate.provider_evidence.get("gmgn", {}) or {}
+    start = _window_open_market_cap(candidate)
+    peak = max(
+        float(candidate.token.market_cap or 0.0),
+        float(candidate.peak_market_cap or 0.0),
+        float(candidate.observed_peak_market_cap or 0.0),
+        float(evidence.get("kline24hPeakMarketCap") or 0.0),
+    )
+    current = float(candidate.token.market_cap or 0.0)
+    if start <= 0 or peak <= start:
+        return ""
+    path = f"24h path: {money(start)} to {money(peak)} at the high"
+    drawdown = 100.0 * (1.0 - current / peak) if peak > 0 else 0.0
+    if current > 0 and drawdown >= 10:
+        path += f", then {money(current)} by the cutoff"
+    close_change = evidence.get("kline24hChangePct")
+    if close_change is not None and drawdown >= 25:
+        path += f"; the move faded and finished {float(close_change):+.0f}%"
+    return path
+
+
 def email_subject(brief: Brief, settings: Settings) -> str:
     prefix = str(settings.get("delivery", "email_subject_prefix", "Fomo Onchain"))
     runners = _newsletter_recap_candidates(brief, settings)
     date = brief.generated_at.strftime("%d %b")
     if not runners:
         return f"{prefix} | quiet tape | {date}"
-    top = max(runners, key=lambda c: c.run_multiple)
-    return f"{prefix} | ${top.token.symbol} {top.run_multiple:.0f}x and {len(runners) - 1} more | {date}"
+    top = max(runners, key=peak_cap)
+    return f"{prefix} | ${top.token.symbol} hit {money(peak_cap(top))} and {len(runners) - 1} more | {date}"
 
 
 def _pulse_item(item: tuple) -> tuple[Candidate, int, str]:
@@ -116,11 +181,17 @@ def _age(candidate: Candidate) -> str:
     return f"{hours / 24:.1f}d old"
 
 
+def peak_cap(candidate: Candidate) -> float:
+    """The highest market cap the coin is known to have reached today."""
+    return max(
+        float(candidate.peak_market_cap or 0),
+        float(candidate.observed_peak_market_cap or 0),
+        float(candidate.token.market_cap or 0),
+    )
+
+
 def _size(candidate: Candidate) -> str:
-    run = float(candidate.peak_multiple or candidate.run_multiple or 1.0)
-    if run >= 2:
-        return f"{run:.1f}x"
-    return pct(candidate.token.price_change_24h, 0)
+    return money(peak_cap(candidate))
 
 
 def _candidate_tier(candidate: Candidate) -> str:
@@ -204,7 +275,7 @@ def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candi
     observed.sort(
         key=lambda candidate: (
             candidate.scores.get("runner", 0.0),
-            candidate.run_multiple,
+            peak_cap(candidate),
             candidate.token.volume_24h,
         ),
         reverse=True,
@@ -219,7 +290,7 @@ def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candi
         key=lambda candidate: (
             candidate.token.chain_id.lower() == "solana",
             candidate.scores.get("runner", 0.0),
-            candidate.run_multiple,
+            peak_cap(candidate),
             candidate.token.volume_24h,
         ),
         reverse=True,
@@ -302,7 +373,8 @@ def _descriptor(candidate: Candidate) -> str:
     symbol = str(token.symbol or "").strip("$").strip()
     lore = _clean_lore(candidate.lore)
     bits: list[str] = []
-    if name and name.lower() != symbol.lower():
+    name_core = re.sub(r"(?i)\b(coin|token)\b", "", name).strip(" -_()")
+    if name and name_core.lower() != symbol.lower():
         bits.append(name)
     if lore and lore.lower() not in " ".join(bits).lower():
         bits.append(lore)
@@ -354,24 +426,24 @@ def _coin_thesis(candidate: Candidate) -> str:
     holding_traders = int(gmgn.get("renownedHoldingCount") or 0)
     lore = _clean_lore(candidate.lore)
     descriptor = _descriptor(candidate)
-    if renowned_traders >= 2:
-        return (
-            f"GMGN mapped {renowned_traders} renowned traders: "
-            f"{profitable_traders} profitable and {holding_traders} still holding"
-        )
     if gmgn.get("cto") and (kol_count or smart_count):
-        return f"community takeover with {smart_count} smart-money and {kol_count} renowned/KOL wallets mapped by GMGN"
+        return f"community takeover with {smart_count} smart-money and {kol_count} KOL wallets involved"
     if lore:
         return f"the {lore.lower()} narrative produced one of the window's strongest verified peaks"
     if descriptor not in {"solana", "base", "bnb chain", "ethereum", "unknown"}:
         return descriptor
+    if renowned_traders >= 2:
+        return (
+            f"at least {renowned_traders} tracked KOL traders appeared: "
+            f"{profitable_traders} profitable and {holding_traders} still holding"
+        )
     if kol_count >= 20 and smart_count:
-        return f"an unusually KOL-heavy move with {kol_count} renowned and {smart_count} smart-money wallets on GMGN"
+        return f"an unusually KOL-heavy move with {kol_count} KOL and {smart_count} smart-money wallets involved"
     if kol_count >= 2:
         outcome = "finished net profitable" if candidate.kol_realised_sol > 0.1 else "clustered around the same ticker"
-        return f"KOL consensus trade: {kol_count} tracked or GMGN-tagged wallets {outcome}"
+        return f"KOL consensus trade: {kol_count} tracked wallets {outcome}"
     if smart_count:
-        return f"GMGN maps {smart_count} smart-money wallet{'s' if smart_count != 1 else ''} around the token"
+        return f"{smart_count} smart-money wallet{'s' if smart_count != 1 else ''} appeared around the token"
 
     if candidate.drawdown_from_peak_pct is not None and candidate.drawdown_from_peak_pct >= 40:
         return f"an early runner that gave back {candidate.drawdown_from_peak_pct:.0f}% from its window high"
@@ -382,7 +454,10 @@ def _coin_thesis(candidate: Candidate) -> str:
 
 def _reason_bits(candidate: Candidate) -> list[str]:
     bits: list[str] = []
-    if candidate.drawdown_from_peak_pct is not None and candidate.drawdown_from_peak_pct >= 20:
+    window_path = _window_path(candidate)
+    if window_path:
+        bits.append(window_path)
+    elif candidate.drawdown_from_peak_pct is not None and candidate.drawdown_from_peak_pct >= 20:
         bits.append(
             f"Peaked earlier in the window and is now {candidate.drawdown_from_peak_pct:.0f}% off the high"
         )
@@ -406,7 +481,7 @@ def _reason_bits(candidate: Candidate) -> list[str]:
     if smart:
         structure.append(f"{smart} smart-money")
     if renowned:
-        structure.append(f"{renowned} renowned/KOL")
+        structure.append(f"{renowned} KOL")
     if candidate.safety.top10_pct is not None:
         structure.append(f"top 10 at {candidate.safety.top10_pct:.0f}%")
     bundler = gmgn.get("bundlerRate")
@@ -416,7 +491,7 @@ def _reason_bits(candidate: Candidate) -> list[str]:
     if insider is not None:
         structure.append(f"insiders {float(insider):.1%}")
     if structure:
-        bits.append("GMGN structure: " + ", ".join(structure[:4]))
+        bits.append("Wallet structure: " + ", ".join(structure[:4]))
     traders = list(gmgn.get("renownedTraders") or [])
     if traders:
         trusted = [row for row in traders if not row.get("suspicious")]
@@ -430,7 +505,7 @@ def _reason_bits(candidate: Candidate) -> list[str]:
             for row in leaders
         )
         if names:
-            bits.append(f"GMGN KOL outcomes: {names}")
+            bits.append(f"Top KOL outcomes: {names}")
     # For a faded runner, its current-cap turnover sentences use the wrong
     # denominator. The verified peak recap is the useful first read.
     if candidate.observed_peak_market_cap and candidate.read:
@@ -495,12 +570,12 @@ def _kol_wallet_recap(candidate: Candidate) -> str:
         realised = float(gmgn.get("renownedRealizedProfitUsd") or 0)
         trusted = [row for row in traders if not row.get("suspicious")]
         best = max(trusted, key=lambda row: float(row.get("profitUsd") or 0), default=None)
-        bits = [f"{count} renowned traded", f"{profitable} profitable", f"{holding} holding"]
+        bits = [f"{count} KOL wallets traded", f"{profitable} profitable", f"{holding} still holding"]
         if abs(realised) >= 1:
             bits.append(f"realised {money(realised)}")
         if best and float(best.get("profitUsd") or 0) > 0:
             bits.append(f"best {best.get('name') or str(best.get('address') or '')[:8]} {money(float(best.get('profitUsd') or 0))}")
-        return "GMGN KOL tape — " + "; ".join(bits)
+        return "KOL tape - " + "; ".join(bits)
     if candidate.kol_wallets_scanned:
         return f"Tracked wallets — none of {candidate.kol_wallets_scanned} scanned wallets touched it"
     return ""
@@ -512,7 +587,7 @@ def _theme_groups(brief: Brief, runners: list[Candidate]) -> list[tuple[str, lis
     groups: list[tuple[str, list[Candidate]]] = []
 
     lore_groups = getattr(brief, "lore_groups", {}) or {}
-    for lore, members in sorted(lore_groups.items(), key=lambda item: (len(item[1]), max(c.run_multiple for c in item[1])), reverse=True):
+    for lore, members in sorted(lore_groups.items(), key=lambda item: (len(item[1]), max(peak_cap(c) for c in item[1])), reverse=True):
         kept = [by_mint[c.token.mint] for c in members if c.token.mint in by_mint and c.token.mint not in used]
         if len(kept) < 2:
             continue
@@ -541,6 +616,7 @@ def _lead_recap(candidate: Candidate) -> str:
         float(gmgn.get("kline24hPeakMarketCap") or 0.0),
     )
     thesis = _coin_thesis(candidate)
+    path = _window_path(candidate)
     if candidate.news_evidence:
         headline = f"${token.symbol} led on a verified news catalyst"
     elif candidate.x_interactions:
@@ -564,10 +640,15 @@ def _lead_recap(candidate: Candidate) -> str:
         f'<div style="{_txt(30, 850, INK, 1.12, -0.035)};padding-top:10px">'
         f'{_e(headline)}</div>'
         f'<div style="{_txt(16, 450, INK_2, 1.65)};padding-top:13px">'
-        f'Hit {_e(money(hit_mcap))} after a {_e(_size(candidate))} move. {_e(thesis)}.</div>'
-        f'<div style="{_txt(13, 500, MUTED, 1.55)};padding-top:12px">'
+        f'Hit {_e(money(hit_mcap))}. {_e(thesis)}.</div>'
+        + (
+            f'<div style="{_txt(13, 600, MUTED, 1.55)};padding-top:10px">{_e(path)}</div>'
+            if path
+            else ""
+        )
+        + f'<div style="{_txt(13, 500, MUTED, 1.55)};padding-top:12px">'
         f'{_e(money(token.volume_24h))} volume / {_e(money(token.liquidity_usd))} liquidity / {_e(_age(candidate))}</div>'
-        f'<div style="padding-top:17px"><a href="{_e(token.url)}" target="_blank" '
+        f'<div style="padding-top:17px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
         f'style="display:inline-block;background:{INK};color:{SURFACE};border-radius:999px;'
         f'padding:12px 18px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Open chart</a></div>'
         '</td></tr></table></td></tr>'
@@ -626,6 +707,9 @@ def _coin_recap_line(candidate: Candidate) -> str:
         else f"{move_to_high:.0f}% to 24h high"
     ) if gmgn.get("kline24hPeakFromOpenPct") is not None else f"{token.price_change_24h:+.0f}% in 24h"
     facts = [move, _age(candidate)]
+    close_change = gmgn.get("kline24hChangePct")
+    if close_change is not None and abs(float(close_change) - move_to_high) >= 20:
+        facts.insert(1, f"finished {float(close_change):+.0f}%")
     if max(len(candidate.kol_buyers), gmgn_kols):
         facts.append(f"{max(len(candidate.kol_buyers), gmgn_kols)} KOL")
     if gmgn_smart:
@@ -641,7 +725,7 @@ def _coin_recap_line(candidate: Candidate) -> str:
     return (
         '<tr><td style="padding:0 0 15px">'
         f'<div style="{_txt(17, 750, INK, 1.35)}">'
-        f'<a href="{_e(token.url)}" target="_blank" style="color:{INK};text-decoration:none">${_e(token.symbol)}</a>'
+        f'<a href="{_e(_chart_url(candidate))}" target="_blank" style="color:{INK};text-decoration:none">${_e(token.symbol)}</a>'
         f' <span style="color:{MUTED};font-weight:500">-&gt; hit</span> {_e(money(hit_mcap))}'
         f'<span style="color:{MUTED};font-weight:500">, {_e(thesis)}</span></div>'
         f'<div style="{_txt(12, 600, SOFT, 1.45)};padding-top:4px">'
@@ -711,12 +795,12 @@ def _masthead(brief: Brief, runners: list[Candidate]) -> str:
 def _stat_band(brief: Brief, runners: list[Candidate]) -> str:
     chains = {candidate.token.chain_id.lower() for candidate in runners}
     fresh = sum(1 for c in runners if c.signals.age_hours is not None and c.signals.age_hours <= 24)
-    big = sum(1 for c in runners if c.run_multiple >= 5)
+    big = sum(1 for c in runners if peak_cap(c) >= 1_000_000)
     cells = [
         ("Recap coins", str(len(runners))),
         ("Clean", str(len(brief.runners))),
         ("Fresh", str(fresh)),
-        ("Did 5x+", str(big)),
+        ("Hit $1M+", str(big)),
     ]
     columns = "".join(_mini_stat(label, value, BLUE if label == "Did 5x+" else INK) for label, value in cells)
     chain_line = ", ".join(sorted(_chain_name(chain) for chain in chains)) if chains else "No active chains"
@@ -750,12 +834,12 @@ def _hero(candidate: Candidate) -> str:
         "</td>"
         '<td align="right" style="vertical-align:top;white-space:nowrap">'
         f'<div style="{_txt(46, 850, BLUE, 0.95, -0.045)}">{_e(_size(candidate))}</div>'
-        f'<div style="{_txt(12, 750, MUTED, 1.2, 0.08, "uppercase")};padding-top:7px">top runner</div>'
+        f'<div style="{_txt(12, 750, MUTED, 1.2, 0.08, "uppercase")};padding-top:7px">peak market cap</div>'
         "</td></tr></table>"
         f'<div style="{_txt(17, 450, INK_2, 1.7)};padding-top:22px">{_e(candidate.read)}</div>'
         f'<div style="padding-top:22px">{_bar(1.0, BLUE, 10)}</div>'
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:20px"><tr>'
-        f'{_mini_stat("Peak mcap", money(hit_mcap))}'
+        f'{_mini_stat("Now", money(token.market_cap))}'
         f'{_mini_stat("Volume", money(token.volume_24h))}'
         f'{_mini_stat("Liquidity", money(token.liquidity_usd))}'
         f'{_mini_stat("1 hour", pct(token.price_change_1h, 0), last_hour_color)}'
@@ -772,7 +856,7 @@ def _hero(candidate: Candidate) -> str:
             else ""
         )
         + f'<div style="padding-top:22px">'
-        f'<a href="{_e(token.url)}" target="_blank" '
+        f'<a href="{_e(_chart_url(candidate))}" target="_blank" '
         f'style="display:inline-block;background:{INK};color:{SURFACE};border-radius:999px;'
         f'padding:13px 19px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Open chart</a>'
         f'<span style="{_txt(11, 500, MUTED, 1.5)};padding-left:12px;word-break:break-all">{_e(token.mint)}</span>'
@@ -800,14 +884,14 @@ def _runner_row(candidate: Candidate, share: float) -> str:
         '<td style="vertical-align:top;padding-right:12px">'
         f'<div style="{_txt(20, 850, INK, 1.12, -0.02)}">${_e(token.symbol)}</div>'
         f'<div style="{_txt(12, 550, MUTED, 1.5)};padding-top:5px">'
-        f'{_e(_chain_name(token.chain_id))} / {_e(_age(candidate))} / hit {_e(money(hit_mcap))}{_e(kol)}</div>'
+        f'{_e(_chain_name(token.chain_id))} / {_e(_age(candidate))}{_e(kol)}</div>'
         "</td>"
         '<td align="right" style="vertical-align:top;white-space:nowrap">'
         f'<div style="{_txt(26, 850, INK, 1.0, -0.03)}">{_e(_size(candidate))}</div>'
         "</td></tr></table>"
         f'<div style="padding-top:14px">{_bar(share, accent if risks else BLUE, 7)}</div>'
         f'<div style="{_txt(13, 500, reason_color, 1.6)};padding-top:12px">{_e(reason)}</div>'
-        f'<div style="padding-top:13px"><a href="{_e(token.url)}" target="_blank" '
+        f'<div style="padding-top:13px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
         f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Open chart</a></div>'
         "</td></tr></table></td></tr>"
     )
@@ -839,7 +923,7 @@ def _pick_row(candidate: Candidate) -> str:
         f'{_chip(candidate.track.upper(), NIGHT, SURFACE)}'
         f'<span style="{_txt(18, 850, INK, 1.25)};padding-left:9px">${_e(candidate.token.symbol)}</span>'
         f'<div style="{_txt(14, 450, INK_2, 1.7)};padding-top:12px">{_e(candidate.read)}</div>'
-        f'<div style="padding-top:14px"><a href="{_e(candidate.token.url)}" target="_blank" '
+        f'<div style="padding-top:14px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
         f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Open chart</a></div>'
         "</td></tr></table></td></tr>"
     )
@@ -933,9 +1017,9 @@ def _pulse_runner(candidate: Candidate, pass_count: int, alert_level: str = "") 
         f'{_mini_stat("Market cap", money(token.market_cap))}'
         f'{_mini_stat("24h volume", money(token.volume_24h))}'
         f'{_mini_stat("Liquidity", money(token.liquidity_usd))}'
-        f'{_mini_stat("Run", f"{candidate.run_multiple:.1f}x", BLUE)}'
+        f'{_mini_stat("Peak", money(peak_cap(candidate)), BLUE)}'
         '</tr></table>'
-        f'<div style="padding-top:20px"><a href="{_e(token.url)}" target="_blank" '
+        f'<div style="padding-top:20px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
         f'style="display:inline-block;background:{INK};color:{SURFACE};border-radius:999px;'
         f'padding:13px 19px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Open chart</a>'
         f'<div style="{_txt(11, 500, MUTED, 1.55)};padding-top:12px;word-break:break-all">CA: {_e(token.mint)}</div>'
@@ -961,7 +1045,7 @@ def render_pulse_email(
         f"${candidate.token.symbol} crossed {level}" if level else f"${candidate.token.symbol} appeared as a new runner"
         for candidate, _, level in unpacked
     )
-    return (
+    body = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<meta name="x-apple-disable-message-reformatting">'
@@ -974,6 +1058,71 @@ def render_pulse_email(
         f'style="width:640px;max-width:640px;background:{PAPER}">{"".join(rows)}'
         '</table></td></tr></table></body></html>'
     )
+    return _provider_neutral_email(body)
+
+
+
+def _tape_row(candidate: Candidate, rank: int) -> str:
+    """One of the day's biggest markets, told rather than ranked."""
+    token = candidate.token
+    kol_count = kol_trade_count(candidate)
+    kol = (
+        f'<div style="{_txt(13, 650, VIOLET, 1.5)};padding-top:10px">'
+        f"{kol_count} tracked wallets traded it</div>"
+        if kol_count else ""
+    )
+    return (
+        '<tr><td style="padding:0 30px 10px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:18px"><tr>'
+        '<td style="padding:20px 22px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        '<td style="vertical-align:top;padding-right:12px">'
+        f'<div style="{_txt(12, 800, MUTED, 1.2, 0.10)}">{rank:02d}</div>'
+        f'<div style="{_txt(23, 850, INK, 1.1, -0.025)};padding-top:6px">${_e(token.symbol)}</div>'
+        f'<div style="{_txt(12, 550, MUTED, 1.5)};padding-top:5px">'
+        f"{_e(_chain_name(token.chain_id))} / {_e(_age(candidate))}</div></td>"
+        '<td align="right" style="vertical-align:top;white-space:nowrap">'
+        f'<div style="{_txt(20, 850, INK, 1.0, -0.02)}">hit {_e(money(peak_cap(candidate)))}</div>'
+        f'<div style="{_txt(12, 750, MUTED, 1.2, 0.06, "uppercase")};padding-top:6px">'
+        f"{_e(money(token.volume_24h))} traded</div></td>"
+        "</tr></table>"
+        f'<div style="{_txt(15, 450, INK_2, 1.65)};padding-top:14px">{_e(candidate.read)}</div>'
+        + kol +
+        f'<div style="padding-top:13px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
+        f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Open chart</a></div>'
+        "</td></tr></table></td></tr>"
+    )
+
+
+
+def _narrative_section(section: dict, peaks: dict[str, str]) -> str:
+    """One story from the written recap: a headline, its coins, its context."""
+    coins = "".join(
+        '<tr><td style="padding:9px 0 0">'
+        f'<span style="{_txt(16, 850, INK, 1.45)}">${_e(str(item.get("symbol")))}</span>'
+        f'<span style="{_txt(16, 450, INK_2, 1.45)}"> {_e(str(item.get("line")))}</span>'
+        "</td></tr>"
+        for item in section.get("coins") or []
+    )
+    bullets = "".join(
+        '<tr><td style="padding:8px 0 0">'
+        f'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+        f'<td style="vertical-align:top;padding-right:9px;{_txt(15, 800, BLUE, 1.5)}">-</td>'
+        f'<td style="{_txt(14, 450, MUTED, 1.6)}">{_e(str(text))}</td>'
+        "</tr></table></td></tr>"
+        for text in section.get("bullets") or []
+    )
+    return (
+        '<tr><td style="padding:0 30px 14px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:18px"><tr>'
+        '<td style="padding:20px 22px 21px">'
+        f'<div style="{_txt(19, 850, INK, 1.25, -0.02)}">{_e(str(section.get("title") or ""))}</div>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+        f"{coins}{bullets}</table>"
+        "</td></tr></table></td></tr>"
+    )
 
 
 def render_email(brief: Brief, settings: Settings) -> str:
@@ -982,19 +1131,32 @@ def render_email(brief: Brief, settings: Settings) -> str:
     rows: list[str] = []
 
     rows.append(_masthead(brief, runners))
-    rows.append(_stat_band(brief, runners))
+
+    narrative = brief.narrative or {}
+    if narrative.get("sections"):
+        rows.append(_section(
+            "What happened today",
+            str(narrative.get("intro") or "The day grouped by what was actually going on."),
+        ))
+        peaks = {c.token.symbol.upper(): money(peak_cap(c)) for c in brief.runners}
+        for story in narrative["sections"]:
+            rows.append(_narrative_section(story, peaks))
+
+    # Fall back to the ranked tape whenever the writer produced nothing.
+    tape = [] if narrative.get("sections") else [c for c in (brief.headline_tape or [])][:5]
+    if tape:
+        rows.append(_section(
+            "What happened today",
+            "The day's biggest markets by volume traded, whether or not they ran.",
+        ))
+        for index, candidate in enumerate(tape, start=1):
+            rows.append(_tape_row(candidate, index))
 
     if runners:
-        rows.append(_lead_recap(runners[0]))
         rows.append(_section(
             "Runners of the day",
-            "Ranked by the highest market cap reached in the last 24 hours. Faded moves remain in the record; material risks are written beneath them.",
+            "What moved in the last 24 hours. Each line shows the high and whether the move held or faded.",
         ))
-        bands = (
-            ("S", "$1M+ runners"),
-            ("A", "$500K–$1M runners"),
-            ("B", "$250K–$500K runners"),
-        )
         # ASCII punctuation renders consistently in Gmail and Outlook.
         bands = (
             ("S", "$1M+ runners"),
@@ -1013,11 +1175,11 @@ def render_email(brief: Brief, settings: Settings) -> str:
 
     when = brief.generated_at.strftime("%d %b %Y")
     preheader = (
-        f"{len(runners)} runners, {sum(1 for c in runners if c.run_multiple >= 5)} did 5x+"
+        f"{len(runners)} runners, {sum(1 for c in runners if peak_cap(c) >= 1_000_000)} hit $1M+"
         if runners
         else "Nothing ran today that cleared the floors"
     )
-    return (
+    body = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<meta name="x-apple-disable-message-reformatting">'
@@ -1031,3 +1193,4 @@ def render_email(brief: Brief, settings: Settings) -> str:
         f'{"".join(rows)}'
         "</table></td></tr></table></body></html>"
     )
+    return _provider_neutral_email(body)

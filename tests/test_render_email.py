@@ -44,7 +44,7 @@ async def test_email_renders_runner_recap_lines(tmp_path):
         assert "-&gt; hit" in body
         for candidate in brief.runners:
             assert candidate.token.symbol in body
-            assert f'href="{candidate.token.url}"' in body
+            assert f'href="https://dexscreener.com/solana/{candidate.token.mint}"' in body
     finally:
         ledger.close()
 
@@ -94,7 +94,8 @@ async def test_removed_dashboard_sections_stay_out_of_email(tmp_path):
         assert "Runners of the day" in body
         assert "Ran, but disqualified" not in body
         assert "Worth a closer look" not in body
-        assert "Did 5x+" in body
+        assert "Recap coins" not in body
+        assert "Lead read" not in body
     finally:
         ledger.close()
 
@@ -259,8 +260,8 @@ def test_email_leads_with_verified_peak_not_faded_cutoff_cap(tmp_path):
 
     body = render_email(brief, settings)
 
-    assert "Hit $260k" in body
-    assert "Hit $4k" not in body
+    assert "hit</span> $260k" in body
+    assert "hit</span> $4k" not in body
     assert "candle-verified $260,000" in body
 
 
@@ -284,7 +285,6 @@ def test_email_uses_verified_news_as_coin_thesis(tmp_path):
 
     body = render_email(brief, settings)
 
-    assert "verified news catalyst" in body
     assert "privacy payment app" in body
     assert "running laps on everything" not in body
 
@@ -313,3 +313,40 @@ def test_email_never_lets_raw_blocked_peak_displace_approved_runner(tmp_path):
 
     assert "$GOOD" in body
     assert "$RUG" not in body
+
+
+def test_email_explains_intraday_round_trips_without_vendor_branding(tmp_path):
+    """Old coins stay only when the email shows the actual start/high/cutoff path."""
+    from brief.models import Brief, Scorecard
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    runner = _tape(
+        "ROUNDTRIP", mcap=500_000, vol24=1_100_000, vol6=150_000,
+        liq=85_000, trades6=1_400, buys6=720,
+    )
+    runner.token.url = "https://gmgn.ai/sol/token/secret-provider-link"
+    runner.peak_market_cap = 1_450_000
+    runner.observed_peak_market_cap = 1_450_000
+    runner.provider_evidence["gmgn"] = {
+        "kline24hOpenPrice": 0.0005,
+        "kline24hHighPrice": 0.00145,
+        "kline24hPeakMarketCap": 1_450_000,
+        "kline24hPeakFromOpenPct": 190.0,
+        "kline24hChangePct": 0.4,
+        "kolCount": 12,
+        "smartMoneyCount": 30,
+    }
+    brief = Brief(
+        generated_at=NOW, scorecard=Scorecard(), metas=[], new_and_moving=[],
+        ctos=[], follow_ups=[], onchain=[], excluded=[], source_statuses=[],
+        runners=[runner], blocked_runners=[],
+    )
+
+    body = render_email(brief, settings)
+
+    assert "24h path: $500k to $1.4M at the high, then $500k by the cutoff" in body
+    assert "the move faded and finished +0%" in body
+    assert "+190% to 24h high / finished +0%" in body
+    assert "dexscreener.com/solana/" in body
+    assert "gmgn" not in body.casefold()

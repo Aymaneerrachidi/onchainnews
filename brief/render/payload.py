@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from brief.config import Settings
+from brief.journal import kol_trade_count
 from brief.models import Brief, Candidate
 from brief.render.qr import qr_matrix, trade_url
 
@@ -53,7 +54,13 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "lore": candidate.lore,
         "loreIsFresh": candidate.lore_is_fresh,
         "faded": candidate.faded_from_peak,
+        "volume6h": candidate.token.volume_6h,
+        "volume1h": candidate.token.volume_1h,
         "kolBuyers": candidate.kol_buyers,
+        # GMGN's renowned-wallet tape is what actually admits most Solana
+        # runners, but it lived only in provider evidence, so a coin let in on
+        # thirteen tracked buyers was published as having none.
+        "kolTradedCount": kol_trade_count(candidate),
         "kolHolders": candidate.kol_holders,
         "kolSellers": candidate.kol_sellers,
         "kolRealisedSol": candidate.kol_realised_sol,
@@ -159,6 +166,12 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
         "recap": brief.recap,
         "runners": runners,
         "blockedRunners": blocked,
+        # The day's biggest markets by volume, so the site and the overlay can
+        # tell the same story the email opens with.
+        "headlineTape": [_candidate(candidate, template) for candidate in (brief.headline_tape or [])],
+        # The written recap, so the site and overlay can tell the day the same
+        # way the email does instead of re-deriving it.
+        "narrative": brief.narrative or {},
         "chains": sorted({c.token.chain_id for c in brief.runners}),
         "loreGroups": [
             {

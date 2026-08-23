@@ -239,6 +239,55 @@ capture_min_runner_score = 15.0
 capture_min_organic_score = 25.0
 capture_max_manipulation = 65.0
 
+[lore]
+# Why each coin ran, found on the open web rather than guessed. DuckDuckGo Lite
+# rendered through Jina Reader needs no key and no account; Dexscreener
+# publishes each project's own description free. Queries run most-specific
+# first (contract address, then descriptive name, then ticker) and every result
+# must pass a relevance score, because tickers are reused constantly and the
+# wrong coin's story is worse than none.
+enabled = true
+max_coins = 15
+queries_per_coin = 3
+# 8 = contract address matched, 5 = full name or the project's own domain,
+# 3 = ticker only. Below this a result is discarded rather than published.
+min_score = 5
+concurrency = 2
+pause_seconds = 1.5
+timeout_seconds = 45
+
+[newsletter]
+# The recap grouped and phrased by a model. Facts come only from the day's own
+# evidence; the prompt forbids inventing news, posts, people or reasons, and
+# any coin the model names that we did not hand it is dropped before sending.
+# If this is off or the call fails, the deterministic template renders instead.
+enabled = true
+# Who writes the recap. Research still runs on OpenAI: Cohere removed its
+# web-search connector in September 2025, so it can phrase the day but cannot
+# go and find out what happened.
+# Tried in this order: the one named here, then the other if it has a key.
+# OpenAI writes markedly better prose; Cohere is the floor when credits run out.
+provider = "openai"
+# command-a-plus-05-2026 returns INVALID_TOOL_GENERATION on a full day's board
+# in JSON mode (bisected: a field in the first rows, not the CJK tickers). The
+# older model takes the same payload, every field included, without complaint.
+cohere_model = "command-a-03-2025"
+model = "gpt-5.5"
+max_coins = 30
+timeout_seconds = 120
+# Before writing, search the web for what each of the day's biggest coins
+# actually is and why it moved: the viral clip, the listing, the account that
+# posted. Findings are cited; anything not found stays absent rather than
+# being guessed at.
+# Reprice the recap coins immediately before writing; a long run leaves the
+# opening numbers badly stale.
+refresh_before_write = true
+research_enabled = true
+research_model = "gpt-5.5"
+research_limit = 12
+research_concurrency = 2
+research_timeout_seconds = 180
+
 [goplus]
 # Free contract security for the EVM chains. No key, so the only limit worth
 # respecting is the request rate.
@@ -356,6 +405,13 @@ excluded_mints = [
   "DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump", # KERMIT
 ]
 max_runners = 0
+# The day's biggest markets, chosen on volume rather than on the size of the move.
+headline_tape_size = 5
+# The tape reports what the market bought. A big coin that spent the day
+# falling is a different story and does not open the recap.
+headline_tape_min_change_pct = 40.0
+headline_tape_max_age_hours = 720.0
+headline_tape_min_volume = 500000.0
 # Never manufacture a daily quota. Publish every organic runner that clears the
 # evidence gate; a quiet day may contain fewer names and a busy day may contain
 # many more.
@@ -371,6 +427,7 @@ intraday_min_peak_market_cap = 200000.0
 intraday_min_volume_24h = 250000.0
 intraday_min_liquidity = 40000.0
 intraday_min_trades_24h = 1000
+intraday_min_change_24h_pct = 50.0
 intraday_min_runner_score = 25.0
 intraday_max_manipulation = 55.0
 min_volume_24h = 250000.0
@@ -385,7 +442,11 @@ min_window_multiple = 1.50
 # happened inside the trailing day.
 fresh_window_hours = 30
 min_fresh_change_pct = 30.0
-older_than_a_day_multiple = 0.0
+# An established coin belongs in the recap only if it actually moved today:
+# a measured double inside the trailing window, not merely a large cap.
+older_than_a_day_multiple = 2.0
+# An established coin that is flat or down on the live tape did not run today.
+older_min_live_change_pct = 20.0
 min_daily_change_pct = 50.0
 new_ath_tolerance_pct = 2.0
 min_new_ath_move_pct = 10.0
@@ -399,7 +460,11 @@ expect_tracked_wallets_above = 10.0
 # be missed by our wallet set; absence should be reported/weighted, not used to
 # zero the newsletter.
 require_wallet_touch_for_publish = false
+# Our tracked-wallet coverage is a Solana list. On Solana a runner nobody we
+# follow touched is genuinely suspicious; off Solana that silence only measures
+# who we follow, so the requirement is scoped to the chain it means something on.
 require_kol_trade_for_publish = true
+require_kol_trade_chains = ["solana"]
 min_kol_trades_for_publish = 1
 gate_editorial_tracks = true
 wallet_touch_required_above_multiple = 1.8
@@ -417,6 +482,19 @@ min_turnover_for_big_run = 0.15
 # trading with itself, a bought trend slot, or the ninth mint wearing a ticker
 # that worked once. These remove it from the record rather than label it.
 max_volume_liquidity = 75.0       # 24h volume against pool depth
+# Floors below were calibrated on established coins. A launch is judged on the
+# same evidence at the level it can actually have reached by its first day;
+# `fresh_gate_hours` decides which set applies.
+fresh_gate_hours = 36.0
+fresh_max_volume_liquidity = 250.0
+fresh_min_holders = 300
+fresh_min_trades_24h = 400
+fresh_publisher_max_top10_pct = 35.0
+# A measurement we could not take is not a failure. Reported on the row instead.
+block_on_missing_safety_data = false
+# Pool depth is not comparable across chains: a BNB or Base runner works a much
+# smaller pool than a Solana one at the same market cap.
+min_liquidity_by_chain = { solana = 40000.0, bsc = 20000.0, base = 20000.0, ethereum = 30000.0 }
 max_turnover = 30.0               # 24h volume against market cap
 # Cadence was measured against a coin the client confirmed was normal: it ran
 # 219 trades a minute over the hour. Speed is a crowd. Dust is a bot, so only
@@ -430,17 +508,29 @@ min_average_trade_usd = 15.0      # dust prints are spam, not demand
 # Meteora or other Solana pools; the quality gate decides what is publishable.
 venues = {}
 min_holders = 1000                # a real distribution, not a handful of wallets
-require_holder_count = true
+require_holder_count = false
 min_trades_24h = 1000             # a real tape, not a dozen prints
 # The insta-x-then-dead shape. An even day trades a quarter of its volume in the
 # last six hours, so a few percent means the move finished hours ago.
-min_recent_volume_share = 0.08
+min_recent_volume_share = 0.0
 dead_check_above_multiple = 5.0
 max_buy_ratio = 0.85              # a book with no sellers is manufactured
 one_sided_min_trades = 300
 
 # Disqualifying: a top 10 this large means the supply was never distributed.
 bundle_top10_pct = 50.0
+max_total_fee_pct = 3.0
+# GMGN's fee fields only read as a percentage on the EVM chains. On Solana the
+# same field returned 384.3 for an ordinary coin, so the check is scoped to the
+# chains where the unit is known.
+fee_check_chains = ["bsc", "base", "ethereum"]
+# A cap the pool cannot support. Impostor clones of a running coin arrive
+# claiming hundreds of millions off a few thousand dollars of liquidity.
+max_market_cap_liquidity = 200.0
+# A large cap with no trade behind it is the same fiction seen from the other
+# side: $108M of "market cap" on $536k of daily volume.
+phantom_cap_above = 5000000.0
+phantom_min_turnover = 0.05
 # GMGN launch-structure hard stops. Rug ratio alone is not a hard stop because
 # established community coins can score high there; observed wash/bundle/
 # insider/dev concentration is direct manipulation evidence.
@@ -449,6 +539,11 @@ gmgn_max_insider_rate = 0.30
 gmgn_max_dev_team_hold_rate = 0.15
 # Not disqualifying, shown on the row.
 caution_top10_pct = 25.0
+# A transfer tax at or above this is shown on the row; at or above
+# `max_total_fee_pct` the coin is removed outright. A holder who has to pay to
+# leave is in the same position as one facing a soft rug, so a taxed token has
+# no place in a recap of coins worth watching.
+caution_total_fee_pct = 1.0
 thin_liquidity_ratio = 60.0
 min_lore_group = 2
 # Publisher-grade recap gate. This is stricter than the analyst screen because
@@ -456,22 +551,31 @@ min_lore_group = 2
 exclude_boosted = false
 require_socials = false
 require_social_resolves = false
-exclude_recycled = true
-min_lp_locked_pct = 80.0
-publisher_max_top10_pct = 25.0
-min_symbol_length = 3
+exclude_recycled = false
+min_lp_locked_pct = 0.0
+publisher_max_top10_pct = 0.0
+min_symbol_length = 0
 min_age_hours = 0.5
-max_negative_1h_pct = 20.0
+max_negative_1h_pct = 0.0
 extreme_multiple = 10.0
-extreme_min_volume_24h = 1000000.0
-extreme_min_holders = 3000
-extreme_min_turnover = 0.75
-extreme_min_recent_volume_share = 0.15
+extreme_min_volume_24h = 0.0
+extreme_min_holders = 0
+extreme_min_turnover = 0.0
+extreme_min_recent_volume_share = 0.0
 strong_kol_wallets = 3
-min_organic_confirmations = 6
+min_organic_confirmations = 0
 organic_min_buy_ratio = 0.42
 organic_max_buy_ratio = 0.72
 blocked_symbol_terms = ["oil", "gas", "usa"]
+# Tickers confirmed as bot-bait by the operator. These recycle across mints and
+# exist to be caught by automated screens, so they never enter the recap.
+blocked_symbols = [
+  "uswr", "usor", "usos", "usoh", "usop", "tnos", "usox", "vorf", "aorp",
+  "saof", "usur", "sacf", "goap", "mcx", "live kick", "uotf", "usoc",
+  "xsol", "saas",
+]
+# A pair with no prints for a whole hour is not running, whatever the day says.
+require_last_hour_activity = true
 
 # No quota fill: failed candidates remain in the private audit tape and never
 # enter the client newsletter merely to reach a target count.
@@ -557,7 +661,7 @@ runner_allow_faded_below_floor = true
 runner_max_manipulation = 75.0
 runner_max_peak_turnover = 10.0
 runner_require_safety = true
-runner_require_holder_count = true
+runner_require_holder_count = false
 runner_min_holders = 300
 ohlcv_requests_per_minute = 25
 ohlcv_request_interval_seconds = 2.5

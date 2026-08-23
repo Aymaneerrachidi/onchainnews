@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import os
+import logging
+import pathlib
 from pathlib import Path
 
 import httpx
 
 from brief.config import Settings
+
+
+log = logging.getLogger("brief.delivery")
 
 
 class TelegramDeliveryError(RuntimeError):
@@ -38,6 +43,23 @@ async def send_email(settings: Settings, subject: str, html: str, *, transport=N
     Supports Resend and Brevo. A mid-loop failure aborts the remaining
     recipients and propagates as EmailDeliveryError.
     """
+    # Keep a copy of exactly what was sent. Without it, "send that same email
+    # to these people" means regenerating and hoping it matches.
+    archive = str(settings.get("delivery", "email_archive_path", "output/email-sent.html") or "")
+    if archive:
+        try:
+            # Resolved against the project root, never the working directory:
+            # relative, a test suite run from the repo overwrote the real
+            # archive with its fixture, and that fixture was then resent.
+            path = pathlib.Path(archive)
+            if not path.is_absolute():
+                path = settings.root / path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(html, encoding="utf-8")
+            path.with_suffix(".subject.txt").write_text(subject, encoding="utf-8")
+        except OSError as exc:
+            log.warning("email_archive_failed path=%s error=%s", archive, exc)
+
     provider = str(settings.get("delivery", "email_provider", "resend") or "resend").strip().lower()
     sender = str(settings.get("delivery", "email_from", "") or "")
     recipients = list(settings.get("delivery", "email_to", []) or [])
