@@ -64,6 +64,94 @@ def _peak(candidate: Candidate) -> float:
 ID_LEAK = re.compile(r"\s*[\(\[]\s*c\d{2}\s*[\)\]]")
 
 
+MONEY_LEAD = re.compile(
+    r"^(hit|reached|topped at|peaked at|touched)\s+\$[\d.,]+\s*[kKmMbB]?\s*[,;:-]?\s*",
+    re.I,
+)
+
+
+def _drop_leading_peak(line: str) -> str:
+    """The peak is printed beside the ticker, so a line that opens with it
+    spends its only sentence saying what the reader can already see."""
+    trimmed = MONEY_LEAD.sub("", line or "").strip()
+    if not trimmed:
+        return line
+    return trimmed[0].upper() + trimmed[1:] if trimmed[:1].islower() else trimmed
+
+
+def _words(text: str) -> set[str]:
+    return {
+        word for word in re.split(r"[^a-z0-9$]+", (text or "").lower())
+        if len(word) > 3
+    }
+
+
+def _is_restatement(bullet: str, lines: list[str]) -> bool:
+    """Whether a bullet just says a coin line again in other words.
+
+    Bullets exist to add what the lines cannot hold. A section whose bullets
+    repeat its own rows reads as padding, which is exactly how a machine
+    writes when it has nothing further to say.
+    """
+    bullet_words = _words(bullet)
+    if not bullet_words:
+        return True
+    for line in lines:
+        line_words = _words(line)
+        if not line_words:
+            continue
+        shared = len(bullet_words & line_words) / len(bullet_words)
+        if shared >= 0.6:
+            return True
+    return False
+
+
+PROFIT_CLAIM = re.compile(
+    r"(turn(ed|ing)?\s+\$[\d.,]+\s*[kKmM]?\s+into"
+    r"|\d+\s*x\s*(return|gain|profit|on his|on her|for one)"
+    r"|made\s+\$[\d.,]+\s*[kKmM]?"
+    r"|pnl|profit of \$|bagged|cashed out"
+    r"|\$[\d.,]+\s*[kKmM]?\s+(in profit|profit|gain))",
+    re.I,
+)
+
+
+def _is_profit_claim(text: str) -> bool:
+    """Whether a bullet is somebody advertising their own trade.
+
+    A stranger saying they turned $99 into $600k is not an event, and printing
+    it with "claims" attached only launders it. These posts are the most
+    engaged-with thing about a running coin, so they arrive constantly.
+    """
+    return bool(PROFIT_CLAIM.search(text or ""))
+
+
+ATTRIBUTED = re.compile(
+    r"(https?://|@\w|according to|says|said|posted|claims?"
+    r"|announced|listed on|added to|described|reported|tied to|named after"
+    r"|launched by|created by|per a|write[sr]?)",
+    re.I,
+)
+
+
+def _carries_evidence(text: str) -> bool:
+    """Whether a bullet brings something the coin rows cannot.
+
+    A bullet exists to add outside material: a source, a person, a link, an
+    event. Restating a row's own numbers in a sentence is padding, and word
+    overlap does not catch it once the row has been trimmed. Requiring
+    attribution does.
+    """
+    return bool(ATTRIBUTED.search(text or ""))
+
+
+NO_DATA = re.compile(
+    r"[,;]?\s*(with )?no (news|story|lore|evidence|posts?)( attached| found| today)?"
+    r"|[,;]?\s*nothing (found|attached)",
+    re.I,
+)
+
+
 def _strip_ids(text: str) -> str:
     """Remove the internal coin handles the model writes into prose.
 
@@ -120,6 +208,9 @@ def _coin_facts(candidate: Candidate, settings: Settings) -> dict[str, Any]:
     fee_chains = {str(c).lower() for c in (settings.section("journal").get("fee_check_chains", []) or [])}
     if token.chain_id.lower() in fee_chains and 1 <= fee <= 50:
         facts["transferTaxPct"] = round(fee, 1)
+    cause = (candidate.provider_evidence.get("why", {}) or {}).get("cause")
+    if cause:
+        facts["whyItRan"] = cause
     if candidate.lore:
         facts["meta"] = candidate.lore
     if token.socials:
@@ -131,6 +222,10 @@ def _coin_facts(candidate: Candidate, settings: Settings) -> dict[str, Any]:
         # True of half the board on any given day; prose built on them reads
         # like a disclaimer, not a recap.
         "ticker also used", "also used by", "no linked social", "recycled",
+        # Our own gate vocabulary. Meaningless to a reader and it leaked into
+        # a published line as "liquidity below publisher floor".
+        "publisher floor", "publisher ceiling", "organic confirmations",
+        "did not qualify", "below floor", "lore ", "has run before",
     )
     real_risks = [
         label for label in candidate.risk_labels
@@ -158,7 +253,7 @@ def _coin_facts(candidate: Candidate, settings: Settings) -> dict[str, Any]:
         posts.append({
             "handle": item.author_handle,
             "what": item.interaction,
-            "summary": (item.summary or "")[:200],
+            "summary": (item.summary or "")[:160],
             "url": item.url,
         })
     if posts:
@@ -216,8 +311,16 @@ FACTS
   "41 hours old" is not "less than a day old".
 
 GROUPING
-- Build 2 to 6 sections, however many the day actually contains. Never split
-  a story or repeat a coin just to reach a number. A section is a story several coins share: a chain's
+- EVERY coin in the JSON must appear in exactly one section. A coin with no
+  story still ran and still belongs in the recap; put it with the coins it most
+  resembles, or in a final catch-all section, and give it its peak and one true
+  detail. Dropping a coin is the one unrecoverable mistake here.
+- Build 3 to 6 sections. Most must hold two or more coins: the point of a
+  section is that several coins share a story. A single-coin section is allowed
+  only when that coin genuinely was the day's event, and at most twice.
+- Never title a section after a coin. "Baby Catecoin" is a label; "Cate Down
+  50% From Today's High" is what happened. If you cannot say what happened,
+  group by the meta and title that. A section is a story several coins share: a chain's
   meta, a launchpad, a takeover wave, a ticker theme, a news event.
 - Title each one like a headline a person wrote, not a category label. "Time To
   Learn Chinese" beats "Chinese Tokens". Do not number them.
@@ -225,10 +328,19 @@ GROUPING
 - Sections should not all be the same size.
 
 LINES
+- The peak is printed beside the ticker already. Do NOT write "hit $5.4M"
+  in the line as well; spend the line on what happened instead.
 - The ticker is already printed for you. NEVER start the line with the ticker
   and never repeat it. Start at "hit <peak>" or at the reason.
 - Vary every line. Never open two lines in a row the same way, and do not use
   the same construction more than twice in the whole email.
+- Never narrate the absence of evidence. "no news attached", "no proof
+  provided", "no new news today" are notes to me about our data, not sentences
+  for a reader. If there is nothing to say beyond the numbers, say the numbers.
+- Do not repeat someone's profit claim as a fact or as gossip. A stranger
+  saying they turned $99 into $600k is not an event.
+- When a coin has `whyItRan`, that is the line. Lead with it. It is the
+  reason the reader opened the email.
 - Say the most interesting true thing, not the most available one. Volume and
   holder counts are the dullest facts you have: use them only when the number
   is genuinely remarkable.
@@ -260,15 +372,39 @@ RISK
   true of most coins on that chain, and they belong nowhere in the prose.
 - Never append a "risks:" clause to a line.
 
-STYLE
-- No emoji. No hype adjectives. No sign-off. Short sentences.
+VOICE
+This is written by a trader who watched the tape all day, for people who were
+also watching. Not a press release and not an analyst note.
 
-IDENTIFY EVERY COIN BY ITS `id` FIELD ("c01", "c02", ...) in the `id` field
-only. The id is a handle for you and me, not for the reader: it must never
-appear inside a `line`, a `bullet`, a `title` or the intro. Write "Memestock",
-not "Memestock (c03)".
-Some tickers are not written in the Latin alphabet and must not appear in your
-output at all; the ticker is printed next to the line for you.
+- Short declarative sentences. Contractions. No hype adjectives, no emoji, no
+  "notably", "impressively", "showcasing", "amid", "sentiment".
+- Say the thing plainly: "huge dump in the last hour, no clear answers yet"
+  beats "experienced a significant retracement".
+- Admit what you do not know rather than papering over it. "idek how to explain
+  this" is a real line from the recap this imitates, and it is better than an
+  invented reason.
+- The intro is one line about how THIS day felt, not a summary of the sections.
+  Write it fresh from today's coins.
+- Every example in these instructions shows you the REGISTER, never text to
+  reuse. Copying a sample sentence into your answer is the worst thing you can
+  do here: it makes the recap a form letter. If a phrase appears in these
+  instructions, you may not use it.
+- Section titles are statements about what happened, not labels: "Cate Down 50%
+  From Today's High", "GTA 6 Leaks", "Cat Meta", "Major Memes Ripping". Never
+  "Solana's Movers" or "BSC's Mixed Bag".
+- Name people by their handle when the evidence names them, and link the post.
+- The final bullet of the LAST section must be one open question about whatever
+  the day left hanging -- what a reader would actually wonder tomorrow morning.
+  This is required, and it is the only bullet that may exist without evidence
+  behind it.
+
+WORTH SAYING, IN ORDER
+1. What the coin is or refers to, when the evidence says.
+2. What happened today that a reader would not already know: a listing, a post,
+   a takeover, a dump with no explanation, a burn, a leak.
+3. Who was involved, by handle.
+4. The peak, always.
+5. Everything else, only if it changes the read.
 
 Return JSON exactly like this:
 {"intro": "one short line setting up the day",
@@ -406,6 +542,135 @@ async def research_day(coins: list[Candidate], settings: Settings) -> int:
     )
 
 
+
+EXPLAIN_PROMPT = """You are given coins that ran today, each with the evidence we
+could find: searched descriptions, news items, and posts from accounts with reach.
+
+For each coin, say WHY it ran, in one short sentence.
+
+RULES
+- Use only the evidence given for that coin. Never guess, never generalise from
+  the ticker, never write market commentary.
+- A cause is an event or a fact about the world: a listing, a viral clip, a
+  famous account posting, a takeover, a burn, a lock, a film, a partnership, a
+  product shipping. "Traders bought it" and "momentum" are not causes.
+- If the evidence does not contain a cause, return an empty string for that
+  coin. That is the correct answer for most memecoins and is much better than
+  a guess. Do not pad.
+- Name the person or platform when the evidence names them.
+- No hype, no adjectives, no price talk, no advice. One sentence, under 22
+  words.
+
+Return JSON only:
+{"why": [{"id": "c01", "cause": "..."}, {"id": "c02", "cause": ""}]}"""
+
+
+def _explain_facts(coins: list[Candidate]) -> list[dict[str, Any]]:
+    """The evidence for each coin, and nothing else."""
+    rows: list[dict[str, Any]] = []
+    for index, candidate in enumerate(coins, start=1):
+        evidence: list[str] = []
+        for item in (candidate.news_evidence or [])[:3]:
+            summary = " ".join(str(item.get("summary") or "").split())
+            if summary:
+                evidence.append(summary[:220])
+        for post in (candidate.x_interactions or [])[:3]:
+            text = " ".join(str(post.summary or "").split())
+            if text:
+                evidence.append(f"@{post.author_handle}: {text[:200]}")
+        if not evidence:
+            continue
+        rows.append({
+            "id": f"c{index:02d}",
+            "symbol": candidate.token.symbol,
+            "chain": candidate.token.chain_id,
+            "evidence": evidence,
+        })
+    return rows
+
+
+async def explain_runs(coins: list[Candidate], settings: Settings, *, transport=None) -> int:
+    """Attach a stated cause to every coin whose evidence contains one.
+
+    The rest of the pipeline finds what a coin is. This asks the question the
+    reader actually has, which is what happened today, and refuses to answer it
+    when the evidence does not say.
+    """
+    if not bool(settings.get("newsletter", "explain_enabled", True)):
+        return 0
+    rows = _explain_facts(coins)
+    if not rows:
+        return 0
+
+    provider = str(settings.get("newsletter", "provider", "openai")).strip().lower()
+    order = [provider] + [p for p in ("openai", "cohere") if p != provider]
+    payload_rows = {row["id"]: row for row in rows}
+
+    for name in order:
+        key = os.environ.get("COHERE_API_KEY" if name == "cohere" else "OPENAI_API_KEY", "").strip()
+        if not key:
+            continue
+        if name == "cohere":
+            url = COHERE_URL
+            body = {
+                "model": str(settings.get("newsletter", "cohere_model", "command-a-03-2025")),
+                "response_format": {"type": "json_object"},
+                "thinking": {"type": "disabled"},
+                "max_tokens": 4000,
+                "messages": [
+                    {"role": "system", "content": EXPLAIN_PROMPT},
+                    {"role": "user", "content": json.dumps({"coins": rows}, ensure_ascii=False)},
+                ],
+            }
+        else:
+            url = API_URL
+            body = {
+                "model": str(settings.get("newsletter", "model", "gpt-5.5")),
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {"role": "system", "content": EXPLAIN_PROMPT},
+                    {"role": "user", "content": json.dumps({"coins": rows}, ensure_ascii=False)},
+                ],
+            }
+        try:
+            async with httpx.AsyncClient(timeout=120, transport=transport) as client:
+                response = await client.post(
+                    url,
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json=body,
+                )
+                response.raise_for_status()
+                data = response.json()
+            if name == "cohere":
+                text = "".join(
+                    part.get("text", "")
+                    for part in (data.get("message", {}) or {}).get("content", [])
+                    if part.get("type") == "text"
+                )
+            else:
+                text = data["choices"][0]["message"]["content"]
+            answer = json.loads(text[text.index("{"):text.rindex("}") + 1])
+        except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+            log.info("explain_failed provider=%s error=%s", name, type(exc).__name__)
+            continue
+
+        attached = 0
+        by_symbol = {c.token.symbol.upper(): c for c in coins}
+        for item in answer.get("why") or []:
+            if not isinstance(item, dict):
+                continue
+            row = payload_rows.get(str(item.get("id", "")).strip().lower())
+            cause = " ".join(str(item.get("cause") or "").split())
+            if not row or len(cause) < 12:
+                continue
+            candidate = by_symbol.get(str(row["symbol"]).upper())
+            if candidate is None:
+                continue
+            candidate.provider_evidence.setdefault("why", {})["cause"] = cause[:200]
+            attached += 1
+        return attached
+    return 0
+
 async def write_recap(coins: list[Candidate], generated_at: datetime, settings: Settings, *, transport=None) -> dict[str, Any] | None:
     """Ask a model to group and phrase the day. None means use the template.
 
@@ -430,6 +695,20 @@ async def write_recap(coins: list[Candidate], generated_at: datetime, settings: 
             continue
         written = await _write_with(provider, facts, settings, transport=transport)
         if written:
+            return written
+        # An empty or unparseable answer is usually a payload the model could
+        # not finish. Try once more with the quoted posts trimmed, which is
+        # where nearly all the size is.
+        lean = {
+            "date": facts["date"],
+            "coins": [
+                {k: v for k, v in coin.items() if k not in ("xPosts", "news", "socials")}
+                for coin in facts["coins"]
+            ],
+        }
+        written = await _write_with(provider, lean, settings, transport=transport)
+        if written:
+            log.info("newsletter_recovered_on_lean_payload provider=%s", provider)
             return written
         log.info("newsletter_provider_failed provider=%s trying_next=true", provider)
     return None
@@ -522,17 +801,24 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
                 str(item.get("symbol", "")).strip().upper()
             )
             if symbol:
-                line = str(item.get("line", "")).strip()
+                line = NO_DATA.sub("", str(item.get("line", ""))).strip(" ,;-")
                 # The renderer prints the ticker; a model that starts the line
                 # with it anyway produces "$CC CC hit". Remove it here, once.
                 for prefix in (f"${symbol}", symbol):
                     if line.lower().startswith(prefix.lower()):
                         line = line[len(prefix):].lstrip(" :,-—–")
                         break
-                coins.append({"symbol": symbol, "line": _strip_ids(line)})
+                coins.append({"symbol": symbol, "line": _drop_leading_peak(_strip_ids(line))})
         if not coins:
             continue
-        bullets = [_strip_ids(str(b)) for b in (section.get("bullets") or []) if str(b).strip()][:2]
+        bullets = [_strip_ids(str(b)) for b in (section.get("bullets") or []) if str(b).strip()]
+        section_lines = [c["line"] for c in coins]
+        bullets = [
+            b for b in bullets
+            if _carries_evidence(b)
+            and not _is_restatement(b, section_lines)
+            and not _is_profit_claim(b)
+        ][:2]
         if not any(has_story.get(c["symbol"].upper()) for c in coins):
             bullets = []
         clean.append({
@@ -540,6 +826,41 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
             "coins": coins,
             "bullets": bullets,
         })
+    # Whatever the model did, every coin ships. A recap that silently drops
+    # seventeen of twenty-one runners is worse than a plain list.
+    placed = {c["symbol"].upper() for section in clean for c in section["coins"]}
+    missing = [
+        coin for coin in facts["coins"]
+        if str(coin["symbol"]).upper() not in placed
+    ]
+    # The final question is the one bullet that may stand without evidence, so
+    # it must survive both filters above.
+    tail_question = ""
+    for section in reversed(sections if isinstance(sections, list) else []):
+        for bullet in reversed((section or {}).get("bullets") or []):
+            text = _strip_ids(str(bullet))
+            if text.endswith("?"):
+                tail_question = text
+                break
+        if tail_question:
+            break
+    if tail_question and clean and tail_question not in clean[-1]["bullets"]:
+        clean[-1]["bullets"] = [*clean[-1]["bullets"], tail_question][-2:]
+
+    if missing and clean:
+        clean.append({
+            "title": "Also ran",
+            "coins": [
+                {
+                    "symbol": str(coin["symbol"]),
+                    "line": f"hit {coin['peak']}" + (f", {coin['age']}" if coin.get("age") else ""),
+                }
+                for coin in missing
+            ],
+            "bullets": [],
+        })
+        log.info("newsletter_backfilled_coins count=%s", len(missing))
+
     if not clean:
         return None
     dropped = sum(len(s.get("coins") or []) for s in sections) - sum(len(s["coins"]) for s in clean)
