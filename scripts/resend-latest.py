@@ -32,6 +32,7 @@ from brief.models import (  # noqa: E402
     Scorecard,
     Signals,
     TokenSnapshot,
+    XInteraction,
 )
 from brief.newsletter import recap_coins, research_day, write_recap  # noqa: E402
 from brief.render.email import email_subject, render_email  # noqa: E402
@@ -86,6 +87,28 @@ def _candidate(row: dict) -> Candidate:
     candidate.kol_buyers = row.get("kolBuyers") or []
     candidate.kol_sellers = row.get("kolSellers") or []
     candidate.kol_holders = row.get("kolHolders") or []
+    # Evidence is what makes the email worth reading, and the snapshot carries
+    # all of it. Without restoring these, a resend rebuilds the numbers and
+    # silently drops every story, quote and stated cause.
+    candidate.news_evidence = list(row.get("newsEvidence") or [])
+    candidate.provider_evidence = dict(row.get("providerEvidence") or {})
+    for post in row.get("xInteractions") or []:
+        try:
+            candidate.x_interactions.append(XInteraction(
+                author_handle=str(post.get("handle") or ""),
+                author_name=str(post.get("author") or post.get("handle") or ""),
+                interaction=str(post.get("interaction") or "post"),
+                summary=str(post.get("summary") or ""),
+                url=str(post.get("url") or ""),
+                created_at=datetime.fromisoformat(str(post.get("createdAt"))),
+                confidence=str(post.get("confidence") or "medium"),
+                matched_on=str(post.get("matchedOn") or ""),
+                like_count=int(post.get("likes") or 0),
+                repost_count=int(post.get("reposts") or 0),
+                reply_count=int(post.get("replies") or 0),
+            ))
+        except (TypeError, ValueError):
+            continue
     return candidate
 
 

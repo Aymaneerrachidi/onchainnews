@@ -27,7 +27,7 @@ from brief.journal import (
     kol_touch_required, rug_or_bundle, risk_labels,
 )
 from brief.lore import attach_lore
-from brief.newsletter import recap_coins, research_day, write_recap
+from brief.newsletter import explain_runs, recap_coins, research_day, write_recap
 from brief.lifecycle import attach_lifecycles, build_structured_recap, persist_market_tape
 from brief.kol import KolTracker
 from brief.ledger import Ledger, iso
@@ -1963,6 +1963,13 @@ async def build_brief(
             http,
             str(urls.get("openintel_base_url", "https://ai.6551.io")),
             ttl=int(cache.get("openintel_ttl_seconds", 900)),
+            product=str(settings.get("openintel", "twitter_product", "Top")),
+            min_followers=int(settings.get("openintel", "min_followers", 500) or 0),
+            min_engagement=int(settings.get("openintel", "min_engagement", 3) or 0),
+            min_quality=int(settings.get("openintel", "min_post_quality", 45) or 0),
+            min_reach=int(settings.get("openintel", "min_account_followers", 10000) or 0),
+            min_news_score=int(settings.get("openintel", "min_news_score", 40) or 0),
+            pause_seconds=float(settings.get("openintel", "pause_seconds", 2.0) or 0),
         )
         if bool(settings.get("openintel", "enabled", True)):
             _, free_status = await open_intel.free_market_context()
@@ -2230,6 +2237,51 @@ async def build_brief(
                     "Coin research",
                     True,
                     f"{researched} coins with a searched, cited story behind the move",
+                ))
+            # Accounts the operator trusts, read directly. Matched against the
+            # coins that will actually be published: run earlier it matched
+            # against the whole candidate pool, so 56 posts landed on coins
+            # nobody was going to read about and none reached the page.
+            trusted = [
+                str(handle).strip().lstrip("@")
+                for handle in (settings.get("openintel", "trusted_accounts", []) or [])
+                if str(handle).strip()
+            ]
+            per_run = int(settings.get("openintel", "accounts_per_run", 0) or 0)
+            if per_run and len(trusted) > per_run:
+                # Deterministic slice keyed on the day, so every account is read
+                # regularly without any one run paying for the whole list.
+                offset = (now.timetuple().tm_yday * per_run) % len(trusted)
+                trusted = (trusted + trusted)[offset:offset + per_run]
+            if trusted and bool(settings.get("openintel", "enabled", True)):
+                try:
+                    hits, misses = await open_intel.trusted_timeline(
+                        recap_pool,
+                        trusted,
+                        now,
+                        max_per_account=int(settings.get("openintel", "max_posts_per_account", 30) or 30),
+                        window_hours=float(settings.get("openintel", "trusted_window_hours", 36) or 36),
+                    )
+                    statuses.append(SourceStatus(
+                        "Trusted accounts",
+                        not misses,
+                        f"{hits} posts from {len(trusted) - len(misses)}/{len(trusted)} accounts matched today's coins"
+                        + (
+                        "; unreachable: " + ", ".join(
+                            m.split(":")[0] for m in misses[:12]
+                        ) + (" and more" if len(misses) > 12 else "")
+                        if misses else ""
+                    ),
+                    ))
+                except Exception as exc:
+                    log.warning("trusted_timeline_failed error=%s", exc)
+                    statuses.append(SourceStatus("Trusted accounts", False, str(exc)[:120]))
+
+            explained = await explain_runs(recap_pool, settings)
+            if explained:
+                statuses.append(SourceStatus(
+                    "Cause of the run", True,
+                    f"{explained} of {len(recap_pool)} coins with a stated cause from their own evidence",
                 ))
             written = await write_recap(recap_pool, now, settings)
             if written:

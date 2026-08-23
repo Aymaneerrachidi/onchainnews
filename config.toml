@@ -121,6 +121,91 @@ min_interval_seconds = 1.25
 # per-finalist news and OpenTwitter evidence searches.
 enabled = true
 finalist_limit = 25
+# "Latest" returns whoever posted most recently, which on a running coin is
+# whoever is shilling hardest; "Top" returns what people actually engaged with.
+twitter_product = "Top"
+# Accounts worth quoting. Their posts are matched against the day's coins by
+# ticker or contract address, so one request per account covers the whole
+# board. Add or remove handles freely; no @ needed. When `trusted_only` is
+# true, nothing else is ever quoted.
+trusted_accounts = [
+  # Traders and desks whose posts move a chart
+  "Cobie", "Ansem", "blknoiz06", "HsakaTrades", "CryptoCred",
+  "Pentosh1", "TheFlowHorse", "DegenSpartan", "0xngmi", "0xfoobar",
+  "Route2FI", "DefiIgnas", "Rewkang", "MustStopMurad", "GCRClassic",
+  "CryptoKaleo", "AltcoinSherpa", "SmartContracter", "ColdBloodShill", "TraderSZ",
+  "inversebrah", "CL207", "CryptoHayes", "Arthur_0x", "0xSisyphus",
+  "milesdeutscher", "TheCryptoDog", "CryptoCapo_", "DaanCrypto", "CredibleCrypto",
+  "orangie", "notthreadguy", "0xMert_", "SolanaLegend", "SolanaSensei",
+  "samsrepx",
+  # Launchpads and listing desks, where a run usually starts
+  "pumpdotfun", "four_meme_", "flapdotsh", "letsbonkfun", "GateAlphaHQ",
+  "clankeronbase", "MagicEden", "believeapp", "moonshot", "DaosDotFun",
+  "virtuals_io", "CreatorBid", "toshimart", "SuperL9", "bags_fm",
+  # News, research and on-chain watchers
+  "WuBlockchain", "tier10k", "lookonchain", "OnchainLens", "ArkhamIntel",
+  "nansen_ai", "DefiLlama", "Dune", "WatcherGuru", "TheBlock__",
+  "Blockworks_", "CoinDesk", "Cointelegraph", "DecryptMedia", "DLNewsInfo",
+  "CoinMarketCap", "coingecko", "glassnode", "santimentfeed", "TokenTerminal",
+  "MessariCrypto", "KaikoData", "CryptoQuant_com", "intotheblock", "Whale_Alert",
+  "PeckShieldAlert", "CertiKAlert", "SlowMist_Team", "zachxbt", "Stalkchain",
+  "SolanaFloor", "SolanaDaily",
+  # Exchanges and the accounts that announce listings
+  "binance", "cz_binance", "heyibinance", "coinbase", "brian_armstrong",
+  "RobinhoodApp", "okx", "Bybit_Official", "bitgetglobal", "gate_io",
+  "MEXC_Official", "kucoincom", "HTX_Global", "krakenfx", "BinanceWallet",
+  "CoinbaseWallet", "binance_xc",
+  # Chains and their leads
+  "solana", "SolanaFndn", "aeyakovenko", "rajgokal", "BNBCHAIN",
+  "BNBChainDevs", "opbnb", "base", "jessepollak", "coinbasedev",
+  "ethereum", "VitalikButerin", "TimBeiko", "drakefjustin", "sassal0x",
+  "econoar", "ethereumJoseph", "arbitrum", "Optimism", "Starknet",
+  "zksync", "Scroll_ZKP", "LineaBuild", "Consensys",
+  # Protocols, wallets and infrastructure
+  "JupiterExchange", "RaydiumProtocol", "MeteoraAG", "phantom", "tensor_hq",
+  "Jito_sol", "jito_labs", "DriftProtocol", "KaminoFinance", "bonk_inu",
+  "PythNetwork", "heliuslabs", "orca_so", "marginfi", "sanctumso",
+  "MarinadeFinance", "wormhole", "Backpack", "solflare_wallet", "solscanofficial",
+  "StepFinance_", "SonicSVM", "Superteam", "SuperteamDAO", "deBridgeFinance",
+  "blazeStake", "SaveFinance_", "ZetaMarkets", "Parcl", "PhoenixTrade",
+  "PancakeSwap", "TrustWallet", "VenusProtocol", "ThenaFi_", "Lista_DAO",
+  "AlpacaFinance", "Mobox_Official", "BabyDogeCoin", "floki", "Biswap_Dex",
+  "DODO_Official", "WombatExchange", "AerodromeFi", "zora", "farcaster_xyz",
+  "aixbt_agent", "freysa_ai", "avantisfi", "MoonwellDeFi", "seamlessfi",
+  "BaseGodNFT", "BasedBrett", "toshibase", "DegenBase", "onchaincoin",
+  "friendtech", "reserveprotocol", "MorphoLabs", "AcrossProtocol", "ExtraFi_io",
+  "AlienBaseDEX", "BaseSwapDex", "Equalizer0x", "beefyfinance", "OpenOceanGlobal",
+  "DegenCapitalCIO", "Uniswap", "UniswapFND", "aave", "CurveFinance",
+  "LidoFinance", "eigenlayer", "ensdomains", "MetaMask", "Rocket_Pool",
+  "fraxfinance", "MakerDAO", "SkyEcosystem", "Balancer", "SushiSwap",
+  "1inch", "chainlink", "ethena_labs", "pendle_fi", "ether_fi",
+  "RenzoProtocol", "symbioticfi", "Rabby_io", "safe", "WalletConnect",
+  "zerion",
+]
+# When true, only posts from the accounts above are quoted. Searched posts are
+# still read as evidence for working out why a coin ran.
+trusted_only = true
+# 0 reads every account each run. A positive number reads that many and
+# advances through the list on the next run, so a long list still gets
+# covered without making any single run expensive.
+accounts_per_run = 0
+max_posts_per_account = 30
+trusted_window_hours = 36
+
+min_followers = 500
+min_engagement = 3
+# A post is judged on what it says. Chants and call-channel adverts score
+# zero however many likes they have.
+min_post_quality = 40
+# Quote accounts the market actually watches. A holder with 2,000 followers
+# praising their own bag is not news; smaller accounts still qualify on
+# engagement alone, which is how a good post from nobody gets through.
+min_account_followers = 3000
+# The provider scores its own news. Below this the feed is price ticks.
+min_news_score = 40
+# The provider rate limits well below the monthly quota, and a failed query
+# means that coin ships with no evidence. A short pause recovers half the board.
+pause_seconds = 2.0
 
 # Deep holder forensics for the editorial tracks. Expensive in Helius credits
 # and not used by the daily journal, so it runs on a small watchlist.
