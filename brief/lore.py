@@ -57,26 +57,54 @@ PRICE_PAGE = (
     "coinbird.com", "bitget.com/price", "gmgn.ai",
 )
 BOILERPLATE = re.compile(
-    r"(live price chart|price today|market cap.{0,14}(trading )?volume"
+    r"(live price chart|price\s+\w*\s*today|market cap.{0,14}(trading )?volume"
     r"|trading & price chart|track the latest|historical .{0,12}charts?"
     r"|how to buy|price prediction|24-hour trading volume|live .{0,10}price"
-    r"|analyze & trade|buy & swap)",
+    r"|analyze & trade|buy & swap|news, predictions|buy, sell, convert"
+    r"|most trusted platform|invest on the|price usd|usd today"
+    r"|convert, and invest)",
     re.I,
 )
+# A scraped interface rather than a sentence: "Chart Bubble Map Trades Top
+# Traders Holders Dev Tokens Pools Positions Orders 5m-0.97% 1h1.70%".
+UI_DUMP = re.compile(r"(\d+[mhd]-?\d|bubble map|top traders|dev tokens|positions orders|buy vol)", re.I)
+
+
+def looks_like_page_furniture(text: str) -> bool:
+    """Whether this is a price page or a scraped dashboard rather than prose."""
+    if BOILERPLATE.search(text or "") or UI_DUMP.search(text or ""):
+        return True
+    words = [w for w in (text or "").split() if w]
+    if not words:
+        return True
+    # Sentences have small words in them. A UI dump is mostly labels.
+    numeric = sum(1 for w in words if any(ch.isdigit() for ch in w))
+    return len(words) > 8 and numeric / len(words) > 0.35
+
 # Promotion rather than an account of anything.
 SHILL = re.compile(
-    r"(\d+\s*[x×]|🚀|💎|ape|send it"
-    r"|lfg|dont miss|early gem|100x|moon)",
+    r"(\d+\s*[x×]|🚀|💎|ape|send it"
+    r"|lfg|dont miss|early gem|100x|moon)",
     re.I,
 )
 # Words that mean the sentence is telling you something about the coin
 # rather than quoting its price.
+CAUSAL = re.compile(
+    r"(listed on|listing|announce|launch(ed|es)?|partnership|partnered"
+    r"|acquired|integrat|went viral|viral|trending|posted about|tweeted"
+    r"|shared|endorsed|backed by|invested|burn(ed|t)?|locked|airdrop"
+    r"|takeover|cto\b|rebrand|migrat|upgrade|hack|exploit|rug"
+    r"|surge[ds]?|spike[ds]?|rally|pump(ed|ing)?|jumped|soared|because)",
+    re.I,
+)
+
+
 STORY_WORDS = re.compile(
-    r"(is a|are a|inspired|named after|named by|tied to|based on"
-    r"|refers? to|launched|created by|founded|viral|meme|themed|tribute"
-    r"|parody|community|narrative|story|explained|what is|film"
+    r"(is a|are a|inspired|named after|named by|tied to|based on"
+    r"|refers? to|launched|created by|founded|viral|meme|themed|tribute"
+    r"|parody|community|narrative|story|explained|what is|film"
     r"|movie|character|mascot|announced|listed on|partnership|airdrop"
-    r"|rewards?|holders earn|platform|protocol|launchpad|game|event)",
+    r"|rewards?|holders earn|platform|protocol|launchpad|game|event)",
     re.I,
 )
 
@@ -188,7 +216,11 @@ def score_finding(finding: Finding, candidate: Candidate) -> int:
     # 0xabc..." shill post on X qualifies, because it carries the address and
     # sits on a domain we trust for commentary.
     story = 0
-    if STORY_WORDS.search(finding.text):
+    if CAUSAL.search(finding.text):
+        # An event is the answer to "why did it run". A description of the
+        # token is only ever the answer to "what is it".
+        story = 6
+    elif STORY_WORDS.search(finding.text):
         story = 3
         if len(finding.snippet) >= 80:
             story += 1
@@ -225,6 +257,10 @@ def query_ladder(candidate: Candidate) -> list[str]:
         queries.append(f'"{name}" {chain} token')
     if symbol:
         queries.append(f"{symbol} {chain} meme coin")
+        # The other queries ask what the coin is. This one asks what happened,
+        # which is the sentence the recap is actually missing. People write
+        # "why is X pumping" and search engines index the answers.
+        queries.append(f"why is {symbol} pumping {chain}")
     return [q for q in queries if q.strip()][:4]
 
 
@@ -262,6 +298,8 @@ class LoreResearcher:
                     continue
                 seen.add(finding.url)
                 score_finding(finding, candidate)
+                if looks_like_page_furniture(finding.text):
+                    continue
                 if finding.score >= self.min_score and finding.story > 0:
                     lore.findings.append(finding)
             # Stop only when something both identifies the coin and explains
