@@ -19,7 +19,15 @@ from brief.intelligence import (
     migration_detail,
     pool_liquidity_proxy,
 )
-from brief.journal import build_journal, assign_lore, journal_rank_key, inorganic_reasons, rug_or_bundle, risk_labels
+from brief.journal import (
+    build_journal,
+    kol_trade_count,
+    kol_traders,
+    implausible_run, assign_lore, journal_rank_key, inorganic_reasons,
+    kol_touch_required, rug_or_bundle, risk_labels,
+)
+from brief.lore import attach_lore
+from brief.newsletter import recap_coins, research_day, write_recap
 from brief.lifecycle import attach_lifecycles, build_structured_recap, persist_market_tape
 from brief.kol import KolTracker
 from brief.ledger import Ledger, iso
@@ -109,7 +117,7 @@ def kol_discovery_mints(kol_activity: dict[str, object], settings: Settings) -> 
 
 
 def _kol_touch_count(candidate: Candidate) -> int:
-    local = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+    local = len(kol_traders(candidate))
     gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     flow = gmgn.get("walletFlow", {}) or {}
     gmgn_wallets = set(flow.get("kolBuyers", [])) | set(flow.get("kolSellers", []))
@@ -536,7 +544,7 @@ async def _apply_holder_cluster_precheck(
             candidate.scores.get("runner", 0.0),
             candidate.scores.get("organic", 0.0),
             -candidate.scores.get("manipulation", 100.0),
-            len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers)),
+            len(kol_traders(candidate)),
             candidate.token.volume_24h,
         ),
         reverse=True,
@@ -1616,6 +1624,54 @@ async def build_brief(
                 limit=int(settings.get("gmgn", "runner_trader_limit", 25) or 25),
                 rows_per_token=int(settings.get("gmgn", "runner_trader_rows", 20) or 20),
             ))
+        # GMGN and Birdeye describe a coin in daily totals; only Dexscreener
+        # reports the six-hour and one-hour windows. The union keeps whichever
+        # source claimed the deepest pool, so a GMGN snapshot could win and carry
+        # empty intraday buckets into every rule that reads them -- three
+        # separate "missing data read as zero" bugs traced back to this. Fill
+        # the windows from Dexscreener before any rule runs, once, here.
+        sparse = [
+            c.token for c in journal_pool
+            if c.token.volume_24h > 0 and (not c.token.intraday_known or c.token.txns_6h.total == 0)
+        ]
+        if sparse:
+            try:
+                hydrated = {
+                    t.mint: t for t in await dex.token_pairs([(t.chain_id, t.mint) for t in sparse])
+                }
+                filled = 0
+                for candidate in journal_pool:
+                    fresh = hydrated.get(candidate.token.mint)
+                    if fresh is None:
+                        continue
+                    token = candidate.token
+                    token.volume_6h = fresh.volume_6h
+                    token.volume_1h = fresh.volume_1h
+                    token.txns_6h = fresh.txns_6h
+                    token.txns_1h = fresh.txns_1h
+                    token.price_change_6h = fresh.price_change_6h
+                    token.price_change_1h = fresh.price_change_1h
+                    token.intraday_known = fresh.intraday_known
+                    if fresh.pair_created_at is not None and (
+                        token.pair_created_at is None
+                        or (now - token.pair_created_at).total_seconds() < 60
+                    ):
+                        # A zero age is a bad stamp, not a coin born this minute.
+                        token.pair_created_at = fresh.pair_created_at
+                        candidate.signals.age_hours = max(
+                            0.0, (now - fresh.pair_created_at).total_seconds() / 3600
+                        )
+                    if not token.socials and fresh.socials:
+                        token.socials = fresh.socials
+                    filled += 1
+                statuses.append(SourceStatus(
+                    "Intraday window hydration", True,
+                    f"{filled} of {len(sparse)} sparse snapshots given 6h/1h windows from Dexscreener",
+                ))
+            except Exception as exc:
+                log.warning("intraday_hydration_failed error=%s", exc)
+                statuses.append(SourceStatus("Intraday window hydration", False, str(exc)[:120]))
+
         for candidate in journal_pool:
             evidence = dict(gmgn_evidence.get(candidate.token.mint, {}))
             wallet_flow = aggregate_wallet_evidence(
@@ -1635,6 +1691,48 @@ async def build_brief(
                 journal_pool, safety, ledger, helius, settings, now, commit=commit
             ))
         runners, blocked_runners = build_journal(journal_pool, settings, ledger, now)
+
+        # The day's tape: what the market actually spent its money on. These are
+        # ranked on 24h volume rather than on the move, because the coin everyone
+        # traded is the story even when it only closed up a few percent. Safety
+        # still applies -- a rug is never the story we tell.
+        tape_size = int(settings.get("journal", "headline_tape_size", 5) or 5)
+        tape_seen: set[str] = set()
+        tape_pool: list[Candidate] = []
+        for candidate in sorted(journal_pool, key=lambda c: c.token.volume_24h, reverse=True):
+            if candidate.token.mint in tape_seen:
+                continue
+            if rug_or_bundle(candidate, settings) or inorganic_reasons(candidate, settings):
+                continue
+            # The tape is what the market bought, so a coin that dumped all day
+            # is not the story, and a feed artifact printing +231,984% is not a
+            # market at all.
+            if implausible_run(candidate, settings):
+                continue
+            if candidate.token.price_change_24h < float(
+                settings.get("journal", "headline_tape_min_change_pct", 0.0) or 0.0
+            ):
+                continue
+            if candidate.token.volume_24h < float(
+                settings.get("journal", "headline_tape_min_volume", 0.0) or 0.0
+            ):
+                continue
+            # A Solana coin no tracked wallet traded does not open the recap
+            # either. The tape answers a different question from the runner
+            # list, but it answers it under the same rule.
+            if kol_touch_required(candidate, settings) and kol_trade_count(candidate) < int(
+                settings.get("journal", "min_kol_trades_for_publish", 1) or 1
+            ):
+                continue
+            tape_max_age = float(settings.get("journal", "headline_tape_max_age_hours", 0) or 0)
+            candidate_age = candidate.signals.age_hours
+            if tape_max_age and candidate_age is not None and candidate_age > tape_max_age:
+                continue
+            tape_seen.add(candidate.token.mint)
+            tape_pool.append(candidate)
+            if len(tape_pool) >= tape_size:
+                break
+        headline_tape = tape_pool
         runners, blocked_runners, kol_promoted = _add_kol_flow_runners(
             runners, blocked_runners, journal_pool, settings, now
         )
@@ -1666,10 +1764,8 @@ async def build_brief(
                         blocked_now = current_blocked.get(mint)
                         if blocked_now and hard_blocked_pass({"riskLabels": blocked_now.risk_labels}, settings):
                             continue
-                        if (
-                            not include_all_alerted
-                            and bool(settings.get("journal", "require_kol_trade_for_publish", False))
-                        ):
+                        pass_candidate = candidate_from_pass(entry, token_by_mint.get(mint), settings)
+                        if not include_all_alerted and kol_touch_required(pass_candidate, settings):
                             record = kol_activity.get(mint)
                             touched = bool(
                                 record
@@ -1681,7 +1777,7 @@ async def build_brief(
                             )
                             if not touched:
                                 continue
-                        candidate = candidate_from_pass(entry, token_by_mint.get(mint), settings)
+                        candidate = pass_candidate
                         record = kol_activity.get(mint)
                         if record:
                             _attach_kol_record(candidate, record, scanned_wallets)
@@ -2076,6 +2172,78 @@ async def build_brief(
         if commit:
             ledger.save_daily_recap(now.date().isoformat(), now, window_start, recap)
 
+        # The written recap is the last thing built, so it sees the final
+        # runner set. It never blocks delivery: if the model is off, slow or
+        # wrong, `narrative` stays empty and the template renders as before.
+        narrative: dict = {}
+        try:
+            recap_pool = recap_coins(
+                runners, headline_tape,
+                int(settings.get("newsletter", "max_coins", 30) or 30),
+            )
+            # A long run means the numbers gathered at the start are stale by
+            # the time the recap is written: one coin was published 178% away
+            # from its live market cap. Refresh the coins that will be named.
+            if recap_pool and bool(settings.get("newsletter", "refresh_before_write", True)):
+                try:
+                    fresh = await dex.token_pairs([(c.token.chain_id, c.token.mint) for c in recap_pool])
+                    latest = {token.mint: token for token in fresh}
+                    refreshed = 0
+                    for candidate in recap_pool:
+                        current = latest.get(candidate.token.mint)
+                        if current is None or current.market_cap <= 0:
+                            continue
+                        # The peak is a high-water mark and only ever rises.
+                        candidate.peak_market_cap = max(
+                            float(candidate.peak_market_cap or 0), current.market_cap
+                        )
+                        candidate.token.market_cap = current.market_cap
+                        candidate.token.volume_24h = current.volume_24h
+                        candidate.token.liquidity_usd = current.liquidity_usd
+                        candidate.token.price_change_24h = current.price_change_24h
+                        candidate.token.price_change_1h = current.price_change_1h
+                        single = (candidate.provider_evidence.get("lifecycle", {}) or {}).get("peakIsSingleObservation")
+                        if not single and candidate.peak_market_cap:
+                            candidate.drawdown_from_peak_pct = max(
+                                0.0, (candidate.peak_market_cap - current.market_cap) / candidate.peak_market_cap * 100.0
+                            )
+                        refreshed += 1
+                    if refreshed:
+                        statuses.append(SourceStatus(
+                            "Recap price refresh", True,
+                            f"{refreshed} of {len(recap_pool)} coins repriced immediately before writing",
+                        ))
+                except Exception as exc:
+                    log.warning("recap_refresh_failed error=%s", exc)
+
+            # Free lore first: it needs no key and no credits, so it is the
+            # layer that always runs. Paid web research adds to it when funded.
+            storied = await attach_lore(recap_pool, settings)
+            if storied:
+                statuses.append(SourceStatus(
+                    "Coin lore", True,
+                    f"{storied} of {len(recap_pool)} coins with a sourced story from free search",
+                ))
+            researched = await research_day(recap_pool, settings)
+            if researched:
+                statuses.append(SourceStatus(
+                    "Coin research",
+                    True,
+                    f"{researched} coins with a searched, cited story behind the move",
+                ))
+            written = await write_recap(recap_pool, now, settings)
+            if written:
+                narrative = written
+                statuses.append(SourceStatus(
+                    "Written recap",
+                    True,
+                    f"{len(written.get('sections', []))} sections written by "
+                    f"{written.get('writer', 'unknown')}",
+                ))
+        except Exception as exc:  # never let the writer stop the report
+            log.warning("newsletter_write_failed error=%s", exc)
+            statuses.append(SourceStatus("Written recap", False, str(exc)[:120]))
+
         return Brief(
             generated_at=now,
             scorecard=ledger.scorecard(now),
@@ -2086,6 +2254,8 @@ async def build_brief(
             movers=movers,
             runners=runners,
             blocked_runners=blocked_runners,
+            headline_tape=headline_tape,
+            narrative=narrative,
             lore_groups=lore_groups,
             kol_flagged=kol_flagged,
             kol_wallet_count=(

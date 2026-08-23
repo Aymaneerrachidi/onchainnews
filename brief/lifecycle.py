@@ -120,7 +120,19 @@ def attach_lifecycle(
     current = float(candidate.token.market_cap or 0)
     candidate.peak_multiple = peak / start if start > 0 else None
     candidate.run_multiple = candidate.peak_multiple or candidate.run_multiple
-    candidate.drawdown_from_peak_pct = ((peak - current) / peak * 100.0) if peak > 0 else None
+    single_observation = (
+        candidate.first_seen_at is not None
+        and candidate.last_seen_at is not None
+        and candidate.first_seen_at == candidate.last_seen_at
+    )
+    if single_observation and peak <= current:
+        # We have seen this coin once. Its peak is simply the price we saw, so
+        # the drawdown is unknown rather than zero, and nothing downstream may
+        # claim it is holding its high.
+        candidate.drawdown_from_peak_pct = None
+        candidate.provider_evidence.setdefault("lifecycle", {})["peakIsSingleObservation"] = True
+    else:
+        candidate.drawdown_from_peak_pct = ((peak - current) / peak * 100.0) if peak > 0 else None
     candidate.faded_from_peak = candidate.drawdown_from_peak_pct
     candidate.runner_tier = tier_for_peak(peak)
     candidate.round_trip = (

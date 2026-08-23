@@ -26,6 +26,10 @@ def _buy_ratio_quality(value: float | None) -> float:
 def _recent_volume_share(candidate: Candidate) -> float | None:
     if candidate.token.volume_24h <= 0:
         return None
+    # Dexscreener has no h6 bucket on the EVM chains; a missing window is not
+    # a share of zero, and scoring it as one buried real runners' alerts.
+    if candidate.token.volume_6h <= 0:
+        return None
     return candidate.token.volume_6h / candidate.token.volume_24h
 
 
@@ -148,9 +152,7 @@ def _manipulation_score(candidate: Candidate, settings: Settings) -> float:
         score += min(35.0, (ratio - 60.0) * 0.7)
     if candidate.signals.turnover > float(settings.get("journal", "max_turnover", 30) or 30):
         score += 25.0
-    if top10 is None:
-        score += 12.0
-    elif top10 > 25:
+    if top10 is not None and top10 > 25:
         score += min(35.0, (top10 - 25.0) * 1.4)
     if token.active_boosts:
         score += 5.0
@@ -161,9 +163,11 @@ def _manipulation_score(candidate: Candidate, settings: Settings) -> float:
     if candidate.signals.buy_imbalance_6h is not None and candidate.signals.buy_imbalance_6h >= 0.82:
         score += 18.0
     if candidate.run_multiple >= float(settings.get("journal", "extreme_multiple", 10) or 10):
-        if token.volume_24h < float(settings.get("journal", "extreme_min_volume_24h", 1_000_000) or 1_000_000):
+        extreme_volume = float(settings.get("journal", "extreme_min_volume_24h", 0) or 0)
+        if extreme_volume and token.volume_24h < extreme_volume:
             score += 15.0
-        if (candidate.safety.holder_count or 0) < int(settings.get("journal", "extreme_min_holders", 5000) or 5000):
+        extreme_holders = int(settings.get("journal", "extreme_min_holders", 0) or 0)
+        if extreme_holders and candidate.safety.holder_count is not None and candidate.safety.holder_count < extreme_holders:
             score += 15.0
     gmgn = candidate.provider_evidence.get("gmgn", {})
     if gmgn.get("washTrading") is True:

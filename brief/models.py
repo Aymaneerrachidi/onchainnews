@@ -65,6 +65,21 @@ class TokenSnapshot:
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
 
+    # Whether the source reported an hour-level window at all. Birdeye does not,
+    # so a zero there means "not measured" rather than "nothing traded", and a
+    # liveness rule that cannot tell the difference deletes live coins.
+    intraday_known: bool = False
+
+    def __post_init__(self) -> None:
+        # EVM addresses arrive checksummed from one endpoint and lowercase from
+        # another. Compared as strings the same coin looks like two, and one
+        # report published the same token three times. Solana base58 is
+        # case-significant and must be left exactly as it is.
+        if self.mint.startswith("0x"):
+            self.mint = self.mint.lower()
+        if self.pair_address.startswith("0x"):
+            self.pair_address = self.pair_address.lower()
+
 @dataclass(slots=True)
 class MetaSnapshot:
     slug: str
@@ -348,6 +363,13 @@ class Brief:
     # The day's record: every coin that ran, risk labelled rather than hidden.
     runners: list[Candidate] = field(default_factory=list)
     blocked_runners: list[Candidate] = field(default_factory=list)
+    # The day's biggest markets, whether or not they ran. A coin can be the
+    # story of the day on a 6% move -- what makes it the story is that everyone
+    # was trading it. Selected on volume, not on the size of the move.
+    headline_tape: list[Candidate] = field(default_factory=list)
+    # The day grouped and phrased by the model, when it is enabled and answers.
+    # Empty means the deterministic template renders instead.
+    narrative: dict = field(default_factory=dict)
     lore_groups: dict[str, list[Candidate]] = field(default_factory=dict)
     kol_flagged: list[Candidate] = field(default_factory=list)
     kol_wallet_count: int = 0

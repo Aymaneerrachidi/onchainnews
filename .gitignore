@@ -33,3 +33,7 @@ web/.playwright-mcp/
 /tmp-debug/
 /runners-newsletter.html
 /x post example.jpg
+
+# Run logs and the archived copy of the last email that was sent.
+/output/*.log
+/output/email-sent.*

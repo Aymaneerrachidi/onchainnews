@@ -21,6 +21,13 @@ def build_settings(tmp_path: Path, fixture_name: str = "run.json", extra: str = 
     config = tmp_path / "config.toml"
     config.write_text(
         f"""
+[lore]
+# The suite runs offline; lore research reaches the open web.
+enabled = false
+
+[newsletter]
+enabled = false
+
 [run]
 timezone = "Europe/Paris"
 top_tokens = 10

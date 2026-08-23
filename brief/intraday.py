@@ -99,9 +99,14 @@ def pass_crosses_intraday_floor(entry: dict[str, Any], settings: Settings) -> bo
     min_trades = int(settings.get("journal", "intraday_min_trades_24h", settings.get("journal", "min_trades_24h", 1000)) or 1000)
     min_runner = float(settings.get("journal", "intraday_min_runner_score", 25.0) or 25.0)
     max_manipulation = float(settings.get("journal", "intraday_max_manipulation", settings.get("journal", "fill_max_manipulation", 55.0)) or 55.0)
+    # An hourly alert proves a coin qualified at some point; it does not prove
+    # it ran. Without this floor a flat, week-old coin that tripped one scan
+    # rejoins the recap and dilutes the page with 1.0x rows.
+    min_change = float(settings.get("journal", "intraday_min_change_24h_pct", 0.0) or 0.0)
     scores = entry.get("scores") or {}
     return (
-        _number(entry.get("marketCap")) >= min_peak_mcap
+        _number(entry.get("change24h")) >= min_change
+        and _number(entry.get("marketCap")) >= min_peak_mcap
         and _number(entry.get("volume24h")) >= min_volume
         and _number(entry.get("liquidity")) >= min_liq
         and _integer(entry.get("trades24h")) >= min_trades

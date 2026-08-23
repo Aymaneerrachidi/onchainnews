@@ -46,9 +46,110 @@ def implausible_run(candidate: Candidate, settings: Settings) -> bool:
 
     big = float(section.get("corroborate_above_multiple", 10))
     floor = float(section.get("min_turnover_for_big_run", 0.15))
-    if multiple >= big and candidate.signals.turnover < floor:
+    # Turnover is volume over market cap, so with no cap on record it reads as
+    # zero however hard the coin traded. Only a computed zero is corroboration
+    # of nothing; a missing denominator is not.
+    if multiple >= big and candidate.token.market_cap > 0 and candidate.signals.turnover < floor:
         return True
     return False
+
+
+def publisher_is_fresh(candidate: Candidate, settings: Settings, now: datetime | None = None) -> bool:
+    """Whether the publisher floors should be read at their fresh-launch level.
+
+    Every floor in this file was calibrated against established Solana coins.
+    Applied unchanged to a twelve-hour-old launch they reject it for being
+    twelve hours old: it cannot have a thousand holders yet, its pool is thin
+    enough that a genuine run churns many multiples of it, and its top ten
+    still hold what the bonding curve gave them. Fresh coins are judged on the
+    same evidence, at the level that evidence actually reaches by then.
+    """
+    age = _age_hours(candidate.token, now) if now is not None else candidate.signals.age_hours
+    return age is not None and age <= float(settings.section("journal").get("fresh_gate_hours", 36) or 36)
+
+
+def kol_traders(candidate: Candidate) -> set[str]:
+    """Tracked wallets that actually traded the coin.
+
+    Holding is not evidence. A launch can airdrop supply into well-known
+    wallets precisely so that screens like this one report smart money in the
+    coin, and the wallet's owner never touched it. Only a buy or a sell is a
+    decision, so only those count towards qualification. Holdings stay visible
+    on the row as context.
+    """
+    return set(candidate.kol_buyers) | set(candidate.kol_sellers)
+
+
+def kol_trade_count(candidate: Candidate) -> int:
+    """How many tracked wallets bought or sold it, from our tape or GMGN's.
+
+    The single definition. Qualification, the payload and the email all read
+    this, so a coin can never be admitted on evidence the reader is not shown.
+    """
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    flow = gmgn.get("walletFlow", {}) or {}
+    return max(
+        len(kol_traders(candidate)),
+        len(set(flow.get("kolBuyerNames", [])) | set(flow.get("kolSellerNames", []))),
+        int(gmgn.get("kolCount") or 0),
+    )
+
+
+def kol_touch_required(candidate: Candidate, settings: Settings) -> bool:
+    """Whether a tracked-wallet touch is mandatory for this coin's chain.
+
+    Our KOL and smart-money coverage is a Solana list. On Solana a runner that
+    no tracked wallet went near is genuinely odd and worth holding back. Off
+    Solana the same silence says nothing about the coin and everything about
+    who we follow, so requiring a touch there would reject Base and BNB runners
+    for a gap in our own data.
+    """
+    section = settings.section("journal")
+    if not bool(section.get("require_kol_trade_for_publish", False)):
+        return False
+    chains = [str(c).strip().lower() for c in (section.get("require_kol_trade_chains", []) or [])]
+    return not chains or candidate.token.chain_id.lower() in chains
+
+
+def six_hour_volume_known(token: TokenSnapshot) -> bool:
+    """Whether the six-hour window was actually reported for this pair.
+
+    Dexscreener returns no h6 bucket at all for the EVM chains, so the field
+    arrives as zero and every Base and BNB coin looks like a move that ended
+    hours ago. A pair trading two million dollars across the day did not trade
+    exactly nothing in the last six hours; that is a missing number, not a dead
+    market, and it must not be read as one.
+    """
+    return not (token.volume_6h <= 0 < token.volume_24h)
+
+
+def latin_symbol(symbol: str) -> bool:
+    """Whether a minimum character count means anything for this ticker.
+
+    A two-character CJK ticker is a whole word -- the film coin that ran to $77m
+    was written with exactly two. Counting characters is a Latin-alphabet
+    assumption, so it is only applied to Latin-alphabet tickers.
+    """
+    return all(ord(character) < 0x2E80 for character in str(symbol or ""))
+
+
+def chain_min_liquidity(section: Settings, chain: str, default: float) -> float:
+    """Pool depth expectations differ per chain; Solana's floor is not universal."""
+    table = section.get("min_liquidity_by_chain") or {}
+    if isinstance(table, dict):
+        override = table.get(str(chain or "").lower())
+        if override is not None:
+            return float(override)
+    return float(section.get("min_liquidity", default) or default)
+
+
+def _floor(section: Settings, key: str, default: float, *, fresh: bool) -> float:
+    """The fresh variant of a floor when one is configured, else the standard."""
+    if fresh:
+        relaxed = section.get(f"fresh_{key}")
+        if relaxed is not None:
+            return float(relaxed)
+    return float(section.get(key, default) or default)
 
 
 def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) -> bool:
@@ -88,11 +189,19 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     start = float(candidate.start_market_cap or 0)
     measured_window_multiple = peak / start if start > 0 else 1.0
     fresh_window = float(section.get("fresh_window_hours", 24) or 24)
-    new_launch_peak = age is not None and age <= fresh_window and peak >= peak_floor
+    min_volume = float(section.get("min_volume_24h", 50_000))
+    new_launch_peak = (
+        age is not None
+        and age <= fresh_window
+        and peak >= peak_floor
+        # A peak with no trade behind it is a price, not a market. Without this
+        # a fresh coin reached the recap on a $2M cap and $0 of daily volume.
+        and token.volume_24h >= min_volume
+    )
     if new_launch_peak:
         return True
 
-    if token.volume_24h < float(section.get("min_volume_24h", 50_000)):
+    if token.volume_24h < min_volume:
         return False
     if implausible_run(candidate, settings):
         return False
@@ -106,6 +215,13 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
 
     if age <= fresh_window:
         return token.price_change_24h >= float(section.get("min_fresh_change_pct", 30))
+
+    # A peak recorded days ago is not today's move. If the live tape says an
+    # established coin is flat or down, no reconstructed high should carry it
+    # into a recap of what ran.
+    floor_change = float(section.get("older_min_live_change_pct", 0) or 0)
+    if floor_change and token.price_change_24h < floor_change:
+        return False
 
     # Established coins need a move that actually occurred inside this report
     # window.  KOL count, market cap and a lifetime ATH are context, not proof
@@ -168,7 +284,15 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
         reasons.append("mint authority still live, supply can be inflated")
     if report.freeze_authority_disabled is False or enrichment.freeze_authority_disabled is False:
         reasons.append("freeze authority still live, holders can be frozen")
-    if report.lp_locked_or_burned_pct is not None and report.lp_locked_or_burned_pct <= 0:
+    gmgn_burned = (
+        str(gmgn.get("burnStatus") or "").lower() == "yes"
+        or float(gmgn.get("burnRatio") or 0) >= 0.90
+    )
+    if (
+        report.lp_locked_or_burned_pct is not None
+        and report.lp_locked_or_burned_pct <= 0
+        and not gmgn_burned
+    ):
         reasons.append("liquidity neither locked nor burned, it can be pulled")
     bundle_pct = float(section.get("bundle_top10_pct", 50))
     if report.top10_pct is not None and report.top10_pct > bundle_pct:
@@ -180,6 +304,22 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     # while KOL absence, boosts and a high standalone rug heuristic do not.
     if gmgn.get("washTrading") is True:
         reasons.append("GMGN detected wash trading")
+
+    max_fee = float(section.get("max_total_fee_pct", 0) or 0)
+    total_fee = float(gmgn.get("totalFee") or 0)
+    trade_fee = float(gmgn.get("tradeFee") or 0)
+    fee_chains = {
+        str(chain).strip().lower()
+        for chain in (section.get("fee_check_chains", []) or [])
+    }
+    fee_is_percentage = (
+        candidate.token.chain_id.lower() in fee_chains
+        and 0 < max(total_fee, trade_fee) <= 50
+    )
+    if max_fee and fee_is_percentage and max(total_fee, trade_fee) >= max_fee:
+        reasons.append(
+            f"taxed token: {max(total_fee, trade_fee):.1f}% is taken on every trade"
+        )
     for field, label, setting, default in (
         ("bundlerRate", "GMGN bundled launch flow", "gmgn_max_bundler_rate", 0.30),
         ("insiderRate", "GMGN insider/rat-trader flow", "gmgn_max_insider_rate", 0.30),
@@ -206,6 +346,33 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
         and enrichment.unique_makers_24h / candidate.token.txns_6h.total < 0.05
     ):
         reasons.append("manufactured tape, many trades from very few wallets")
+
+    # A phantom float. When almost no supply is in the pool, a handful of
+    # dollars prices the whole supply at any number the feed will print, and
+    # impostor clones of a real coin arrive claiming hundreds of millions. Real
+    # runners in this record sit under 20x their pool; this only catches the
+    # ones that are arithmetically impossible.
+    cap_ratio = float(section.get("max_market_cap_liquidity", 0) or 0)
+    token = candidate.token
+    if cap_ratio and token.liquidity_usd > 0 and token.market_cap > token.liquidity_usd * cap_ratio:
+        reasons.append(
+            f"phantom market cap: ${token.market_cap:,.0f} priced off a "
+            f"${token.liquidity_usd:,.0f} pool"
+        )
+
+    # The same fiction from the other side. A hundred-million-dollar coin that
+    # trades half a million dollars in a day is not a hundred-million-dollar
+    # coin: almost none of the supply is reachable, and the cap is whatever the
+    # last few trades implied. A real market of that size turns over.
+    phantom_cap = float(section.get("phantom_cap_above", 0) or 0)
+    phantom_turnover = float(section.get("phantom_min_turnover", 0) or 0)
+    if phantom_cap and phantom_turnover and token.market_cap >= phantom_cap and token.volume_24h >= 0:
+        turnover = token.volume_24h / token.market_cap if token.market_cap else 0.0
+        if turnover < phantom_turnover:
+            reasons.append(
+                f"phantom market cap: ${token.market_cap:,.0f} on only "
+                f"${token.volume_24h:,.0f} of daily volume"
+            )
     return reasons
 
 
@@ -222,17 +389,12 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     token = candidate.token
     report = candidate.safety
     enrichment = candidate.enrichment
-    local_kol_touch_count = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
     gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     gmgn_flow = gmgn.get("walletFlow", {}) or {}
-    gmgn_touch_count = max(
-        len(set(gmgn_flow.get("kolBuyers", [])) | set(gmgn_flow.get("kolSellers", []))),
-        int(gmgn.get("kolCount") or 0),
-    )
-    kol_touch_count = max(local_kol_touch_count, gmgn_touch_count)
+    kol_touch_count = kol_trade_count(candidate)
     strong_kol_flow = kol_touch_count >= int(section.get("strong_kol_wallets", 3) or 3)
 
-    if bool(section.get("require_kol_trade_for_publish", False)):
+    if kol_touch_required(candidate, settings):
         min_kol_touches = int(section.get("min_kol_trades_for_publish", 1) or 1)
         coverage_available = bool(candidate.kol_wallets_scanned or gmgn_flow.get("coverageAvailable") or "kolCount" in gmgn)
         if coverage_available:
@@ -246,28 +408,40 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     if bool(section.get("exclude_boosted", False)) and token.active_boosts:
         reasons.append("active Dexscreener boost; paid placement is not organic discovery")
 
-    min_liquidity = float(section.get("min_liquidity", 0) or 0)
+    min_liquidity = chain_min_liquidity(section, token.chain_id, 0)
     if min_liquidity and token.liquidity_usd < min_liquidity:
         reasons.append(f"liquidity below publisher floor (${token.liquidity_usd:,.0f} < ${min_liquidity:,.0f})")
 
+    fresh = publisher_is_fresh(candidate, settings, now)
+    # RugCheck answers for Solana and GoPlus for the EVM chains, but neither has
+    # indexed a coin that is two hours old, and no source at all covers some
+    # chains. Treating "we could not measure this" as "this failed" quietly
+    # deleted every young Base and BNB runner from the recap while Solana, where
+    # the data arrives fastest, filled the whole page. A gap is reported on the
+    # row instead; only a measured failure removes a coin.
+    strict_missing = bool(section.get("block_on_missing_safety_data", False))
+
     if bool(section.get("require_holder_count", False)):
-        min_holders = int(section.get("min_holders", 0) or 0)
+        min_holders = int(_floor(section, "min_holders", 0, fresh=fresh))
         if report.holder_count is None:
-            reasons.append("holder count unavailable")
+            if strict_missing:
+                reasons.append("holder count unavailable")
         elif min_holders and report.holder_count < min_holders:
             reasons.append(f"only {report.holder_count:,} holders, below publisher floor")
 
     min_lp = float(section.get("min_lp_locked_pct", 0) or 0)
     if min_lp:
         if report.lp_locked_or_burned_pct is None:
-            reasons.append("LP lock/burn status unavailable")
+            if strict_missing:
+                reasons.append("LP lock/burn status unavailable")
         elif report.lp_locked_or_burned_pct < min_lp:
             reasons.append(f"LP only {report.lp_locked_or_burned_pct:.0f}% locked or burned")
 
-    max_top10 = float(section.get("publisher_max_top10_pct", 0) or 0)
+    max_top10 = _floor(section, "publisher_max_top10_pct", 0, fresh=fresh)
     if max_top10:
         if report.top10_pct is None:
-            reasons.append("top-10 concentration unavailable")
+            if strict_missing:
+                reasons.append("top-10 concentration unavailable")
         elif report.top10_pct > max_top10:
             reasons.append(f"top 10 hold {report.top10_pct:.0f}%, above publisher ceiling")
 
@@ -277,8 +451,16 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
         reasons.append("linked X account does not resolve")
 
     min_symbol = int(section.get("min_symbol_length", 0) or 0)
-    if min_symbol and len(str(token.symbol or "").strip()) < min_symbol:
+    if min_symbol and latin_symbol(token.symbol) and len(str(token.symbol or "").strip()) < min_symbol:
         reasons.append(f"ticker is under {min_symbol} characters")
+
+    blocked_symbols = {
+        str(entry).strip().casefold()
+        for entry in (section.get("blocked_symbols", []) or [])
+        if str(entry).strip()
+    }
+    if str(token.symbol or "").strip().casefold() in blocked_symbols:
+        reasons.append(f"blocked ticker: {token.symbol}")
 
     blocked_terms = [
         str(term).casefold()
@@ -298,6 +480,13 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     min_age = float(section.get("min_age_hours", 0) or 0)
     if min_age and age is not None and age < min_age:
         reasons.append(f"only {age:.1f}h old; too early for publisher recap")
+
+    if bool(section.get("require_last_hour_activity", False)):
+        # Both signals have to be silent: a flat price alone can just be a
+        # steady hour, but a flat price with no prints at all is a dead pair.
+        # Only a source that reports the hour can say the hour was empty.
+        if token.intraday_known and token.txns_1h.total == 0 and token.volume_1h <= 0:
+            reasons.append("no trade at all in the last hour")
 
     max_fade = float(section.get("max_negative_1h_pct", 0) or 0)
     if max_fade and token.price_change_1h <= -abs(max_fade):
@@ -320,7 +509,7 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
         if min_extreme_holders and (report.holder_count is None or report.holder_count < min_extreme_holders):
             holder_text = "unavailable holders" if report.holder_count is None else f"{report.holder_count:,} holders"
             reasons.append(f"{candidate.run_multiple:.0f}x move with {holder_text}")
-        if min_extreme_recent_share and token.volume_24h:
+        if min_extreme_recent_share and token.volume_24h and six_hour_volume_known(token):
             recent_share = token.volume_6h / token.volume_24h
             if (
                 recent_share < min_extreme_recent_share
@@ -337,32 +526,48 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     min_confirmations = int(section.get("min_organic_confirmations", 0) or 0)
     if min_confirmations:
         confirmations: list[str] = []
-        min_holders = int(section.get("min_holders", 0) or 0)
-        min_trades = int(section.get("min_trades_24h", 0) or 0)
+        min_holders = int(_floor(section, "min_holders", 0, fresh=fresh))
+        min_trades = int(_floor(section, "min_trades_24h", 0, fresh=fresh))
         min_volume = float(section.get("min_volume_24h", 0) or 0)
-        min_liquidity = float(section.get("min_liquidity", 0) or 0)
-        max_top10 = float(section.get("publisher_max_top10_pct", 0) or 0)
+        min_liquidity = chain_min_liquidity(section, token.chain_id, 0)
+        max_top10 = _floor(section, "publisher_max_top10_pct", 0, fresh=fresh)
         min_buy_ratio = float(section.get("organic_min_buy_ratio", 0.42) or 0.42)
         max_buy_ratio = float(section.get("organic_max_buy_ratio", 0.72) or 0.72)
 
-        if report.holder_count is not None and (not min_holders or report.holder_count >= min_holders):
-            confirmations.append("holders")
-        if token.txns_24h.total and (not min_trades or token.txns_24h.total >= min_trades):
-            confirmations.append("trades")
+        # Two of these checks read a number that only Solana reports in time:
+        # holder count and top-10 share. Counting an unmeasured check as a
+        # failure put the EVM ceiling at five out of seven against a demand for
+        # six, so no Base, BNB or Ethereum coin could ever qualify however
+        # organic it was. A coin is judged on the checks that could be taken.
+        applicable = 0
+
+        if report.holder_count is not None:
+            applicable += 1
+            if not min_holders or report.holder_count >= min_holders:
+                confirmations.append("holders")
+        if token.txns_24h.total:
+            applicable += 1
+            if not min_trades or token.txns_24h.total >= min_trades:
+                confirmations.append("trades")
+        applicable += 1
         if not min_volume or token.volume_24h >= min_volume:
             confirmations.append("volume")
+        applicable += 1
         if not min_liquidity or token.liquidity_usd >= min_liquidity:
             confirmations.append("liquidity")
+        applicable += 1
         if token.socials or strong_kol_flow:
             confirmations.append("context")
-        if report.top10_pct is not None and (not max_top10 or report.top10_pct <= max_top10):
-            confirmations.append("distribution")
-        if (
-            candidate.signals.buy_imbalance_6h is not None
-            and min_buy_ratio <= candidate.signals.buy_imbalance_6h <= max_buy_ratio
-        ):
-            confirmations.append("two-sided book")
+        if report.top10_pct is not None:
+            applicable += 1
+            if not max_top10 or report.top10_pct <= max_top10:
+                confirmations.append("distribution")
+        if candidate.signals.buy_imbalance_6h is not None:
+            applicable += 1
+            if min_buy_ratio <= candidate.signals.buy_imbalance_6h <= max_buy_ratio:
+                confirmations.append("two-sided book")
 
+        min_confirmations = min(min_confirmations, applicable)
         if len(confirmations) < min_confirmations:
             reasons.append(
                 f"only {len(confirmations)}/{min_confirmations} organic confirmations "
@@ -395,8 +600,17 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
         ):
             reasons.append(warning)
 
+    if token.volume_24h <= 0:
+        reasons.append("no 24h volume at all")
+
     ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else 0.0
-    max_ratio = float(section.get("max_volume_liquidity", 150))
+    # Volume against pool depth says almost nothing about a new launch. A real
+    # 20x on a $40k pool trades far past this ceiling because the pool is small,
+    # not because the tape is fake. Turnover against market cap below is the
+    # measure that survives a thin float, so the depth ratio is loosened here
+    # rather than being allowed to reject every young runner.
+    max_ratio = _floor(section, "max_volume_liquidity", 150,
+                       fresh=publisher_is_fresh(candidate, settings))
     if token.liquidity_usd and ratio > max_ratio:
         reasons.append(f"wash-trading shape: {ratio:,.0f}x its own liquidity traded in 24h")
 
@@ -418,12 +632,18 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
             "which is spam rather than demand"
         )
 
-    min_holders = int(section.get("min_holders", 200))
+    min_holders = int(_floor(section, "min_holders", 200, fresh=publisher_is_fresh(candidate, settings)))
     holders = candidate.safety.holder_count
+    # Zero means the source had no figure. A coin with genuinely no holders
+    # cannot trade, so a zero here is always missing data.
+    if holders:
+        holders = holders if holders > 0 else None
+    else:
+        holders = None
     if holders is not None and holders < min_holders:
         reasons.append(f"only {holders} holders, which is not a market yet")
 
-    min_trades = int(section.get("min_trades_24h", 300))
+    min_trades = int(_floor(section, "min_trades_24h", 300, fresh=publisher_is_fresh(candidate, settings)))
     if token.txns_24h.total and token.txns_24h.total < min_trades:
         reasons.append(f"only {token.txns_24h.total} trades in 24h")
 
@@ -431,7 +651,11 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
     # trading behind it. An even day puts a quarter of its volume in the last
     # six hours, so a few percent means the move finished hours ago.
     min_share = float(section.get("min_recent_volume_share", 0.08))
-    if token.volume_24h and run_multiple(token) >= float(section.get("dead_check_above_multiple", 5)):
+    if (
+        token.volume_24h
+        and six_hour_volume_known(token)
+        and run_multiple(token) >= float(section.get("dead_check_above_multiple", 5))
+    ):
         share = token.volume_6h / token.volume_24h
         gmgn_organic = bool(
             (candidate.provider_evidence.get("gmgn", {}) or {}).get("organicQualified")
@@ -484,12 +708,7 @@ def untouched_by_tracked_wallets(candidate: Candidate, settings: Settings) -> bo
     threshold = float(section.get("expect_tracked_wallets_above", 5.0))
     if candidate.run_multiple < threshold:
         return False
-    return not (
-        candidate.kol_buyers
-        or candidate.kol_sellers
-        or candidate.kol_holders
-        or candidate.kol_realised_sol
-    )
+    return not (kol_traders(candidate) or candidate.kol_realised_sol)
 
 
 def missing_wallet_confirmation(candidate: Candidate, settings: Settings) -> bool:
@@ -511,7 +730,7 @@ def missing_wallet_confirmation(candidate: Candidate, settings: Settings) -> boo
         return False
     if min_mcap and candidate.token.market_cap < min_mcap:
         return False
-    touch_count = len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))
+    touch_count = len(kol_traders(candidate))
     min_buyers = int(section.get("wallet_touch_required_min_buyers", 2) or 2)
     min_participants = int(section.get("wallet_touch_required_min_participants", 3) or 3)
     min_realised = float(section.get("wallet_touch_required_min_realised_sol", 50.0) or 50.0)
@@ -529,6 +748,7 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
     section = settings.section("journal")
     token = candidate.token
     report = candidate.safety
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     labels: list[str] = []
 
     caution_pct = float(section.get("caution_top10_pct", 25))
@@ -538,6 +758,13 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
         labels.append("concentration unknown")
     if report.lp_locked_or_burned_pct is None:
         labels.append("LP lock unknown")
+    total_fee = float(gmgn.get("totalFee") or 0)
+    fee_chains = {str(c).strip().lower() for c in (section.get("fee_check_chains", []) or [])}
+    if (
+        token.chain_id.lower() in fee_chains
+        and float(section.get("caution_total_fee_pct", 1) or 1) <= total_fee <= 50
+    ):
+        labels.append(f"{total_fee:.1f}% tax on every trade")
     ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else float("inf")
     if ratio > float(section.get("thin_liquidity_ratio", 60)):
         labels.append(f"thin pool, {ratio:.0f}x its liquidity traded")
@@ -715,7 +942,7 @@ def build_journal(
             disqualifying.append(
                 f"{candidate.run_multiple:.1f}x Solana runner but tracked-wallet confirmation was too thin "
                 f"({len(set(candidate.kol_buyers))} buyers, "
-                f"{len(set(candidate.kol_buyers) | set(candidate.kol_holders) | set(candidate.kol_sellers))} participants)"
+                f"{len(kol_traders(candidate))} participants)"
             )
         if disqualifying:
             candidate.risk_labels = disqualifying

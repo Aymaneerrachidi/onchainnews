@@ -109,6 +109,7 @@ def parse_rank_item(
         volume_24h=volume,
         volume_6h=number(item.get("volume_6h")),
         volume_1h=number(item.get("volume_1h")),
+        intraday_known="volume_1h" in item or "swaps_1h" in item,
         price_change_24h=number(item.get("price_change_percent") or item.get("price_change_percent24h")),
         price_change_6h=number(item.get("price_change_percent6h")),
         price_change_1h=number(item.get("price_change_percent1h")),
@@ -140,6 +141,12 @@ def evidence_from_rank(item: dict[str, Any], origin: str) -> dict[str, Any]:
     return {
         "origin": origin,
         "athMarketCap": number(item.get("history_highest_market_cap")) or None,
+        # A tax on every transfer. Material enough to change whether a coin is
+        # worth touching, and invisible in price data.
+        "totalFee": number(item.get("total_fee")) if item.get("total_fee") is not None else None,
+        "burnStatus": str(item.get("burn_status") or "") or None,
+        "burnRatio": number(item.get("burn_ratio")) if item.get("burn_ratio") is not None else None,
+        "tradeFee": number(item.get("trade_fee")) if item.get("trade_fee") is not None else None,
         "holders": integer(item.get("holder_count")) or None,
         "top10Pct": _ratio_pct(item.get("top_10_holder_rate")),
         "rugRatio": number(item.get("rug_ratio")) if item.get("rug_ratio") not in (None, "") else None,

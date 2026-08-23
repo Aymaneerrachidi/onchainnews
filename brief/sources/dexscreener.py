@@ -73,6 +73,9 @@ def parse_pair(pair: dict[str, Any]) -> TokenSnapshot | None:
         txns_6h=window("h6"),
         txns_24h=window("h24"),
         volume_1h=number((pair.get("volume") or {}).get("h1")),
+        # Dexscreener always returns the h1 bucket for a live pair, so a zero
+        # here is a real zero and the liveness rule can trust it.
+        intraday_known=("h1" in (pair.get("volume") or {})) or ("h1" in (pair.get("txns") or {})),
         socials=[s for s in info.get("socials", []) if isinstance(s, dict)],
         active_boosts=integer((pair.get("boosts") or {}).get("active")),
         raw=pair,
