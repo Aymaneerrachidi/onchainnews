@@ -34,6 +34,9 @@ web/.playwright-mcp/
 /runners-newsletter.html
 /x post example.jpg
 
+/output/*.json
+/fomo logo.jpg
+
 # Run logs and the archived copy of the last email that was sent.
 /output/*.log
 /output/email-sent.*

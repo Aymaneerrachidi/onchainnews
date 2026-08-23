@@ -323,7 +323,7 @@ canvas size, and tick *Shutdown source when not visible* and *Refresh browser
 when scene becomes active*. The page background is transparent, so nothing is
 composited over the scene except the panel itself.
 
-The QR opens `[overlay].trade_url_template` with `{mint}` substituted, so a
+The QR opens `[overlay].trade_url_template` with `{chain}` and `{mint}` substituted, so a
 viewer scans instead of copying a contract address off a video. Point it at the
 client's own referral link and the traffic is attributed to him.
 

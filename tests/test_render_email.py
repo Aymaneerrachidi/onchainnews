@@ -46,7 +46,7 @@ async def test_email_renders_runner_recap_lines(tmp_path):
         # every runner's ticker reaches the page.
         for candidate in brief.runners:
             assert candidate.token.symbol in body
-            assert f'href="https://dexscreener.com/solana/{candidate.token.mint}"' in body
+            assert f'href="https://fomo.family/tokens/solana/{candidate.token.mint}"' in body
     finally:
         ledger.close()
 
@@ -356,5 +356,5 @@ def test_email_explains_intraday_round_trips_without_vendor_branding(tmp_path):
     # The move has its own line in the card rather than sharing a slash-strip.
     assert "+190% to the high" in body
     assert "finished +0%" in body
-    assert "dexscreener.com/solana/" in body
+    assert "fomo.family/tokens/solana/" in body
     assert "gmgn" not in body.casefold()

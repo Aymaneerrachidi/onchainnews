@@ -417,11 +417,11 @@ accounts = [
 
 # Stream overlay. `trade_url_template` is what the on-screen QR opens, so a
 # viewer can scan it and land on the coin instead of copying a contract address
-# off a video. Placeholders: {mint}, {symbol}. Replace this with the client's
+# off a video. Placeholders: {chain}, {mint}, {symbol}. Replace this with the client's
 # own referral link once he sends one share link from the app.
 [overlay]
 enabled = true
-trade_url_template = "https://fomo.family/token/{mint}"
+trade_url_template = "https://fomo.family/tokens/{chain}/{mint}"
 # Appended to the deep link when set, e.g. "?ref=CODE" or "&ref=CODE".
 trade_url_suffix = ""
 
@@ -434,6 +434,12 @@ html_enabled = true
 telegram_digest = true
 # Optional link appended to the digest so the full report is one tap away.
 report_url = "https://onchainnews-rho.vercel.app"
+
+# Optional Discord post. Requires DISCORD_WEBHOOK_URL in .env; the webhook is
+# a bearer credential, so it never lives in the repo. A single message carries
+# the day's context and one embed per tier, budgeted against Discord's shared
+# 6,000-character embed limit.
+discord_enabled = true
 
 # Optional email delivery. Use Brevo for API-based free delivery to external
 # recipients without SMTP. Set BREVO_API_KEY in .env/GitHub secrets.

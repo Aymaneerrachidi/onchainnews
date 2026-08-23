@@ -82,8 +82,8 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "classification": candidate.classification,
         "read": candidate.read,
         "track": candidate.track,
-        "tradeUrl": trade_url(trade_template, token.mint, token.symbol),
-        "qr": qr_matrix(trade_url(trade_template, token.mint, token.symbol)),
+        "tradeUrl": trade_url(trade_template, token.mint, token.symbol, token.chain_id),
+        "qr": qr_matrix(trade_url(trade_template, token.mint, token.symbol, token.chain_id)),
         "dexEvidence": candidate.dex_evidence,
         "catalyst": candidate.catalyst,
         "xInteractions": [

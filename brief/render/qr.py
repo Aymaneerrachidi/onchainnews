@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import logging
 
+from brief.links import fomo_chain_slug
+
 try:
     import segno
 except ImportError:  # pragma: no cover - exercised by the guard below
@@ -27,7 +29,7 @@ log = logging.getLogger("brief.qr")
 ERROR_CORRECTION = "m"
 
 
-def trade_url(template: str, mint: str, symbol: str) -> str:
+def trade_url(template: str, mint: str, symbol: str, chain: str = "") -> str:
     """Fill the configured deep link for one coin.
 
     The template is configuration because the destination is the client's
@@ -38,6 +40,7 @@ def trade_url(template: str, mint: str, symbol: str) -> str:
     return (
         template.replace("{mint}", mint)
         .replace("{symbol}", symbol.lstrip("$"))
+        .replace("{chain}", fomo_chain_slug(chain))
         .replace("{MINT}", mint)
     )
 

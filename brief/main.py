@@ -13,6 +13,7 @@ from rich.table import Table
 
 from brief.config import load_settings
 from brief.delivery import EmailDeliveryError, TelegramDeliveryError, send_email, send_telegram, write_html
+from brief.render.discord import send_discord
 from brief.engine import build_brief
 from brief.interface import serve_interface
 from brief.ledger import open_ledger
@@ -132,6 +133,15 @@ async def run(args: argparse.Namespace) -> int:
                     # independent from a temporary email/API failure.
                     logging.getLogger("brief.delivery").error("Email delivery failed: %s", exc)
                     console.print("[yellow]Email delivery failed; the web report will still publish.[/yellow]")
+        if settings.get("delivery", "discord_enabled", False):
+            try:
+                if await send_discord(brief, settings):
+                    console.print("[dim]Discord recap posted.[/dim]")
+                else:
+                    console.print("[dim]Discord enabled but DISCORD_WEBHOOK_URL unset; skipping.[/dim]")
+            except Exception as exc:  # a chat post must never cost the report
+                logging.getLogger("brief.delivery").error("Discord post failed: %s", exc)
+                console.print("[yellow]Discord post failed; the report is unaffected.[/yellow]")
         return 0
     except Exception as exc:
         logging.getLogger("brief").exception("Daily brief failed")

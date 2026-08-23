@@ -12,6 +12,7 @@ import re
 from datetime import datetime
 
 from brief.config import Settings
+from brief.links import fomo_token_url
 from brief.lifecycle import tier_for_peak
 from brief.journal import kol_trade_count
 from brief.sources.openintel import (
@@ -45,7 +46,7 @@ LINE = "#DFE3EF"
 LINE_DARK = "#2A3154"
 TRACK = "#E8EBF5"
 
-FONT = "-apple-system,'Segoe UI',Roboto,Arial,sans-serif"
+FONT = "-apple-system,'Helvetica Neue','Segoe UI',Arial,sans-serif"
 
 CHAIN_NAMES = {
     "solana": "Solana",
@@ -89,14 +90,8 @@ def _chain_name(chain: str) -> str:
 
 
 def _chart_url(candidate: Candidate) -> str:
-    """Keep data-vendor branding out of the reader-facing newsletter."""
-    chain = {
-        "solana": "solana",
-        "ethereum": "ethereum",
-        "bsc": "bsc",
-        "base": "base",
-    }.get(candidate.token.chain_id.lower(), candidate.token.chain_id.lower())
-    return f"https://dexscreener.com/{chain}/{candidate.token.mint}"
+    """Primary token action: open the asset on Fomo Family."""
+    return fomo_token_url(candidate.token.chain_id, candidate.token.mint)
 
 
 def _provider_neutral_email(body: str) -> str:
@@ -656,7 +651,7 @@ def _lead_recap(candidate: Candidate) -> str:
         f'{_e(money(token.volume_24h))} volume / {_e(money(token.liquidity_usd))} liquidity / {_e(_age(candidate))}</div>'
         f'<div style="padding-top:17px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
         f'style="display:inline-block;background:{INK};color:{SURFACE};border-radius:999px;'
-        f'padding:12px 18px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Open chart</a></div>'
+        f'padding:12px 18px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Trade on Fomo</a></div>'
         '</td></tr></table></td></tr>'
     )
 
@@ -833,6 +828,17 @@ def _runner_card(candidate: Candidate) -> str:
     lore_text = " ".join(
         str((candidate.provider_evidence.get("why", {}) or {}).get("cause") or "").split()
     )
+    why = candidate.provider_evidence.get("why", {}) or {}
+    source_url = str(why.get("sourceUrl") or "").strip()
+    if not source_url:
+        source_url = next(
+            (
+                str(item.get("url") or "").strip()
+                for item in (candidate.news_evidence or [])
+                if str(item.get("url") or "").strip()
+            ),
+            "",
+        )
     lore_text = _usable_lore(lore_text)
     if not lore_text:
         for item in candidate.news_evidence or []:
@@ -878,7 +884,19 @@ def _runner_card(candidate: Candidate) -> str:
     block = _coin_block(candidate, candidate.token.symbol, lore_text,
                         money(peak_cap(candidate)), spare=has_story)
     if not tail:
-        return block
+        if not source_url:
+            return block
+        tail = (
+            f'<div style="padding-top:10px"><a href="{_e(source_url)}" target="_blank" '
+            f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.05, "uppercase")}">'
+            "Read source &#8599;</a></div>"
+        )
+    elif source_url:
+        tail += (
+            f'<div style="padding-top:10px"><a href="{_e(source_url)}" target="_blank" '
+            f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.05, "uppercase")}">'
+            "Read source &#8599;</a></div>"
+        )
     # Append at the end of the card, not at the first closing tag, which
     # belongs to the ticker row and put the numbers above the sentence.
     close = block.rfind("</td></tr>")
@@ -1004,7 +1022,7 @@ def _hero(candidate: Candidate) -> str:
         + f'<div style="padding-top:22px">'
         f'<a href="{_e(_chart_url(candidate))}" target="_blank" '
         f'style="display:inline-block;background:{INK};color:{SURFACE};border-radius:999px;'
-        f'padding:13px 19px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Open chart</a>'
+        f'padding:13px 19px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Trade on Fomo</a>'
         f'<span style="{_txt(11, 500, MUTED, 1.5)};padding-left:12px;word-break:break-all">{_e(token.mint)}</span>'
         "</div>"
         "</td></tr></table></td></tr>"
@@ -1038,7 +1056,7 @@ def _runner_row(candidate: Candidate, share: float) -> str:
         f'<div style="padding-top:14px">{_bar(share, accent if risks else BLUE, 7)}</div>'
         f'<div style="{_txt(13, 500, reason_color, 1.6)};padding-top:12px">{_e(reason)}</div>'
         f'<div style="padding-top:13px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
-        f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Open chart</a></div>'
+        f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Trade on Fomo</a></div>'
         "</td></tr></table></td></tr>"
     )
 
@@ -1070,7 +1088,7 @@ def _pick_row(candidate: Candidate) -> str:
         f'<span style="{_txt(18, 850, INK, 1.25)};padding-left:9px">${_e(candidate.token.symbol)}</span>'
         f'<div style="{_txt(14, 450, INK_2, 1.7)};padding-top:12px">{_e(candidate.read)}</div>'
         f'<div style="padding-top:14px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
-        f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Open chart</a></div>'
+        f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Trade on Fomo</a></div>'
         "</td></tr></table></td></tr>"
     )
 
@@ -1167,7 +1185,7 @@ def _pulse_runner(candidate: Candidate, pass_count: int, alert_level: str = "") 
         '</tr></table>'
         f'<div style="padding-top:20px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
         f'style="display:inline-block;background:{INK};color:{SURFACE};border-radius:999px;'
-        f'padding:13px 19px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Open chart</a>'
+        f'padding:13px 19px;text-decoration:none;{_txt(13, 800, SURFACE, 1.0)}">Trade on Fomo</a>'
         f'<div style="{_txt(11, 500, MUTED, 1.55)};padding-top:12px;word-break:break-all">CA: {_e(token.mint)}</div>'
         '</div></td></tr></table></td></tr>'
     )
@@ -1236,7 +1254,7 @@ def _tape_row(candidate: Candidate, rank: int) -> str:
         f'<div style="{_txt(15, 450, INK_2, 1.65)};padding-top:14px">{_e(candidate.read)}</div>'
         + kol +
         f'<div style="padding-top:13px"><a href="{_e(_chart_url(candidate))}" target="_blank" '
-        f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Open chart</a></div>'
+        f'style="text-decoration:none;{_txt(12, 800, BLUE, 1.2, 0.06, "uppercase")}">Trade on Fomo</a></div>'
         "</td></tr></table></td></tr>"
     )
 
@@ -1518,6 +1536,123 @@ def _narrative_rows(section: dict, by_symbol: dict) -> list[str]:
     return rows
 
 
+def _editorial_coin_row(candidate: Candidate | None, item: dict) -> str:
+    """One flat, readable newsletter row for a researched coin.
+
+    A 27-name recap became difficult to scan when every coin was a card and the
+    same names also appeared in the section summary. This row keeps the useful
+    hierarchy without nesting: result, explanation, caveat, then links.
+    """
+    symbol = str(item.get("symbol") or (candidate.token.symbol if candidate else "?"))
+    thesis = _compact_copy(item.get("line"), 230)
+    if not thesis and candidate is not None:
+        thesis = _coin_thesis(candidate)
+    high = money(peak_cap(candidate)) if candidate is not None else ""
+    chart = _chart_url(candidate) if candidate is not None else ""
+    mint = candidate.token.mint if candidate is not None else ""
+    risks = [] if candidate is None else [
+        label for label in (candidate.risk_labels or [])
+        if not _is_unknown(label) and not _is_shop_talk(label)
+    ]
+    watch = _compact_copy(risks[0], 205) if risks else ""
+
+    source = ""
+    if candidate is not None:
+        why = candidate.provider_evidence.get("why", {}) or {}
+        source = str(why.get("sourceUrl") or "").strip()
+        if not source:
+            source = next(
+                (
+                    str(row.get("url") or "").strip()
+                    for row in (candidate.news_evidence or [])
+                    if str(row.get("url") or "").strip()
+                ),
+                "",
+            )
+
+    ticker = f"${_e(symbol)}"
+    if chart:
+        ticker = (
+            f'<a href="{_e(chart)}" target="_blank" '
+            f'style="color:{INK};text-decoration:none">{ticker}</a>'
+        )
+    links = []
+    if chart:
+        links.append(
+            f'<a href="{_e(chart)}" target="_blank" '
+            f'style="color:{BLUE};text-decoration:none">Fomo &#8599;</a>'
+        )
+    if source:
+        links.append(
+            f'<a href="{_e(source)}" target="_blank" '
+            f'style="color:{BLUE};text-decoration:none">Source &#8599;</a>'
+        )
+    links_html = "&nbsp;&nbsp;&nbsp;".join(links)
+
+    return (
+        '<tr><td style="padding:0 22px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="border-bottom:1px solid {LINE}"><tr><td style="padding:20px 0 19px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        f'<td style="vertical-align:baseline;{_txt(18, 800, INK, 1.25, -0.015)}">{ticker}</td>'
+        f'<td align="right" style="vertical-align:baseline;white-space:nowrap;{_txt(19, 800, BLUE, 1.2, -0.02)}">'
+        f'{_e(high)}</td></tr></table>'
+        + (
+            f'<div style="{_txt(15, 450, INK_2, 1.58)};padding-top:8px">{_e(thesis)}</div>'
+            if thesis else ""
+        )
+        + (
+            f'<div style="{_txt(12, 650, RED, 1.55)};padding-top:8px">Watch: {_e(watch)}</div>'
+            if watch else ""
+        )
+        + (
+            f'<div style="{_txt(11, 500, SOFT, 1.45)};padding-top:9px;word-break:break-all">'
+            f'{_e(mint)}</div>' if mint else ""
+        )
+        + (
+            f'<div style="{_txt(12, 750, BLUE, 1.3)};padding-top:9px">{links_html}</div>'
+            if links_html else ""
+        )
+        + '</td></tr></table></td></tr>'
+    )
+
+
+def _short_recap_coin(candidate: Candidate | None, item: dict) -> str:
+    """Tweet-style recap line: result first, one plain-language reason."""
+    symbol = str(item.get("symbol") or (candidate.token.symbol if candidate else "?"))
+    result = str(item.get("result") or "").strip()
+    if not result and candidate is not None:
+        result = f"hit {money(peak_cap(candidate))}"
+    line = _compact_copy(item.get("line"), 155)
+    chart = _chart_url(candidate) if candidate is not None else ""
+    source = ""
+    if candidate is not None:
+        why = candidate.provider_evidence.get("why", {}) or {}
+        source = str(why.get("sourceUrl") or "").strip()
+
+    ticker = f"${_e(symbol)}"
+    if chart:
+        ticker = (
+            f'<a href="{_e(chart)}" target="_blank" '
+            f'style="color:{INK};text-decoration:none">{ticker}</a>'
+        )
+    source_link = (
+        f' <a href="{_e(source)}" target="_blank" '
+        f'style="color:{MUTED};text-decoration:none;font-size:11px">source &#8599;</a>'
+        if source else ""
+    )
+    description = f", {_e(line)}" if line else ""
+    return (
+        '<tr><td style="padding:0 22px">'
+        f'<div style="border-bottom:1px solid {LINE};padding:10px 0;'
+        f'{_txt(15, 450, INK_2, 1.5)}">'
+        f'<span style="font-weight:800;color:{INK}">{ticker}</span> '
+        f'<span style="color:{MUTED}">-&gt;</span> '
+        f'<span style="font-weight:750;color:{INK}">{_e(result)}</span>'
+        f'{description}{source_link}</div></td></tr>'
+    )
+
+
 def render_email(brief: Brief, settings: Settings) -> str:
     report_url = str(settings.get("delivery", "report_url", "") or "")
     runners = _newsletter_recap_candidates(brief, settings)
@@ -1526,6 +1661,7 @@ def render_email(brief: Brief, settings: Settings) -> str:
     rows.append(_masthead(brief, runners))
 
     narrative = brief.narrative or {}
+    narrative_rendered = False
     if narrative.get("sections"):
         intro = str(narrative.get("intro") or "").strip()
         if intro:
@@ -1534,42 +1670,28 @@ def render_email(brief: Brief, settings: Settings) -> str:
                 f'<div style="{_txt(19, 500, INK_2, 1.5, -0.01)}">{_e(intro)}</div>'
                 "</td></tr>"
             )
-        # The written sections become the day's context: what the metas were
-        # and what happened in them. The coins themselves are listed once,
-        # below, grouped by what they reached.
-        told = []
+        # A researched recap is already organised into stories. Render each
+        # coin once inside that story instead of summarising the same names and
+        # then repeating them as a second stack of tier cards.
+        by_symbol = {candidate.token.symbol.upper(): candidate for candidate in runners}
         for story in narrative["sections"]:
             title = str(story.get("title") or "").strip()
-            if title.lower() in {"also ran", "the rest", "everything else"}:
+            coins = list(story.get("coins") or [])
+            if not title or not coins:
                 continue
-            names = ", ".join(
-                f"${c.get('symbol')}" for c in (story.get("coins") or [])[:5]
-                if c.get("symbol")
-            )
-            notes = [str(b) for b in (story.get("bullets") or []) if str(b).strip()]
-            if not names and not notes:
-                continue
-            told.append((title, names, notes))
-        if told:
-            rows.append(
-                '<tr><td style="padding:44px 22px 0">'
-                f'<div style="{_txt(13, 800, MUTED, 1.2, 0.12, "uppercase")}">Today</div>'
-                "</td></tr>"
-            )
-            for title, names, notes in told:
-                rows.append(
-                    '<tr><td style="padding:22px 22px 0">'
-                    f'<div style="{_txt(18, 800, INK, 1.3, -0.015)}">{_e(title)}</div>'
-                    + (
-                        f'<div style="{_txt(14, 600, BLUE, 1.5)};padding-top:6px">{_e(names)}</div>'
-                        if names else ""
-                    )
-                    + "".join(
-                        f'<div style="{_txt(15, 450, INK_2, 1.6)};padding-top:9px">{_e(note)}</div>'
-                        for note in notes[:2]
-                    )
-                    + "</td></tr>"
-                )
+            rows.append(_story_head(title))
+            for item in coins:
+                symbol = str(item.get("symbol") or "").upper()
+                candidate = by_symbol.get(symbol)
+                if narrative.get("layout") == "short":
+                    rows.append(_short_recap_coin(candidate, item))
+                else:
+                    rows.append(_editorial_coin_row(candidate, item))
+            notes = [str(note).strip() for note in (story.get("bullets") or []) if str(note).strip()]
+            note_limit = 3 if narrative.get("layout") == "short" else 1
+            for note in notes[:note_limit]:
+                rows.append(_story_note(note))
+            narrative_rendered = True
 
     # Fall back to the ranked tape whenever the writer produced nothing.
     tape = [] if narrative.get("sections") else [c for c in (brief.headline_tape or [])][:5]
@@ -1585,7 +1707,7 @@ def render_email(brief: Brief, settings: Settings) -> str:
     # sections underneath printed the whole board a second time: the email was
     # 145KB and Gmail clips at about 102KB, which is why readers were being
     # asked to open the full message. Tiers are the fallback, not a companion.
-    if runners:
+    if runners and not narrative_rendered:
         rows.append(_section(
             "Runners of the day",
             "What moved in the last 24 hours. Each line shows the high and whether the move held or faded.",
