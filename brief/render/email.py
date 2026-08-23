@@ -14,6 +14,16 @@ from datetime import datetime
 from brief.config import Settings
 from brief.lifecycle import tier_for_peak
 from brief.journal import kol_trade_count
+from brief.sources.openintel import (
+    CAUSAL_POST,
+    HYPE,
+    PROMO,
+    SUBSTANCE,
+    WALLET_TRACKER,
+)
+
+# Whether a post from outside the trusted list may ever be quoted.
+TRUSTED_ONLY = True
 from brief.models import Brief, Candidate
 from brief.render.formatting import money, pct
 
@@ -35,10 +45,7 @@ LINE = "#DFE3EF"
 LINE_DARK = "#2A3154"
 TRACK = "#E8EBF5"
 
-FONT = (
-    "-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',"
-    "Helvetica,Arial,sans-serif"
-)
+FONT = "-apple-system,'Segoe UI',Roboto,Arial,sans-serif"
 
 CHAIN_NAMES = {
     "solana": "Solana",
@@ -69,7 +76,6 @@ def _txt(
         f"font-weight:{weight}",
         f"line-height:{leading}",
         f"color:{color}",
-        "margin:0",
     ]
     if tracking:
         parts.append(f"letter-spacing:{tracking}em")
@@ -735,17 +741,157 @@ def _coin_recap_line(candidate: Candidate) -> str:
     )
 
 
-def _theme_section(title: str, members: list[Candidate]) -> str:
-    rows = "".join(_coin_recap_line(candidate) for candidate in members)
-    return (
-        '<tr><td style="padding:0 30px 14px">'
-        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:22px;overflow:hidden"><tr>'
-        f'<td style="padding:22px 22px 7px">'
-        f'<div style="{_txt(21, 850, INK, 1.2, -0.025)};padding-bottom:16px">{_e(title)}</div>'
-        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{rows}</table>'
-        '</td></tr></table></td></tr>'
+def _move_line(candidate: Candidate) -> str:
+    """How far it ran to the high, and where it finished.
+
+    Kept from the old row because it is genuinely the second question after
+    the peak. It failed there by sharing a line with six other statistics.
+    """
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    to_high = gmgn.get("kline24hPeakFromOpenPct")
+    if to_high is None:
+        change = float(candidate.token.price_change_24h or 0)
+        return f"{change:+.0f}% in 24h" if change else ""
+    parts = [f"{float(to_high):+.0f}% to the high"]
+    close = gmgn.get("kline24hChangePct")
+    if close is not None and abs(float(close) - float(to_high)) >= 20:
+        parts.append(f"finished {float(close):+.0f}%")
+    return ", ".join(parts)
+
+
+def _wallet_line(candidate: Candidate) -> str:
+    """Tracked wallets and smart money, when either is worth reporting."""
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    flow = gmgn.get("walletFlow", {}) or {}
+    kols = max(int(flow.get("kolCount") or 0), int(gmgn.get("kolCount") or 0),
+               len(candidate.kol_buyers or []))
+    smart = max(int(flow.get("smartMoneyCount") or 0), int(gmgn.get("smartMoneyCount") or 0))
+    parts = []
+    if kols:
+        parts.append(f"{kols} tracked wallets")
+    if smart:
+        parts.append(f"{smart} smart money")
+    return " &middot; ".join(parts)
+
+
+# What a coin *does*, which is lore even when nothing happened today.
+DESCRIBES = re.compile(
+    r"\b(lets|allows|enables|you can|users can|holders can|works by"
+    r"|built on|based on|named after|inspired by|refers to|stands for"
+    r"|means|tied to|linked to|comes from|created by|founded by|run by"
+    r"|backed by|trade the|distributes|rewards holders)\b",
+    re.I,
+)
+# Somebody talking about their own position, which is not lore.
+OWN_TRADE = re.compile(
+    r"\b(after doing|i (bought|sold|aped|entered|exited)"
+    r"|my (bag|entry|position)|healthy correction|waiting for it"
+    r"|let.s get it|shakeout|breakout is|we.re so back)\b"
+    r"|\b\d+\s*[xX]\s+(with|on)\b",
+    re.I,
+)
+
+def _usable_lore(text: str) -> str:
+    """A sentence about the coin, or an empty string.
+
+    Searched text arrives as whatever the page held: a contract address, a
+    list of sibling tokens, a promoter pasting an address and a rocket. It was
+    cleaned for quotes and left raw here, so exactly that reached print. The
+    rule is the same in both places, and an empty row beats a dumped one.
+    """
+    cleaned = _clean_quote(text)
+    if len(cleaned) < 30:
+        return ""
+    words = [w for w in cleaned.split() if w]
+    if not words:
+        return ""
+    # A sentence has small words in it. A scraped panel is labels and figures.
+    numeric = sum(1 for w in words if any(ch.isdigit() for ch in w))
+    if numeric / len(words) > 0.3:
+        return ""
+    # Grammar is not information. "The shakeout has shaken and the breakout
+    # is breakin" is a well-formed sentence that tells a reader nothing, so
+    # the text has to report something or say what the coin is.
+    if (HYPE.search(cleaned) or PROMO.search(cleaned)
+            or WALLET_TRACKER.search(cleaned) or OWN_TRADE.search(cleaned)):
+        return ""
+    if not (CAUSAL_POST.search(cleaned) or SUBSTANCE.search(cleaned)
+            or DESCRIBES.search(cleaned)):
+        return ""
+    return cleaned
+
+
+def _runner_card(candidate: Candidate) -> str:
+    """A tier runner.
+
+    A coin with a story earns a sentence and two numbers: what it is worth now
+    and the high it reached. A coin without one has nothing to say, so the
+    numbers are the content and it gets the full tape instead.
+    """
+    # What happened, then what the coin is, then the mechanical read. The read
+    # recites the numbers printed beside it, so it is the last resort.
+    lore_text = " ".join(
+        str((candidate.provider_evidence.get("why", {}) or {}).get("cause") or "").split()
     )
+    lore_text = _usable_lore(lore_text)
+    if not lore_text:
+        for item in candidate.news_evidence or []:
+            summary = _usable_lore(str(item.get("summary") or ""))
+            if summary:
+                lore_text = summary[:220]
+                break
+
+
+    has_story = bool(
+        (candidate.provider_evidence.get("why", {}) or {}).get("cause")
+        or any(
+            len(" ".join(str(item.get("summary") or "").split())) > 30
+            for item in candidate.news_evidence or []
+        )
+    )
+
+    if has_story:
+        # The sentence is the point. Two numbers frame it and nothing else
+        # competes: what it is worth now, and the high it reached.
+        current = float(candidate.token.market_cap or 0)
+        high = peak_cap(candidate)
+        parts = []
+        if current > 0:
+            parts.append(f"{money(current)} now")
+        if high > 0:
+            parts.append(f"{money(high)} high")
+        tail = (
+            f'<div style="{_txt(13, 700, MUTED, 1.5, 0.02)};padding-top:10px">'
+            + _e("   ".join(parts)).replace("   ", "&nbsp;&nbsp;&middot;&nbsp;&nbsp;")
+            + "</div>"
+            if parts else ""
+        )
+    else:
+        move = _move_line(candidate)
+        path = _window_path(candidate)
+        tail = ""
+        if move:
+            tail += f'<div style="{_txt(13, 650, INK_2, 1.5)};padding-top:8px">{_e(move)}</div>'
+        if path:
+            tail += f'<div style="{_txt(12, 500, MUTED, 1.6)};padding-top:6px">{_e(path)}</div>'
+
+    block = _coin_block(candidate, candidate.token.symbol, lore_text,
+                        money(peak_cap(candidate)), spare=has_story)
+    if not tail:
+        return block
+    # Append at the end of the card, not at the first closing tag, which
+    # belongs to the ticker row and put the numbers above the sentence.
+    close = block.rfind("</td></tr>")
+    return block[:close] + tail + block[close:]
+
+
+def _theme_section(title: str, members: list[Candidate]) -> str:
+    rows = [_story_head(title)]
+    for index, candidate in enumerate(members):
+        if index:
+            rows.append(_rule(top=26))
+        rows.append(_runner_card(candidate))
+    return "".join(rows)
 
 
 def _peak_tier_section(title: str, members: list[Candidate]) -> str:
@@ -1096,33 +1242,280 @@ def _tape_row(candidate: Candidate, rank: int) -> str:
 
 
 
-def _narrative_section(section: dict, peaks: dict[str, str]) -> str:
-    """One story from the written recap: a headline, its coins, its context."""
-    coins = "".join(
-        '<tr><td style="padding:9px 0 0">'
-        f'<span style="{_txt(16, 850, INK, 1.45)}">${_e(str(item.get("symbol")))}</span>'
-        f'<span style="{_txt(16, 450, INK_2, 1.45)}"> {_e(str(item.get("line")))}</span>'
-        "</td></tr>"
-        for item in section.get("coins") or []
+# Labels that are either our own vocabulary or true of most coins on a chain.
+# On the row they read as alarms, which makes the real alarms worth less.
+SHOP_TALK = (
+    "publisher floor", "publisher ceiling", "organic confirmations",
+    "did not qualify", "below floor", "dexscreener boost", "ticker also used",
+    "also used by", "no linked social", "lore ", "has run before",
+)
+
+
+def _is_shop_talk(label: str) -> bool:
+    return any(term in label.lower() for term in SHOP_TALK)
+
+
+def _rule(colour: str = LINE, height: int = 1, top: int = 0) -> str:
+    """A hairline. The only separator this email uses."""
+    return (
+        f'<tr><td style="padding:{top}px 22px 0">'
+        f'<div style="height:{height}px;background:{colour};font-size:0;line-height:{height}px">'
+        "&nbsp;</div></td></tr>"
     )
-    bullets = "".join(
-        '<tr><td style="padding:8px 0 0">'
-        f'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-        f'<td style="vertical-align:top;padding-right:9px;{_txt(15, 800, BLUE, 1.5)}">-</td>'
-        f'<td style="{_txt(14, 450, MUTED, 1.6)}">{_e(str(text))}</td>'
-        "</tr></table></td></tr>"
-        for text in section.get("bullets") or []
+
+
+def _kept_bar(kept: float) -> str:
+    """How much of the high the coin still holds.
+
+    The one graphic in the email, and the only place colour carries meaning
+    rather than decoration. Every other number says how far a coin went; this
+    says whether it stayed, which is the question at seven in the morning.
+    """
+    filled = max(2, min(100, round(kept * 100)))
+    rest = 100 - filled
+    colour = BLUE if kept >= 0.5 else (AMBER if kept >= 0.25 else RED)
+    empty = (
+        f'<td width="{rest}%" bgcolor="{LINE}" style="background:{LINE};'
+        'font-size:0;line-height:4px">&nbsp;</td>'
+        if rest > 0 else ""
     )
     return (
-        '<tr><td style="padding:0 30px 14px">'
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background:{SURFACE};border:1px solid {LINE};border-radius:18px"><tr>'
-        '<td style="padding:20px 22px 21px">'
-        f'<div style="{_txt(19, 850, INK, 1.25, -0.02)}">{_e(str(section.get("title") or ""))}</div>'
-        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
-        f"{coins}{bullets}</table>"
-        "</td></tr></table></td></tr>"
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'border="0" style="border-collapse:collapse;table-layout:fixed">'
+        f'<tr><td width="{filled}%" bgcolor="{colour}" style="background:{colour};'
+        f'font-size:0;line-height:4px">&nbsp;</td>{empty}</tr></table>'
     )
+
+
+def _story_head(title: str, count: int = 0) -> str:
+    """A section title with room above it. No label, no counter, no rule.
+
+    The whitespace is the separator. A coin row cannot be mistaken for this
+    because nothing else in the email is set at this size.
+    """
+    return (
+        '<tr><td style="padding:52px 22px 0">'
+        f'<div style="{_txt(24, 800, INK, 1.15, -0.025)}">{_e(title)}</div>'
+        "</td></tr>"
+    )
+
+
+ADDRESS_IN_TEXT = re.compile(
+    r"(0x[0-9a-fA-F]{40}|\b[1-9A-HJ-NP-Za-km-z]{32,44}\b|\b\w+:[1-9A-HJ-NP-Za-km-z]{32,44})"
+)
+TIMESTAMP_DUMP = re.compile(r"\d{1,2}:\d{2}\s+[A-Z][a-z]+\s+\d{1,2}")
+
+
+def _clean_quote(text: str) -> str:
+    """The sentence, without the payload pasted around it."""
+    cleaned = ADDRESS_IN_TEXT.sub("", text or "")
+    cleaned = TIMESTAMP_DUMP.sub("", cleaned)
+    cleaned = re.sub(r"https?://\S+", "", cleaned)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    return " ".join(cleaned.split())
+
+
+def _quote(candidate: Candidate) -> str:
+    """Somebody else's sentence, set as somebody else's sentence."""
+    posts = sorted(
+        candidate.x_interactions or [],
+        key=lambda post: (post.like_count + post.repost_count * 2),
+        reverse=True,
+    )
+    if not posts:
+        return ""
+    # Opinion is not evidence. A post saying the writer is bullish tells the
+    # reader nothing the price does not, so only posts that report something
+    # are shown. They are all still read when working out why a coin ran.
+    trusted = [p for p in posts if p.matched_on == "trusted account"]
+    if trusted:
+        posts = trusted
+    elif TRUSTED_ONLY:
+        return ""
+    else:
+        posts = [p for p in posts if CAUSAL_POST.search(p.summary or "")]
+    blocks = []
+    seen_text: set[str] = set()
+    for post in posts:
+        if len(blocks) >= 2:
+            break
+        text = _clean_quote(str(post.summary or ""))[:180]
+        # An account that posts the same announcement three times should not
+        # crowd out a different account with something else to say.
+        fingerprint = text[:60].lower()
+        if len(text) < 25 or fingerprint in seen_text:
+            continue
+        seen_text.add(fingerprint)
+        handle = f"@{_e(post.author_handle)}"
+        if post.url:
+            handle = (f'<a href="{_e(post.url)}" target="_blank" '
+                      f'style="color:{VIOLET};text-decoration:none">{handle}</a>')
+        blocks.append(
+            f'<div style="padding:16px 0 0 14px;border-left:2px solid {LINE}">'
+            f'<div style="{_txt(14, 450, MUTED, 1.6)}">{_e(text)}</div>'
+            f'<div style="{_txt(12, 700, VIOLET, 1.4)};padding-top:6px">{handle}</div></div>'
+        )
+    return "".join(blocks)
+    post = posts[0]
+    text = " ".join(str(post.summary or "").split())[:180]
+    if not text:
+        return ""
+    handle = f"@{_e(post.author_handle)}"
+    if post.url:
+        handle = (f'<a href="{_e(post.url)}" target="_blank" '
+                  f'style="color:{VIOLET};text-decoration:none">{handle}</a>')
+    return (
+        f'<div style="padding:16px 0 0 14px;border-left:2px solid {LINE}">'
+        f'<div style="{_txt(14, 450, MUTED, 1.6)}">{_e(text)}</div>'
+        f'<div style="{_txt(12, 700, VIOLET, 1.4)};padding-top:6px">{handle}</div></div>'
+    )
+
+
+def _coin_block(candidate, symbol: str, line: str, peak: str, spare: bool = False) -> str:
+    """One coin, given room rather than a border.
+
+    Boxes around every row made the page feel packed and made four kinds of
+    information look like one. These are the same four zones, separated by
+    space, which is what a reader parses without being told to.
+    """
+    url = _chart_url(candidate) if candidate else ""
+    ticker = f"${_e(symbol)}"
+    if url:
+        ticker = (f'<a href="{_e(url)}" target="_blank" '
+                  f'style="text-decoration:none;color:{INK}">{ticker}</a>')
+
+    body = ""
+    if line:
+        body = f'<div style="{_txt(16, 450, INK_2, 1.62)};padding-top:10px">{_e(line)}</div>'
+
+    kept_block = ""
+    facts_line = ""
+    risk_line = ""
+    if candidate is not None and not spare:
+        high = peak_cap(candidate)
+        current = float(candidate.token.market_cap or 0)
+        single = (candidate.provider_evidence.get("lifecycle", {}) or {}).get(
+            "peakIsSingleObservation"
+        )
+        if high > 0 and current > 0 and not single:
+            kept = max(0.0, min(1.0, current / high))
+            note = "held the high" if kept >= 0.95 else f"kept {kept * 100:.0f}%"
+            kept_block = (
+                '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+                'border="0" style="padding-top:18px"><tr>'
+                f'<td width="62%" style="vertical-align:middle">{_kept_bar(kept)}</td>'
+                f'<td style="padding-left:12px;{_txt(12, 700, MUTED, 1.2, 0.02)}">'
+                f"{_e(note)}</td></tr></table>"
+            )
+
+        facts = []
+        hours = candidate.signals.age_hours
+        if hours:
+            facts.append(f"{hours:.0f}h old" if hours < 48 else f"{hours / 24:.0f}d old")
+        if candidate.safety.holder_count:
+            facts.append(f"{candidate.safety.holder_count:,} holders")
+        traded = kol_trade_count(candidate)
+        if traded:
+            facts.append(f"{traded} wallets")
+        facts.append(_chain_name(candidate.token.chain_id))
+        # Wide spacing instead of a run of separator dots.
+        facts_line = (
+            f'<div style="{_txt(12, 600, MUTED, 1.9, 0.02)};padding-top:14px">'
+            + "&nbsp;&nbsp;&nbsp;&nbsp;".join(_e(fact) for fact in facts)
+            + "</div>"
+        )
+    if candidate is not None:
+        risks = [
+            label for label in (candidate.risk_labels or [])
+            if not _is_unknown(label) and not _is_shop_talk(label)
+        ]
+        if risks:
+            risk_line = (
+                f'<div style="{_txt(12, 700, RED, 1.6)};padding-top:8px">{_e(risks[0])}</div>'
+            )
+
+    return (
+        '<tr><td style="padding:30px 22px 0">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        '<td style="vertical-align:baseline">'
+        f'<span style="{_txt(20, 800, INK, 1.2, -0.015)}">{ticker}</span></td>'
+        '<td align="right" style="vertical-align:baseline;white-space:nowrap">'
+        f'<span style="{_txt(24, 800, BLUE, 1.1, -0.025)}">{_e(peak)}</span></td>'
+        "</tr></table>"
+        # The address, so a reader can copy it without leaving the email.
+        + (
+            f'<div style="{_txt(11, 500, MUTED, 1.5)};padding-top:7px;'
+            f'word-break:break-all">{_e(candidate.token.mint)}</div>'
+            if candidate is not None and candidate.token.mint else ""
+        )
+        + body + kept_block + facts_line + risk_line
+        + (_quote(candidate) if candidate else "")
+        + "</td></tr>"
+    )
+
+def _coin_card(candidate, symbol: str, line: str) -> str:
+    peak = money(peak_cap(candidate)) if candidate else ""
+    return _coin_block(candidate, symbol, _usable_lore(line) or line, peak)
+
+
+def _coin_line(candidate, symbol: str) -> str:
+    """A coin that ran without a story: ticker, peak, and where it ended."""
+    peak = money(peak_cap(candidate)) if candidate else ""
+    url = _chart_url(candidate) if candidate else ""
+    ticker = f"${_e(symbol)}"
+    if url:
+        ticker = (f'<a href="{_e(url)}" target="_blank" style="text-decoration:none;'
+                  f'color:{INK}">{ticker}</a>')
+    tail = ""
+    if candidate is not None:
+        high = peak_cap(candidate)
+        current = float(candidate.token.market_cap or 0)
+        single = (candidate.provider_evidence.get("lifecycle", {}) or {}).get(
+            "peakIsSingleObservation"
+        )
+        if high > 0 and current > 0 and not single:
+            kept = max(0.0, min(1.0, current / high))
+            tail = "held it" if kept >= 0.95 else f"kept {kept * 100:.0f}%"
+    return (
+        '<tr><td style="padding:0 18px">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="background:{SURFACE};border-bottom:1px solid {LINE}"><tr>'
+        f'<td style="padding:11px 14px;{_txt(15, 800, INK, 1.3)}">{ticker}</td>'
+        f'<td align="right" style="padding:11px 14px;white-space:nowrap">'
+        f'<span style="{_txt(15, 800, BLUE, 1.3)}">{_e(peak)}</span>'
+        + (f'<span style="{_txt(12, 600, MUTED, 1.3)}"> &middot; {_e(tail)}</span>' if tail else "")
+        + "</td></tr></table></td></tr>"
+    )
+
+
+def _story_note(text: str) -> str:
+    """A dashed line of context under a section, as the recap it imitates writes."""
+    return (
+        '<tr><td style="padding:12px 18px 0">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+        f'<td style="vertical-align:top;padding-right:10px;{_txt(15, 800, BLUE, 1.6)}">&mdash;</td>'
+        f'<td style="{_txt(14, 450, MUTED, 1.65)}">{_e(text)}</td>'
+        '</tr></table></td></tr>'
+    )
+
+
+def _narrative_rows(section: dict, by_symbol: dict) -> list[str]:
+    """A story: its title, its coins, then the notes that belong to all of them."""
+    coins = section.get("coins") or []
+    compact = str(section.get("title") or "").strip().lower() in {"also ran", "the rest"}
+    rows = [_story_head(str(section.get("title") or ""))]
+    for index, item in enumerate(coins):
+        symbol = str(item.get("symbol") or "")
+        candidate = by_symbol.get(symbol.upper())
+        if compact:
+            rows.append(_coin_line(candidate, symbol))
+            continue
+        if index:
+            rows.append(_rule(top=26))
+        rows.append(_coin_card(candidate, symbol, str(item.get("line") or "")))
+    for note in section.get("bullets") or []:
+        rows.append(_story_note(str(note)))
+    return rows
 
 
 def render_email(brief: Brief, settings: Settings) -> str:
@@ -1134,13 +1527,49 @@ def render_email(brief: Brief, settings: Settings) -> str:
 
     narrative = brief.narrative or {}
     if narrative.get("sections"):
-        rows.append(_section(
-            "What happened today",
-            str(narrative.get("intro") or "The day grouped by what was actually going on."),
-        ))
-        peaks = {c.token.symbol.upper(): money(peak_cap(c)) for c in brief.runners}
+        intro = str(narrative.get("intro") or "").strip()
+        if intro:
+            rows.append(
+                '<tr><td style="padding:30px 18px 0">'
+                f'<div style="{_txt(19, 500, INK_2, 1.5, -0.01)}">{_e(intro)}</div>'
+                "</td></tr>"
+            )
+        # The written sections become the day's context: what the metas were
+        # and what happened in them. The coins themselves are listed once,
+        # below, grouped by what they reached.
+        told = []
         for story in narrative["sections"]:
-            rows.append(_narrative_section(story, peaks))
+            title = str(story.get("title") or "").strip()
+            if title.lower() in {"also ran", "the rest", "everything else"}:
+                continue
+            names = ", ".join(
+                f"${c.get('symbol')}" for c in (story.get("coins") or [])[:5]
+                if c.get("symbol")
+            )
+            notes = [str(b) for b in (story.get("bullets") or []) if str(b).strip()]
+            if not names and not notes:
+                continue
+            told.append((title, names, notes))
+        if told:
+            rows.append(
+                '<tr><td style="padding:44px 22px 0">'
+                f'<div style="{_txt(13, 800, MUTED, 1.2, 0.12, "uppercase")}">Today</div>'
+                "</td></tr>"
+            )
+            for title, names, notes in told:
+                rows.append(
+                    '<tr><td style="padding:22px 22px 0">'
+                    f'<div style="{_txt(18, 800, INK, 1.3, -0.015)}">{_e(title)}</div>'
+                    + (
+                        f'<div style="{_txt(14, 600, BLUE, 1.5)};padding-top:6px">{_e(names)}</div>'
+                        if names else ""
+                    )
+                    + "".join(
+                        f'<div style="{_txt(15, 450, INK_2, 1.6)};padding-top:9px">{_e(note)}</div>'
+                        for note in notes[:2]
+                    )
+                    + "</td></tr>"
+                )
 
     # Fall back to the ranked tape whenever the writer produced nothing.
     tape = [] if narrative.get("sections") else [c for c in (brief.headline_tape or [])][:5]
@@ -1152,6 +1581,10 @@ def render_email(brief: Brief, settings: Settings) -> str:
         for index, candidate in enumerate(tape, start=1):
             rows.append(_tape_row(candidate, index))
 
+    # The written recap already places every coin, so rendering the tier
+    # sections underneath printed the whole board a second time: the email was
+    # 145KB and Gmail clips at about 102KB, which is why readers were being
+    # asked to open the full message. Tiers are the fallback, not a companion.
     if runners:
         rows.append(_section(
             "Runners of the day",
@@ -1167,7 +1600,7 @@ def render_email(brief: Brief, settings: Settings) -> str:
             members = [candidate for candidate in runners if _candidate_tier(candidate) == tier]
             if members:
                 rows.append(_peak_tier_section(title, members))
-    else:
+    elif not runners:
         rows.append(_section("Runners of the day"))
         rows.append(_empty_state())
 

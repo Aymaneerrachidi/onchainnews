@@ -41,7 +41,9 @@ async def test_email_renders_runner_recap_lines(tmp_path):
         body = render_email(brief, settings)
         assert "Daily Memecoin Recap" in body
         assert "Runners of the day" in body
-        assert "-&gt; hit" in body
+        # The peak sits right-aligned opposite the ticker, so the arrow that
+        # used to join them is no longer drawn. The loop below already checks
+        # every runner's ticker reaches the page.
         for candidate in brief.runners:
             assert candidate.token.symbol in body
             assert f'href="https://dexscreener.com/solana/{candidate.token.mint}"' in body
@@ -235,7 +237,9 @@ def test_email_recaps_observed_movers_with_caveats(tmp_path):
     assert "$CLEAN" in body
     assert "$WATCH" in body
     assert "$JUNK" not in body
-    assert "no linked social context" in body
+    # Shop-talk labels are no longer shown to the reader; the row carries
+    # only measured problems.
+    assert "no linked social context" not in body
     assert "Ran, but disqualified" not in body
 
 
@@ -260,9 +264,11 @@ def test_email_leads_with_verified_peak_not_faded_cutoff_cap(tmp_path):
 
     body = render_email(brief, settings)
 
-    assert "hit</span> $260k" in body
+    assert "$260k" in body
     assert "hit</span> $4k" not in body
-    assert "candle-verified $260,000" in body
+    # The written read is no longer printed: it recited the numbers shown
+    # beside it. A coin with no story shows its numbers and nothing else.
+    assert "$4,000 by the cutoff" not in body
 
 
 def test_email_uses_verified_news_as_coin_thesis(tmp_path):
@@ -345,8 +351,10 @@ def test_email_explains_intraday_round_trips_without_vendor_branding(tmp_path):
 
     body = render_email(brief, settings)
 
-    assert "24h path: $500k to $1.4M at the high, then $500k by the cutoff" in body
+    assert "24h path: $500k to $1.4M at the high, then $500k" in body
     assert "the move faded and finished +0%" in body
-    assert "+190% to 24h high / finished +0%" in body
+    # The move has its own line in the card rather than sharing a slash-strip.
+    assert "+190% to the high" in body
+    assert "finished +0%" in body
     assert "dexscreener.com/solana/" in body
     assert "gmgn" not in body.casefold()
