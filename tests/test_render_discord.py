@@ -13,7 +13,10 @@ from brief.render.discord import (
     MAX_FIELD_VALUE,
     MAX_TOTAL_CHARS,
     _embed_size,
+    bot_channel_ids,
     build_payload,
+    interactive_market_components,
+    post_bot_payload,
     webhook_urls,
 )
 from tests.conftest import build_settings
@@ -95,3 +98,47 @@ def test_webhook_urls_deduplicates_destinations(monkeypatch):
 
     monkeypatch.setenv("DISCORD_WEBHOOK_URL_SECONDARY", "https://discord.test/two")
     assert webhook_urls() == ["https://discord.test/one", "https://discord.test/two"]
+
+
+def test_live_market_button_is_an_in_discord_interaction():
+    components = interactive_market_components(1234)
+
+    button = components[0]["components"][0]
+    assert button["style"] == 2
+    assert button["label"] == "Refresh live MC"
+    assert button["custom_id"] == "refresh_mc:1234"
+    assert "url" not in button
+
+
+@pytest.mark.asyncio
+async def test_bot_message_owns_the_refresh_component():
+    import httpx
+
+    request_seen = None
+
+    def handler(request):
+        nonlocal request_seen
+        request_seen = request
+        return httpx.Response(204)
+
+    transport = httpx.MockTransport(handler)
+    payload = {
+        "username": "fomo onchain",
+        "embeds": [{"description": "runner"}],
+        "components": interactive_market_components(),
+    }
+    await post_bot_payload("123", payload, "secret-token", transport=transport)
+
+    assert request_seen is not None
+    assert str(request_seen.url) == "https://discord.com/api/v10/channels/123/messages"
+    assert request_seen.headers["authorization"] == "Bot secret-token"
+    assert "username" not in __import__("json").loads(request_seen.content)
+
+
+def test_bot_channel_ids_deduplicate(monkeypatch):
+    monkeypatch.setenv("DISCORD_CHANNEL_ID", "123")
+    monkeypatch.setenv("DISCORD_CHANNEL_ID_SECONDARY", "123")
+    assert bot_channel_ids() == ["123"]
+
+    monkeypatch.setenv("DISCORD_CHANNEL_ID_SECONDARY", "456")
+    assert bot_channel_ids() == ["123", "456"]

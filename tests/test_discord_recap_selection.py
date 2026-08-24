@@ -3,6 +3,9 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import httpx
+import pytest
+
 from conftest import build_settings
 
 
@@ -220,3 +223,101 @@ def test_entrapment_override_never_clears_honeypot(tmp_path):
         "honeypot" in reason.lower()
         for reason in recap._publication_safety_reasons(trapped_honeypot, settings)
     )
+
+
+def test_discord_result_always_includes_current_market_cap():
+    candidate = _coin("MOVER", peak=2_000_000)
+
+    result = recap._result(candidate)
+
+    assert "$2.0M" in result
+    assert "now $1.5M" in result
+
+
+def test_sectioned_recap_layout_is_preserved():
+    candidate = _coin("CATE", peak=74_900_000)
+    narrative = {
+        "intro": "Short version: what ran and why.",
+        "sections": [{
+            "title": "Market Leaders",
+            "coins": [{"mint": candidate.token.mint, "line": "the cat community accelerated again"}],
+        }],
+    }
+
+    posts = recap._render_posts([candidate], narrative, recap.datetime(2026, 8, 25))
+    rendered = "\n".join(
+        embed["description"] for post in posts for embed in post["embeds"]
+    )
+
+    assert "**Market Leaders**" in rendered
+    assert "$CATE" in rendered
+    assert "now" in rendered
+
+
+def test_approved_fifteen_name_layout_stays_in_one_discord_message():
+    leaders = [_coin(f"LEAD{i}", peak=20_000_000 - i * 1_000_000) for i in range(5)]
+    solana = [_coin(f"SOL{i}", peak=8_000_000 - i * 500_000) for i in range(6)]
+    cross_chain = [
+        _coin(f"OTHER{i}", chain="bsc", peak=4_000_000 - i * 250_000)
+        for i in range(4)
+    ]
+    candidates = [*leaders, *solana, *cross_chain]
+    narrative = recap._approved_layout(candidates)
+
+    posts = recap._render_posts(candidates, narrative, recap.datetime(2026, 8, 25))
+
+    assert len(posts) == 1
+    rendered = "\n".join(embed["description"] for embed in posts[0]["embeds"])
+    assert rendered.count("**Market Leaders**") == 1
+    assert rendered.count("**More Solana Runners**") == 1
+    assert rendered.count("**Cross-Chain Moves**") == 1
+    assert "Continued" not in rendered
+    assert "15 runners · 11 Solana · 4 cross-chain" in posts[0]["embeds"][-1]["footer"]["text"]
+
+
+def test_approved_layout_keeps_leaders_solana_and_cross_chain_sections():
+    leaders = [_coin(f"LEAD{i}", peak=10_000_000 - i * 100_000) for i in range(5)]
+    solana = _coin("SOLTAIL", peak=2_000_000)
+    cross_chain = _coin("BNBTAIL", chain="bsc", peak=1_500_000)
+
+    narrative = recap._approved_layout([*leaders, solana, cross_chain])
+
+    assert [section["title"] for section in narrative["sections"]] == [
+        "Market Leaders", "More Solana Runners", "Cross-Chain Moves",
+    ]
+    assert [coin["mint"] for coin in narrative["sections"][0]["coins"]] == [
+        candidate.token.mint for candidate in leaders
+    ]
+
+
+@pytest.mark.asyncio
+async def test_final_discord_reprice_uses_deepest_exact_market():
+    candidate = _coin("LIVE", peak=2_000_000)
+
+    def handler(request):
+        assert "/tokens/v1/solana/LIVE-mint" in str(request.url)
+        return httpx.Response(200, json=[
+            {
+                "baseToken": {"address": "LIVE-mint"},
+                "marketCap": 1_600_000,
+                "liquidity": {"usd": 50_000},
+                "volume": {"h24": 900_000},
+                "priceChange": {"h24": 70},
+            },
+            {
+                "baseToken": {"address": "LIVE-mint"},
+                "marketCap": 1_700_000,
+                "liquidity": {"usd": 300_000},
+                "volume": {"h24": 2_500_000},
+                "priceChange": {"h24": 80},
+            },
+        ])
+
+    refreshed = await recap._refresh_current_market_caps(
+        [candidate], transport=httpx.MockTransport(handler)
+    )
+
+    assert refreshed == 1
+    assert candidate.token.market_cap == 1_700_000
+    assert candidate.peak_market_cap == 2_000_000
+    assert "now $1.7M" in recap._result(candidate)

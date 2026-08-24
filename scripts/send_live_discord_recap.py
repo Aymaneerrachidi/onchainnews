@@ -15,6 +15,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import httpx
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from brief.config import load_settings  # noqa: E402
@@ -22,7 +24,17 @@ from brief.journal import kol_trade_count, rug_or_bundle  # noqa: E402
 from brief.links import fomo_token_url  # noqa: E402
 from brief.lore import attach_lore  # noqa: E402
 from brief.newsletter import explain_runs, research_day, write_recap  # noqa: E402
-from brief.render.discord import BRAND, LOGO, LOGO_REF, post_payload, webhook_urls  # noqa: E402
+from brief.render.discord import (  # noqa: E402
+    BRAND,
+    LOGO,
+    LOGO_REF,
+    bot_channel_ids,
+    bot_token,
+    interactive_market_components,
+    post_bot_payload,
+    post_payload,
+    webhook_urls,
+)
 from brief.render.email import peak_cap  # noqa: E402
 from brief.render.formatting import money  # noqa: E402
 from brief.sources.openintel import HYPE, PROMO, WALLET_TRACKER  # noqa: E402
@@ -39,6 +51,8 @@ _resend_spec.loader.exec_module(_resend)
 _candidate = _resend._candidate
 
 MAX_DESCRIPTION = 3800
+MAX_MESSAGE_EMBED_CHARS = 5800
+MAX_MESSAGE_EMBEDS = 10
 SPACE = re.compile(r"\s+")
 
 # The five stories with enough attributable context to deserve more than a
@@ -338,7 +352,7 @@ def _fallback_line(candidate) -> str:
 
 
 def _result(candidate) -> str:
-    """The shortest honest description of the measured move."""
+    """The measured move followed by the latest MC captured for delivery."""
     peak = _verified_peak(candidate)
     current = float(candidate.token.market_cap or 0)
     measured_drawdown = ((peak - current) / peak) * 100.0 if peak > current else 0.0
@@ -350,12 +364,15 @@ def _result(candidate) -> str:
     multiple = peak / start if start > 0 else float(candidate.peak_multiple or candidate.run_multiple or 0)
     change = float(candidate.token.price_change_24h or 0)
     if start > 0 and multiple >= 2:
-        return f"{money(start)} to {money(peak)} ({multiple:.1f}x)"
-    if drawdown >= 35:
-        return f"hit {money(peak)}, then faded {drawdown:.0f}%"
-    if change >= 25:
-        return f"+{change:.0f}% to {money(peak)}"
-    return f"hit {money(peak)}"
+        move = f"{money(start)} to {money(peak)} ({multiple:.1f}x)"
+    elif drawdown >= 35:
+        move = f"hit {money(peak)}, then faded {drawdown:.0f}%"
+    elif change >= 25:
+        move = f"+{change:.0f}% to {money(peak)}"
+    else:
+        move = f"hit {money(peak)}"
+    current_text = money(current) if current > 0 else "unavailable"
+    return f"{move} · now {current_text}"
 
 
 def _lore_limit(candidate) -> int:
@@ -381,6 +398,67 @@ def _truthy(value: object) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in {"1", "true", "yes", "y"}
     return bool(value)
+
+
+async def _refresh_current_market_caps(
+    candidates: list,
+    *,
+    base_url: str = "https://api.dexscreener.com",
+    transport=None,
+) -> int:
+    """Reprice the final exact contracts immediately before Discord renders."""
+    grouped: dict[str, list] = {}
+    for candidate in candidates:
+        chain = str(candidate.token.chain_id or "").strip().lower()
+        mint = str(candidate.token.mint or "").strip()
+        if chain and mint:
+            grouped.setdefault(chain, []).append(candidate)
+
+    refreshed = 0
+    lock = asyncio.Lock()
+
+    async def fetch_batch(client: httpx.AsyncClient, chain: str, batch: list) -> None:
+        nonlocal refreshed
+        addresses = ",".join(candidate.token.mint for candidate in batch)
+        try:
+            response = await client.get(f"{base_url.rstrip('/')}/tokens/v1/{chain}/{addresses}")
+            response.raise_for_status()
+            pairs = response.json()
+        except (httpx.HTTPError, ValueError):
+            return
+        if not isinstance(pairs, list):
+            return
+
+        for candidate in batch:
+            mint = candidate.token.mint.lower()
+            matches = [
+                pair for pair in pairs
+                if isinstance(pair, dict)
+                and str((pair.get("baseToken") or {}).get("address") or "").lower() == mint
+                and float(pair.get("marketCap") or 0) > 0
+            ]
+            if not matches:
+                continue
+            pair = max(matches, key=lambda item: float((item.get("liquidity") or {}).get("usd") or 0))
+            current = float(pair.get("marketCap") or 0)
+            candidate.token.market_cap = current
+            candidate.token.liquidity_usd = float((pair.get("liquidity") or {}).get("usd") or candidate.token.liquidity_usd)
+            candidate.token.volume_24h = float((pair.get("volume") or {}).get("h24") or candidate.token.volume_24h)
+            candidate.token.price_change_24h = float((pair.get("priceChange") or {}).get("h24") or candidate.token.price_change_24h)
+            candidate.peak_market_cap = max(float(candidate.peak_market_cap or 0), current)
+            candidate.observed_peak_market_cap = max(float(candidate.observed_peak_market_cap or 0), current)
+            peak = _verified_peak(candidate)
+            candidate.drawdown_from_peak_pct = max(0.0, (peak - current) / peak * 100.0) if peak else 0.0
+            async with lock:
+                refreshed += 1
+
+    async with httpx.AsyncClient(timeout=20, transport=transport) as client:
+        await asyncio.gather(*(
+            fetch_batch(client, chain, rows[start:start + 30])
+            for chain, rows in grouped.items()
+            for start in range(0, len(rows), 30)
+        ))
+    return refreshed
 
 
 def _daily_move_pct(candidate) -> float:
@@ -609,6 +687,32 @@ def _dedupe(rows: list[dict], excluded: set[str]) -> list:
     return chosen
 
 
+def _approved_layout(candidates: list, intro: str = "") -> dict:
+    """Keep the approved recap shape stable regardless of model headings."""
+    ordered = sorted(candidates, key=_verified_peak, reverse=True)
+    leaders = ordered[:5]
+    remaining = ordered[5:]
+    solana = [candidate for candidate in remaining if candidate.token.chain_id.lower() == "solana"]
+    cross_chain = [candidate for candidate in remaining if candidate.token.chain_id.lower() != "solana"]
+
+    def section(title: str, members: list) -> dict:
+        return {
+            "title": title,
+            "coins": [{"mint": candidate.token.mint, "line": ""} for candidate in members],
+        }
+
+    sections = [
+        section("Market Leaders", leaders),
+        section("More Solana Runners", solana),
+        section("Cross-Chain Moves", cross_chain),
+    ]
+    return {
+        "intro": _compact(intro, 220) or "Short version: what ran and why.",
+        "sections": [item for item in sections if item["coins"]],
+        "layout": "short",
+    }
+
+
 def _render_posts(candidates: list, narrative: dict, generated: datetime) -> list[dict]:
     by_mint = {candidate.token.mint: candidate for candidate in candidates}
     placed: set[str] = set()
@@ -682,30 +786,67 @@ def _render_posts(candidates: list, narrative: dict, generated: datetime) -> lis
         if current.strip():
             blocks.append(current.rstrip())
 
-    # Pack several story sections into each Discord post. This keeps the recap
-    # to a few compact messages instead of one message per heading.
-    descriptions: list[str] = []
-    current = intro
-    for block in blocks:
-        addition = ("\n\n" if current else "") + block
-        if len(current) + len(addition) > MAX_DESCRIPTION:
-            descriptions.append(current)
-            current = block
-        else:
-            current += addition
-    if current:
-        descriptions.append(current)
+    # Discord limits one embed description to 4,096 characters but allows up
+    # to ten embeds in one message. Keep each editorial section in its own
+    # embed instead of inventing an awkward "Solana Continued" message.
+    descriptions = list(blocks)
+    if descriptions:
+        first = f"{intro}\n\n{descriptions[0]}" if intro else descriptions[0]
+        if len(first) <= MAX_DESCRIPTION:
+            descriptions[0] = first
+        elif intro:
+            descriptions.insert(0, intro)
+    elif intro:
+        descriptions = [intro]
 
+    embeds: list[dict] = [
+        {"color": BRAND, "description": description}
+        for description in descriptions
+    ]
+    if embeds:
+        embeds[0].update({
+            "author": {"name": "fomo onchain", "icon_url": LOGO_REF},
+            "thumbnail": {"url": LOGO_REF},
+            "title": f"Daily Memecoin Recap — {generated.strftime('%B %d')}",
+        })
+
+    def embed_chars(embed: dict) -> int:
+        return (
+            len(str(embed.get("title") or ""))
+            + len(str(embed.get("description") or ""))
+            + len(str((embed.get("footer") or {}).get("text") or ""))
+        )
+
+    # Normally the approved 15-name edition is one Discord message containing
+    # three clean section embeds. If a future edition exceeds Discord's shared
+    # 6,000-character budget, split only at section boundaries.
     posts: list[dict] = []
-    for index, description in enumerate(descriptions):
-        embed = {"color": BRAND, "description": description}
-        if index == 0:
-            embed.update({
-                "author": {"name": "fomo onchain", "icon_url": LOGO_REF},
-                "thumbnail": {"url": LOGO_REF},
-                "title": f"Daily Memecoin Recap - {generated.strftime('%B %d')}",
-            })
-        posts.append({"username": "fomo onchain", "embeds": [embed]})
+    current_embeds: list[dict] = []
+    current_chars = 0
+    for embed in embeds:
+        size = embed_chars(embed)
+        if current_embeds and (
+            len(current_embeds) >= MAX_MESSAGE_EMBEDS
+            or current_chars + size > MAX_MESSAGE_EMBED_CHARS
+        ):
+            posts.append({"username": "fomo onchain", "embeds": current_embeds})
+            current_embeds = []
+            current_chars = 0
+        current_embeds.append(embed)
+        current_chars += size
+    if current_embeds:
+        posts.append({"username": "fomo onchain", "embeds": current_embeds})
+
+    solana_count = sum(
+        candidate.token.chain_id.lower() == "solana" for candidate in candidates
+    )
+    cross_chain_count = len(candidates) - solana_count
+    footer = (
+        f"{len(candidates)} runners · {solana_count} Solana · "
+        f"{cross_chain_count} cross-chain · Rolling 24h window · verified at publication time"
+    )
+    if posts:
+        posts[-1]["embeds"][-1]["footer"] = {"text": footer}
 
     # Validate the delivered representation, not only the intermediate set.
     # A previous section-splitting bug passed the pre-layout identity check and
@@ -801,8 +942,9 @@ def _render_compact_posts(candidates: list, generated: datetime) -> list[dict]:
             embed.update({
                 "author": {"name": "fomo onchain", "icon_url": LOGO_REF},
                 "thumbnail": {"url": LOGO_REF},
-                "title": f"Daily Memecoin Recap - {generated.strftime('%B %d')}",
+                "title": f"Daily Memecoin Recap — {generated.strftime('%B %d')}",
             })
+        embed["footer"] = {"text": "Rolling 24h window · verified at publication time"}
         posts.append({"username": "fomo onchain", "embeds": [embed]})
 
     rendered = "\n".join(
@@ -867,25 +1009,39 @@ async def main() -> int:
         narrative = await write_recap(candidates, generated, settings) or {
             "intro": "Short version: what ran and why.", "sections": []
         }
-    narrative["layout"] = "short"
-    posts = _render_compact_posts(candidates, generated)
+    narrative = _approved_layout(candidates, str(narrative.get("intro") or ""))
+    refreshed = await _refresh_current_market_caps(candidates)
+    posts = _render_posts(candidates, narrative, generated)
 
     if args.dry_run:
         out = ROOT / "output" / "discord-recap-preview.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(posts, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"dry_run=true coins={len(candidates)} posts={len(posts)} output={out}")
+        print(f"dry_run=true coins={len(candidates)} posts={len(posts)} repriced={refreshed} output={out}")
         return 0
 
-    urls = list(args.webhook_url) or webhook_urls()
-    if not urls:
-        raise RuntimeError("no Discord webhook configured")
-    for url in urls:
-        for index, payload in enumerate(posts):
-            await post_payload(url, payload, ROOT / "web" / LOGO if index == 0 else None)
+    token = bot_token()
+    channels = bot_channel_ids() if not args.webhook_url else []
+    urls = list(args.webhook_url) or ([] if token and channels else webhook_urls())
+    if token and channels:
+        for post in posts:
+            post["components"] = interactive_market_components()
+        for channel_id in channels:
+            for index, payload in enumerate(posts):
+                await post_bot_payload(
+                    channel_id, payload, token,
+                    ROOT / "web" / LOGO if index == 0 else None,
+                )
+    elif urls:
+        for url in urls:
+            for index, payload in enumerate(posts):
+                await post_payload(url, payload, ROOT / "web" / LOGO if index == 0 else None)
+    else:
+        raise RuntimeError("no Discord bot channel or webhook configured")
     print(
         f"sent=true coins={len(candidates)} unique_contracts={len({c.token.mint for c in candidates})} "
-        f"posts={len(posts)} webhooks={len(urls)} lore={lore_count} researched={researched} explained={explained}"
+        f"posts={len(posts)} bot_channels={len(channels)} webhooks={len(urls)} repriced={refreshed} "
+        f"lore={lore_count} researched={researched} explained={explained}"
     )
     return 0
 

@@ -538,10 +538,10 @@ telegram_digest = true
 # Optional link appended to the digest so the full report is one tap away.
 report_url = "https://onchainnews-rho.vercel.app"
 
-# Optional Discord post. Requires DISCORD_WEBHOOK_URL in .env; the webhook is
-# a bearer credential, so it never lives in the repo. A single message carries
-# the day's context and one embed per tier, budgeted against Discord's shared
-# 6,000-character embed limit.
+# Discord uses DISCORD_BOT_TOKEN + DISCORD_CHANNEL_ID when configured so the
+# same message can own the local Refresh live MC button. Otherwise it falls
+# back to DISCORD_WEBHOOK_URL without a button; webhook secrets never enter
+# the repo. Every embed is budgeted against Discord's shared character limits.
 discord_enabled = true
 
 # Optional email delivery. Use Brevo for API-based free delivery to external
@@ -603,6 +603,7 @@ excluded_mints = [
   "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump", # CLAW
   "0x8226dda5f73619dedc671e09be738fa308da1944", # HEDGE
   "0x777777780838c00038ecd48f63f3c37669322bc8", # ETHCAT
+  "6yjNqPzTSanBWSa6dxVEgTjePXBrZ2FoHLDQwYwEsyM6", # CHUD
 ]
 max_runners = 0
 # The day's biggest markets, chosen on volume rather than on the size of the move.

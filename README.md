@@ -224,6 +224,20 @@ Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`, then set `telegram_en
 
 Email delivery uses Resend: set `RESEND_API_KEY` in `.env`, then `email_enabled = true`, `email_from`, and `email_to` in `config.toml`. The full report is rendered as a flat, inline-styled email (email clients cannot open the interactive HTML) and sent to every address in `email_to`. It wears the same fomo brand as the site and the overlays — the navy `#221D4B` masthead, the blue `#516AF6` stat band, the lavender `#EAEDFF` paper, the KOL/lore chips and the red rubber stamp — with every style inline and no `class` or `<style>` block, because Gmail and friends share none of the interactive page. Preview it offline before it faces an inbox: `uv run python scripts/email-preview.py` writes `output/email-preview.html`, and `--report-url <url>` writes the CTA-button variant. The default sender `onboarding@resend.dev` only delivers in testing — verify a domain in Resend and switch `email_from` to `brief@yourdomain.com` before relying on it. A missing credential warns and skips, exactly like Telegram.
 
+Discord falls back to ordinary incoming webhooks, but webhook messages cannot
+own interactive buttons. To enable **Refresh live MC** inside the Discord
+message, create a Discord application and bot, invite it with **View Channel**
+and **Send Messages**. Configure `DISCORD_BOT_TOKEN`,
+`DISCORD_APPLICATION_PUBLIC_KEY`, and `DISCORD_CHANNEL_ID` locally (plus
+`DISCORD_CHANNEL_ID_SECONDARY` when needed). The Vercel interaction function
+only needs `DISCORD_APPLICATION_PUBLIC_KEY`; keep the bot token in the
+environment that sends the recap. Set the application's Interactions Endpoint URL to
+`https://YOUR-VERCEL-DOMAIN/api/discord-interactions`. The endpoint validates
+Discord's Ed25519 signature, reprices every exact contract through Dexscreener,
+edits the original message, and enforces a message-wide 30-second cooldown.
+When bot credentials are absent, delivery continues through the configured
+webhooks without showing a fake external refresh button.
+
 The morning Telegram message is a digest, not the whole report: a header, the picks with one line each, up to three on-chain flags, any degraded sources, and an optional link. Set `delivery.report_url` to wherever `latest.html` is reachable and it is appended to the message. Set `delivery.telegram_digest = false` to send the full report instead. A missing credential warns and skips delivery; it never loses the report that already rendered.
 
 The visual interface runs locally at `http://127.0.0.1:8765`. It filters the report, shows a live clock and scheduled-run countdown, monitors refresh state, and can start a new brief. It binds only to the local machine and exposes no wallet or trading action.

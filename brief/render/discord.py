@@ -52,6 +52,32 @@ TIERS = (
 )
 
 
+def interactive_market_components(refreshed_at: int = 0) -> list[dict[str, Any]]:
+    """Build the application-owned button handled by our Vercel endpoint."""
+    return [{
+        "type": 1,
+        "components": [{
+            "type": 2,
+            "style": 2,
+            "label": "Refresh live MC",
+            "custom_id": f"refresh_mc:{int(refreshed_at)}",
+        }],
+    }]
+
+
+def bot_token() -> str:
+    return os.environ.get("DISCORD_BOT_TOKEN", "").strip()
+
+
+def bot_channel_ids() -> list[str]:
+    result: list[str] = []
+    for name in ("DISCORD_CHANNEL_ID", "DISCORD_CHANNEL_ID_SECONDARY"):
+        channel_id = os.environ.get(name, "").strip()
+        if channel_id and channel_id not in result:
+            result.append(channel_id)
+    return result
+
+
 def webhook_urls() -> list[str]:
     """Configured Discord destinations, in order and without duplicates."""
     result: list[str] = []
@@ -214,11 +240,21 @@ async def send_discord(
         return False
     if bool(settings.get("delivery", "require_preflight", False)) and audit is None:
         raise RuntimeError("delivery blocked: a passing runner preflight is required")
-    urls = webhook_urls()
-    if not urls:
-        return False
     payload = build_payload(brief, settings)
     if payload is None:
+        return False
+    token = bot_token()
+    channels = bot_channel_ids()
+    if token and channels:
+        payload["components"] = interactive_market_components()
+        for channel_id in channels:
+            await post_bot_payload(
+                channel_id, payload, token, settings.root / "web" / LOGO,
+                transport=transport,
+            )
+        return True
+    urls = webhook_urls()
+    if not urls:
         return False
     for url in urls:
         await post_payload(url, payload, settings.root / "web" / LOGO, transport=transport)
@@ -244,4 +280,35 @@ async def post_payload(url: str, payload: dict[str, Any], logo: Path | None = No
             )
         else:
             response = await client.post(url, json=payload)
+        response.raise_for_status()
+
+
+async def post_bot_payload(
+    channel_id: str,
+    payload: dict[str, Any],
+    token: str,
+    logo: Path | None = None,
+    *,
+    transport=None,
+) -> None:
+    """Create an application-owned message so Discord can deliver clicks."""
+    body = dict(payload)
+    body.pop("username", None)
+    files = None
+    if logo is not None and logo.exists():
+        files = {"files[0]": (LOGO, logo.read_bytes(), "image/jpeg")}
+    else:
+        for embed in body.get("embeds") or []:
+            embed.pop("thumbnail", None)
+            (embed.get("author") or {}).pop("icon_url", None)
+    headers = {"Authorization": f"Bot {token}"}
+    url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
+    async with httpx.AsyncClient(timeout=30, transport=transport) as client:
+        if files:
+            response = await client.post(
+                url, headers=headers,
+                data={"payload_json": json.dumps(body)}, files=files,
+            )
+        else:
+            response = await client.post(url, headers=headers, json=body)
         response.raise_for_status()
