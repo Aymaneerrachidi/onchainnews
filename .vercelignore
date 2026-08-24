@@ -4,6 +4,8 @@
 # match web/data/, which is the snapshot the site renders.
 /data/
 /output/
+/overlays/
+/brand details/
 /.venv/
 /.pytest_cache/
 /.ruff_cache/
