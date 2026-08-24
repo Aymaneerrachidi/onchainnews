@@ -19,7 +19,10 @@ def x_handle(socials: list[dict[str, str]]) -> str | None:
             continue
         path = urlparse(url).path.strip("/")
         handle = path.split("/")[0].lstrip("@") if path else ""
-        if handle and handle.lower() not in {"intent", "share", "home", "search"}:
+        # X communities use /i/communities/<id>. ``i`` is a route, not a
+        # screen name; sending it to the account verifier incorrectly marks a
+        # perfectly valid community link as a dead project account.
+        if handle and handle.lower() not in {"i", "intent", "share", "home", "search"}:
             return handle
     return None
 

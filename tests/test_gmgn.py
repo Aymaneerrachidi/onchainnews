@@ -96,6 +96,47 @@ def test_gmgn_renowned_trader_tape_preserves_outcomes_and_filters_wash_labels():
     assert evidence["renownedTraders"][1]["suspicious"] is True
 
 
+def test_exact_token_info_recovers_wallet_counts_missing_from_discovery():
+    evidence = GmgnSource.wallet_count_evidence({
+        "holder_count": 55_421,
+        "wallet_tags_stat": {"smart_wallets": 267, "renowned_wallets": 33},
+        "stat": {"top_10_holder_rate": "0.1222"},
+    })
+
+    assert evidence["holders"] == 55_421
+    assert evidence["kolCount"] == 33
+    assert evidence["smartMoneyCount"] == 267
+    assert evidence["top10Pct"] == pytest.approx(12.22)
+    assert evidence["exactWalletCountsChecked"] is True
+
+
+async def test_exact_wallet_fallback_updates_zero_kol_before_trader_gate(monkeypatch):
+    from tests.test_tracks import _tape
+
+    source = GmgnSource(chains=("solana",))
+    source.executable = "gmgn-cli"
+    source.api_key_present = True
+    coin = _tape(
+        "CYBERLEEK", mcap=16_000_000, vol24=35_000_000, vol6=8_000_000,
+        liq=1_700_000, trades6=40_000, buys6=22_000,
+    )
+    evidence = {coin.token.mint: {"kolCount": 0, "smartMoneyCount": 0}}
+
+    async def fake_safe(label: str, *args: str):
+        return label, {
+            "holder_count": 55_421,
+            "wallet_tags_stat": {"smart_wallets": 267, "renowned_wallets": 33},
+            "stat": {"top_10_holder_rate": "0.1222"},
+        }, None
+
+    monkeypatch.setattr(source, "_safe", fake_safe)
+    status = await source.enrich_missing_wallet_counts([coin], evidence, limit=10)
+
+    assert status.available is True
+    assert evidence[coin.token.mint]["kolCount"] == 33
+    assert evidence[coin.token.mint]["smartMoneyCount"] == 267
+
+
 def test_gmgn_hourly_candles_reconstruct_the_trailing_day_peak():
     token = parse_rank_item({
         "address": MINT,
@@ -119,6 +160,41 @@ def test_gmgn_hourly_candles_reconstruct_the_trailing_day_peak():
     assert evidence["kline24hPeakAt"].startswith("2026-")
 
 
+async def test_recovered_kline_pass_queries_only_exact_mint_recoveries(monkeypatch):
+    recovered = parse_rank_item({
+        "address": MINT, "symbol": "RECOVERED", "market_cap": 400_000, "price": 0.40,
+    }, origin="test")
+    broad = parse_rank_item({
+        "address": "B" * 32, "symbol": "BROAD", "market_cap": 500_000, "price": 0.50,
+    }, origin="test")
+    assert recovered is not None and broad is not None
+    evidence = {
+        recovered.mint: {"kolCount": 12, "exactWalletCountsChecked": True},
+        broad.mint: {"kolCount": 20},
+    }
+    source = GmgnSource(chains=("solana",))
+    source.executable = "gmgn-cli"
+    source.api_key_present = True
+    called: list[str] = []
+
+    async def fake_safe(label: str, *args: str):
+        called.append(label)
+        return label, {"list": [
+            {"time": 1_776_000_000_000, "open": "0.20", "close": "0.40",
+             "high": "0.50", "low": "0.18", "volume": "250000"},
+        ]}, None
+
+    monkeypatch.setattr(source, "_safe", fake_safe)
+    status = await source.enrich_runner_klines(
+        [recovered, broad], evidence, now=datetime.now(timezone.utc), exact_only=True,
+    )
+
+    assert status.available is True
+    assert called == [f"kline:sol:{MINT}"]
+    assert evidence[recovered.mint]["kline24hPeakMarketCap"] == 500_000
+    assert "kline24hPeakMarketCap" not in evidence[broad.mint]
+
+
 def test_gmgn_rank_parser_accepts_supported_evm_chains():
     token = parse_rank_item(
         {
@@ -134,7 +210,7 @@ def test_gmgn_rank_parser_accepts_supported_evm_chains():
 
     assert token is not None
     assert token.chain_id == "base"
-    assert token.url == f"https://gmgn.ai/base/token/{EVM_MINT}"
+    assert token.url == f"https://dexscreener.com/base/{EVM_MINT}"
 
 
 async def test_unconfigured_gmgn_degrades_without_dropping_run(monkeypatch):
@@ -162,6 +238,9 @@ async def test_gmgn_discovery_has_a_server_filtered_organic_backbone(monkeypatch
     await source.discover(datetime.now(timezone.utc))
 
     organic = next(args for label, args in calls if label == "trending-organic:sol")
+    kol_lane = next(args for label, args in calls if label == "trending-kol:sol")
+    smart_lane = next(args for label, args in calls if label == "trending-smartmoney:sol")
+    ath_lane = next(args for label, args in calls if label == "trending-ath:sol")
     joined = " ".join(organic)
     assert "--min-volume 250000" in joined
     assert "--min-liquidity 40000" in joined
@@ -169,3 +248,8 @@ async def test_gmgn_discovery_has_a_server_filtered_organic_backbone(monkeypatch
     assert "--min-swaps 1000" in joined
     assert "--max-top10-holder-rate 0.25" in joined
     assert "--filter not_wash_trading" in joined
+    assert "--order-by renowned_count" in " ".join(kol_lane)
+    assert "--min-renowned-count 1" in " ".join(kol_lane)
+    assert "--order-by smart_degen_count" in " ".join(smart_lane)
+    assert "--min-smart-degen-count 1" in " ".join(smart_lane)
+    assert "--max-created 30h" in " ".join(ath_lane)

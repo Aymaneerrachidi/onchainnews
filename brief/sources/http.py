@@ -23,7 +23,20 @@ class SourceError(RuntimeError):
 def _safe_http_error(exc: Exception) -> str:
     """Never leak query-string API keys through exception text or reports."""
     if isinstance(exc, httpx.HTTPStatusError):
-        return f"HTTP {exc.response.status_code}"
+        label = f"HTTP {exc.response.status_code}"
+        # Surface a small allow-list of operational provider reasons without
+        # ever copying arbitrary response text (which may echo credentials or
+        # request parameters) into logs and public data-coverage notes.
+        try:
+            body = exc.response.json()
+            message = str((body or {}).get("message") or (body or {}).get("error") or "").lower()
+        except (ValueError, AttributeError):
+            message = ""
+        if "compute unit" in message and ("limit" in message or "quota" in message):
+            return f"{label} (compute-unit quota exceeded)"
+        if "rate limit" in message:
+            return f"{label} (rate limit exceeded)"
+        return label
     if isinstance(exc, httpx.RequestError):
         return exc.__class__.__name__
     return exc.__class__.__name__
@@ -34,13 +47,19 @@ class _Bucket:
     limit: int
     calls: deque[float]
     lock: asyncio.Lock
+    last_call: float = 0.0
 
 
 class RateLimiter:
     def __init__(self) -> None:
         self._buckets: dict[str, _Bucket] = {}
 
-    async def acquire(self, family: str, limit_per_minute: int) -> None:
+    async def acquire(
+        self,
+        family: str,
+        limit_per_minute: int,
+        min_interval_seconds: float = 0.0,
+    ) -> None:
         bucket = self._buckets.setdefault(
             family, _Bucket(limit_per_minute, deque(), asyncio.Lock())
         )
@@ -50,7 +69,15 @@ class RateLimiter:
                 while bucket.calls and now - bucket.calls[0] >= 60:
                     bucket.calls.popleft()
                 if len(bucket.calls) < bucket.limit:
+                    interval_wait = max(
+                        0.0,
+                        float(min_interval_seconds) - (now - bucket.last_call),
+                    )
+                    if interval_wait > 0:
+                        await asyncio.sleep(interval_wait)
+                        continue
                     bucket.calls.append(now)
+                    bucket.last_call = now
                     return
                 await asyncio.sleep(max(0.01, 60 - (now - bucket.calls[0])))
 
@@ -93,6 +120,7 @@ class CachedHttpClient:
         ttl: int,
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
+        min_interval_seconds: float = 0.0,
     ) -> Any:
         if self.replay_date:
             replayed = self.ledger.replay_response(self.replay_date, "GET", url, params)
@@ -106,8 +134,9 @@ class CachedHttpClient:
         if cached is not None:
             return cached
         last_error = "unknown error"
+        allow_stale = True
         for attempt in range(3):
-            await self.limiter.acquire(family, limit)
+            await self.limiter.acquire(family, limit, min_interval_seconds)
             started = time.perf_counter()
             try:
                 response = await self.client.get(url, headers=headers, params=params)
@@ -124,7 +153,14 @@ class CachedHttpClient:
                     method="GET", endpoint=url, request_params=params, request_body=None,
                     status=response.status_code, response_body=response_text,
                 )
-                if response.status_code == 429 or response.status_code >= 500:
+                if response.status_code == 429:
+                    last_error = f"HTTP {response.status_code}"
+                    # Repeated requests during a provider cooldown can extend
+                    # the ban. Fail this lane immediately; its caller can open
+                    # a circuit and mark the data unavailable.
+                    allow_stale = False
+                    break
+                if response.status_code >= 500:
                     last_error = f"HTTP {response.status_code}"
                     if attempt < 2:
                         await asyncio.sleep(0.5 * (2**attempt))
@@ -140,10 +176,15 @@ class CachedHttpClient:
                     and exc.response.status_code < 500
                     and exc.response.status_code != 429
                 ):
+                    # A bad request, expired credential, or forbidden route is
+                    # not a temporary outage. Returning an old successful page
+                    # here made dead provider lanes look live and injected
+                    # stale token rankings into the current recap.
+                    allow_stale = False
                     break
                 if attempt < 2:
                     await asyncio.sleep(0.5 * (2**attempt))
-        stale = self.ledger.cache_get(cache_key, ttl=None)
+        stale = self.ledger.cache_get(cache_key, ttl=None) if allow_stale else None
         if stale is not None:
             log.warning("serving_stale_cache family=%s url=%s error=%s", family, url, last_error)
             return stale
@@ -173,6 +214,7 @@ class CachedHttpClient:
         if cached is not None:
             return cached
         last_error = "unknown error"
+        allow_stale = True
         for attempt in range(3):
             await self.limiter.acquire(family, limit)
             started = time.perf_counter()
@@ -192,7 +234,11 @@ class CachedHttpClient:
                     method="POST", endpoint=url, request_params=params, request_body=json_body,
                     status=response.status_code, response_body=response_text,
                 )
-                if response.status_code == 429 or response.status_code >= 500:
+                if response.status_code == 429:
+                    last_error = f"HTTP {response.status_code}"
+                    allow_stale = False
+                    break
+                if response.status_code >= 500:
                     last_error = f"HTTP {response.status_code}"
                     if attempt < 2:
                         await asyncio.sleep(0.5 * (2**attempt))
@@ -216,10 +262,11 @@ class CachedHttpClient:
                     and exc.response.status_code < 500
                     and exc.response.status_code != 429
                 ):
+                    allow_stale = False
                     break
                 if attempt < 2:
                     await asyncio.sleep(0.5 * (2**attempt))
-        stale = self.ledger.cache_get(cache_key, ttl=None)
+        stale = self.ledger.cache_get(cache_key, ttl=None) if allow_stale else None
         if stale is not None:
             return stale
         raise SourceError(f"{family} failed after 3 attempts: {last_error}")

@@ -117,6 +117,11 @@ discovery_ttl_seconds = 600
 safety_ttl_seconds = 3600
 keyed_ttl_seconds = 900
 
+[rugcheck]
+# Fixture responses are local and deterministic; production pacing is covered
+# by the source-specific unit test.
+requests_per_minute = 60000
+
 [holders]
 enabled = true
 watchlist_limit = 2

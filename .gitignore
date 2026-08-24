@@ -35,6 +35,8 @@ web/.playwright-mcp/
 /x post example.jpg
 
 /output/*.json
+/output/baselines/
+/output/scans/
 /fomo logo.jpg
 
 # Run logs and the archived copy of the last email that was sent.

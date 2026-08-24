@@ -535,7 +535,7 @@
     ],
     "risks": []
   },
-  "/defi/tokenlist": {
+  "/defi/v3/token/list": {
     "data": {
       "total": 2,
       "tokens": [

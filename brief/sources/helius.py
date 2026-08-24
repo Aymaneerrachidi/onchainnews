@@ -109,6 +109,7 @@ class HeliusSource:
         self.requests_per_minute = requests_per_minute
         self.holder_page_limit = holder_page_limit
         self.max_holder_pages = max_holder_pages
+        self.rate_limited = False
         # Per-owner diagnostics for the KOL scan. Each owner is scanned by one
         # coroutine, so these counters remain safe while wallets run in parallel.
         self.wallet_history_pages: dict[str, int] = {}
@@ -123,14 +124,21 @@ class HeliusSource:
     ) -> Any:
         if not self.api_key:
             raise SourceError("Helius is not configured")
-        payload = await self.http.post_json(
-            self.base_url,
-            params={"api-key": self.api_key},
-            family=family,
-            limit=requests_per_minute or self.requests_per_minute,
-            ttl=ttl,
-            json_body={"jsonrpc": "2.0", "id": f"brief:{method}", "method": method, "params": params},
-        )
+        if self.rate_limited:
+            raise SourceError("Helius rate-limit circuit open; metrics unavailable for the rest of this run")
+        try:
+            payload = await self.http.post_json(
+                self.base_url,
+                params={"api-key": self.api_key},
+                family=family,
+                limit=requests_per_minute or self.requests_per_minute,
+                ttl=ttl,
+                json_body={"jsonrpc": "2.0", "id": f"brief:{method}", "method": method, "params": params},
+            )
+        except SourceError as exc:
+            if "HTTP 429" in str(exc):
+                self.rate_limited = True
+            raise
         return _result(payload)
 
     async def enrich(self, mint: str) -> Enrichment:
@@ -211,6 +219,37 @@ class HeliusSource:
             for mint, result in zip(chunk, results if isinstance(results, list) else []):
                 if isinstance(result, dict):
                     enriched[mint] = self._parse_enrichment(result)
+        return enriched
+
+    async def mint_authorities_batch(self, mints: list[str]) -> dict[str, Enrichment]:
+        """Read the SPL mint accounts directly and distinguish null from absent.
+
+        DAS getAsset often omits authority fields entirely. The parsed SPL mint
+        account includes both keys and returns JSON null when an authority was
+        actually revoked, which is the explicit proof a fail-closed audit needs.
+        """
+        enriched: dict[str, Enrichment] = {}
+        for index in range(0, len(mints), 100):
+            chunk = mints[index:index + 100]
+            result = await self._rpc(
+                "getMultipleAccounts",
+                [chunk, {"encoding": "jsonParsed", "commitment": "confirmed"}],
+                ttl=self.ttl,
+            )
+            values = result.get("value") or []
+            for mint, value in zip(chunk, values):
+                info = (((value or {}).get("data") or {}).get("parsed") or {}).get("info") or {}
+                if not isinstance(info, dict):
+                    continue
+                mint_safe = info.get("mintAuthority") is None if "mintAuthority" in info else None
+                freeze_safe = info.get("freezeAuthority") is None if "freezeAuthority" in info else None
+                enriched[mint] = Enrichment(
+                    mint_authority_renounced=mint_safe,
+                    freeze_authority_disabled=freeze_safe,
+                    supply_raw=number(info.get("supply")) if info.get("supply") is not None else None,
+                    decimals=int(info.get("decimals")) if info.get("decimals") is not None else None,
+                    source="helius-rpc",
+                )
         return enriched
 
     async def token_holders(

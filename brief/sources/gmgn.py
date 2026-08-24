@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from brief.models import SourceStatus, TokenSnapshot, TransactionWindow, integer, number
+from brief.models import SafetyReport, SourceStatus, TokenSnapshot, TransactionWindow, integer, number
 
 
 SOL_ADDRESS = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")
@@ -24,7 +24,15 @@ CHAIN_ALIASES = {
     "eth": "ethereum",
     "ethereum": "ethereum",
 }
-CLI_CHAINS = {"solana": "sol", "bsc": "bsc", "base": "base", "ethereum": "eth"}
+CLI_CHAINS = {
+    "solana": "sol",
+    "bsc": "bsc",
+    "base": "base",
+    "ethereum": "eth",
+    # Robinhood's L2 opened in July and memecoins took it: they are ~79% of
+    # its DEX volume, so a meme recap that skips it has a hole in it.
+    "robinhood": "robinhood",
+}
 
 
 class GmgnError(RuntimeError):
@@ -95,14 +103,18 @@ def parse_rank_item(
         buys = swaps // 2
         sells = swaps - buys
     volume = number(item.get("volume") or item.get("volume_24h"))
+    pool_address = str(item.get("pool_address") or item.get("biggest_pool_address") or "")
     raw = {"gmgn": item, "gmgnOrigin": origin}
     return TokenSnapshot(
         mint=mint,
         symbol=str(item.get("symbol") or "?").upper(),
         name=str(item.get("name") or item.get("symbol") or mint[:8]),
         chain_id=chain_id,
-        pair_address=str(item.get("pool_address") or item.get("biggest_pool_address") or ""),
-        url=f"https://gmgn.ai/{CLI_CHAINS[chain_id]}/token/{mint}",
+        pair_address=pool_address,
+        # Every renderer labels this field as the chart link. A GMGN discovery
+        # row used to put a GMGN URL behind “Open Dexscreener”, and the payload
+        # then added a second, hard-coded Solana GMGN link even for EVM coins.
+        url=f"https://dexscreener.com/{chain_id}/{pool_address or mint}",
         price_usd=number(item.get("price")),
         market_cap=market_cap,
         liquidity_usd=number(item.get("liquidity")),
@@ -137,6 +149,87 @@ def parse_rank_item(
     )
 
 
+def _pct_of_ratio(value: Any) -> float | None:
+    """GMGN reports rates as fractions; the rest of the app reads percents."""
+    if value is None or value == "":
+        return None
+    try:
+        return float(value) * 100.0
+    except (TypeError, ValueError):
+        return None
+
+
+def tax_rate_pct(value: Any) -> float | None:
+    """Normalise GMGN's explicit buy/sell-tax fields to percentage points.
+
+    Rank responses normally encode ``0.03`` for 3%, while a few token-detail
+    responses already return ``3``.  These fields describe transfer tax.  The
+    separate ``total_fee`` / ``trade_fee`` fields describe market activity and
+    must never be used as a proxy for contract tax.
+    """
+    if value is None or value == "":
+        return None
+    try:
+        rate = float(value)
+    except (TypeError, ValueError):
+        return None
+    if rate < 0:
+        return None
+    return rate * 100.0 if rate <= 1 else rate
+
+
+def transfer_tax_pct(evidence: dict[str, Any]) -> float | None:
+    """Return the highest explicit buy/sell tax, or ``None`` if unanswered."""
+    rates = [tax_rate_pct(evidence.get(key)) for key in ("buyTax", "sellTax")]
+    known = [rate for rate in rates if rate is not None]
+    return max(known) if known else None
+
+
+def safety_from_evidence(mint: str, evidence: dict[str, Any]) -> SafetyReport:
+    """A contract-safety report built from what GMGN already told us.
+
+    GoPlus covers seven EVM chains and Robinhood is not one of them, so a
+    Robinhood runner would otherwise reach the recap labelled unverified — a
+    ticker in front of a reader with nothing behind it. GMGN returns the same
+    facts that matter for naming a coin: whether it can be sold, what it taxes,
+    how concentrated it is, and whether the authorities are gone. This is a
+    narrower report than GoPlus gives, and it says so in `source`.
+    """
+    report = SafetyReport(mint, source="gmgn")
+    report.holder_count = integer(evidence.get("holders")) or None
+    report.top10_pct = number(evidence.get("top10Pct")) if evidence.get("top10Pct") is not None else None
+    report.creator = str(evidence.get("creator") or "") or None
+
+    honeypot = evidence.get("isHoneypot")
+    # GMGN answers "no"/"yes"; anything else is an absent answer, not a pass.
+    report.rugged = str(honeypot).strip().lower() in {"yes", "1", "true"}
+
+    renounced_mint = evidence.get("renouncedMint")
+    renounced_freeze = evidence.get("renouncedFreeze")
+    report.mint_authority_renounced = None if renounced_mint is None else bool(integer(renounced_mint))
+    report.freeze_authority_disabled = None if renounced_freeze is None else bool(integer(renounced_freeze))
+
+    flags: list[str] = []
+    if report.rugged:
+        flags.append("honeypot: the token cannot be sold")
+    for label, key in (("sell", "sellTax"), ("buy", "buyTax")):
+        pct = tax_rate_pct(evidence.get(key))
+        if pct is None:
+            continue
+        if pct >= 5:
+            flags.append(f"{pct:.0f}% {label} tax")
+    if evidence.get("washTrading") is True:
+        flags.append("wash-trading shape")
+    insider = _pct_of_ratio(evidence.get("insiderRate"))
+    if insider is not None and insider >= 10:
+        flags.append(f"{insider:.0f}% held by suspected insiders")
+    dev_hold = _pct_of_ratio(evidence.get("devTeamHoldRate"))
+    if dev_hold is not None and dev_hold >= 10:
+        flags.append(f"dev team holds {dev_hold:.0f}%")
+    report.risk_flags = flags
+    return report
+
+
 def evidence_from_rank(item: dict[str, Any], origin: str) -> dict[str, Any]:
     return {
         "origin": origin,
@@ -151,6 +244,14 @@ def evidence_from_rank(item: dict[str, Any], origin: str) -> dict[str, Any]:
         "top10Pct": _ratio_pct(item.get("top_10_holder_rate")),
         "rugRatio": number(item.get("rug_ratio")) if item.get("rug_ratio") not in (None, "") else None,
         "washTrading": item.get("is_wash_trading"),
+        # GoPlus does not cover every chain we now read. Where it cannot, these
+        # are the honeypot and tax facts a reader is entitled to before a
+        # ticker is put in front of them.
+        "isHoneypot": item.get("is_honeypot"),
+        "buyTax": number(item.get("buy_tax")) if item.get("buy_tax") is not None else None,
+        "sellTax": number(item.get("sell_tax")) if item.get("sell_tax") is not None else None,
+        "renouncedMint": item.get("renounced_mint"),
+        "renouncedFreeze": item.get("renounced_freeze_account"),
         "insiderRate": number(item.get("rat_trader_amount_rate") or item.get("suspected_insider_hold_rate")) if (item.get("rat_trader_amount_rate") is not None or item.get("suspected_insider_hold_rate") is not None) else None,
         "bundlerRate": number(item.get("bundler_rate") or item.get("bundler_trader_amount_rate")) if (item.get("bundler_rate") is not None or item.get("bundler_trader_amount_rate") is not None) else None,
         "sniperCount": integer(item.get("sniper_count")) if item.get("sniper_count") is not None else None,
@@ -345,6 +446,97 @@ class GmgnSource:
         }
 
     @staticmethod
+    def wallet_count_evidence(payload: Any) -> dict[str, Any]:
+        """Extract exact-mint wallet counts from ``token info``.
+
+        Discovery ranks are intentionally broad and occasionally omit the
+        wallet tag fields altogether. A missing ``renowned_count`` was being
+        stored as zero, which hid heavily traded coins such as CYBERLEEK even
+        though their exact token page had dozens of renowned wallets. Only
+        copy fields whose units are identical here; launch-volume bundler
+        statistics are not interchangeable with the rank endpoint's supply
+        concentration fields.
+        """
+        data = _unwrap(payload)
+        if not isinstance(data, dict):
+            return {}
+        tags = data.get("wallet_tags_stat") or {}
+        stat = data.get("stat") or {}
+        dev = data.get("dev") or {}
+        return {
+            "holders": integer(data.get("holder_count") or stat.get("holder_count")) or None,
+            "top10Pct": _ratio_pct(
+                stat.get("top_10_holder_rate")
+                if stat.get("top_10_holder_rate") is not None
+                else dev.get("top_10_holder_rate")
+            ),
+            "smartMoneyCount": integer(tags.get("smart_wallets")),
+            "kolCount": integer(tags.get("renowned_wallets")),
+            "exactWalletCountsChecked": True,
+            "exactWalletCountSource": "token-info",
+        }
+
+    async def enrich_missing_wallet_counts(
+        self,
+        candidates: Iterable[Any],
+        evidence_by_mint: dict[str, dict[str, Any]],
+        *,
+        limit: int = 30,
+        force_all: bool = False,
+    ) -> SourceStatus:
+        """Fallback to exact-token counts when a discovery row says zero."""
+        if not self.configured:
+            return SourceStatus("GMGN exact wallet-count fallback", False, self.unavailable_reason)
+        eligible = [
+            candidate for candidate in candidates
+            if candidate.token.chain_id.lower() in CLI_CHAINS
+            and (force_all or (
+                int((evidence_by_mint.get(candidate.token.mint, {}) or {}).get("kolCount") or 0) <= 0
+                or int((evidence_by_mint.get(candidate.token.mint, {}) or {}).get("smartMoneyCount") or 0) <= 0
+            ))
+        ]
+        ranked = sorted(
+            eligible,
+            key=lambda candidate: (
+                float(candidate.token.volume_24h or 0),
+                float(candidate.peak_market_cap or candidate.observed_peak_market_cap or 0),
+                float(candidate.token.market_cap or 0),
+            ),
+            reverse=True,
+        )
+        if limit > 0:
+            ranked = ranked[:limit]
+        checked = 0
+        recovered_kol = 0
+        failures: list[str] = []
+        for candidate in ranked:
+            chain = CLI_CHAINS[candidate.token.chain_id.lower()]
+            _, payload, error = await self._safe(
+                f"wallet-counts:{chain}:{candidate.token.mint}",
+                "token", "info", "--chain", chain, "--address", candidate.token.mint,
+            )
+            if error is not None:
+                failures.append(str(error))
+                if "rate limit" in str(error).lower():
+                    break
+                continue
+            summary = self.wallet_count_evidence(payload)
+            if not summary:
+                continue
+            evidence = evidence_by_mint.setdefault(candidate.token.mint, {"origins": []})
+            old_kol = int(evidence.get("kolCount") or 0)
+            for key, value in summary.items():
+                if value is not None:
+                    evidence[key] = value
+            if old_kol <= 0 < int(evidence.get("kolCount") or 0):
+                recovered_kol += 1
+            checked += 1
+        detail = f"{checked}/{len(ranked)} zero/incomplete finalists checked; {recovered_kol} KOL counts recovered"
+        if failures:
+            detail += f"; partial: {failures[0][:160]}"
+        return SourceStatus("GMGN exact wallet-count fallback", checked > 0, detail)
+
+    @staticmethod
     def kline_evidence(payload: Any, token: TokenSnapshot) -> dict[str, Any]:
         """Turn GMGN's hourly candles into an honest trailing-24h move.
 
@@ -403,6 +595,7 @@ class GmgnSource:
         now: datetime,
         limit: int = 40,
         min_kol_count: int = 1,
+        exact_only: bool = False,
     ) -> SourceStatus:
         """Verify the 24h path for KOL-backed runner candidates."""
         if not self.configured:
@@ -411,6 +604,10 @@ class GmgnSource:
             token for token in tokens
             if token.chain_id.lower() in CLI_CHAINS
             and int((evidence_by_mint.get(token.mint, {}) or {}).get("kolCount") or 0) >= min_kol_count
+            and (
+                not exact_only
+                or bool((evidence_by_mint.get(token.mint, {}) or {}).get("exactWalletCountsChecked"))
+            )
         ]
         ranked = sorted(
             eligible,
@@ -421,7 +618,9 @@ class GmgnSource:
                 float(token.market_cap or 0),
             ),
             reverse=True,
-        )[:max(0, limit)]
+        )
+        if limit > 0:
+            ranked = ranked[:limit]
         # Query completed hourly buckets. Rounding the boundary also makes the
         # SQLite cache reusable by repeated checks inside the same hour.
         end_at = now.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
@@ -450,7 +649,8 @@ class GmgnSource:
         detail = f"{checked}/{len(ranked)} KOL-backed candidates verified from hourly candles"
         if failures:
             detail += f"; partial: {failures[0][:160]}"
-        return SourceStatus("GMGN 24h candle verification", available, detail)
+        label = "GMGN recovered-mint 24h candles" if exact_only else "GMGN 24h candle verification"
+        return SourceStatus(label, available, detail)
 
     async def enrich_runner_traders(
         self,
@@ -466,13 +666,16 @@ class GmgnSource:
         ranked = sorted(
             candidates,
             key=lambda candidate: (
+                bool((evidence_by_mint.get(candidate.token.mint, {}) or {}).get("exactWalletCountsChecked")),
                 bool((evidence_by_mint.get(candidate.token.mint, {}) or {}).get("organicQualified")),
                 int((evidence_by_mint.get(candidate.token.mint, {}) or {}).get("kolCount") or 0),
                 float(candidate.token.volume_24h or 0),
                 float(candidate.token.market_cap or 0),
             ),
             reverse=True,
-        )[:max(0, limit)]
+        )
+        if limit > 0:
+            ranked = ranked[:limit]
         checked = 0
         with_traders = 0
         failures: list[str] = []
@@ -494,7 +697,16 @@ class GmgnSource:
                 continue
             checked += 1
             summary = self.trader_evidence(payload)
-            evidence_by_mint.setdefault(candidate.token.mint, {"origins": []}).update(summary)
+            evidence = evidence_by_mint.setdefault(candidate.token.mint, {"origins": []})
+            evidence.update(summary)
+            evidence["exactTraderHistoryChecked"] = True
+            # Exact trader history is stronger evidence than a missing count
+            # on a broad rank row. Suspicious/wash-tagged wallets stay visible
+            # but do not satisfy the clean publishing count.
+            evidence["kolCount"] = max(
+                int(evidence.get("kolCount") or 0),
+                int(summary.get("renownedTrustedCount") or 0),
+            )
             if summary["renownedTraderCount"]:
                 with_traders += 1
         available = checked > 0
@@ -531,10 +743,24 @@ class GmgnSource:
                 # distribution and participation filters server-side. The
                 # wider lanes below remain discovery/audit context only.
                 (f"trending-organic:{cli_chain}", tuple(organic_args)),
+                # Dedicated wallet-ranked lanes prevent a KOL-backed runner
+                # from being pushed below a top-100 volume page by majors or
+                # wash-heavy high-turnover names. These are discovery only;
+                # the exact mint trader ledger and safety gates still decide.
+                (f"trending-kol:{cli_chain}", (
+                    "market", "trending", "--chain", cli_chain, "--interval", "24h",
+                    "--order-by", "renowned_count", "--min-renowned-count", "1",
+                    "--min-history-highest-marketcap", "200000", "--limit", "100",
+                )),
+                (f"trending-smartmoney:{cli_chain}", (
+                    "market", "trending", "--chain", cli_chain, "--interval", "24h",
+                    "--order-by", "smart_degen_count", "--min-smart-degen-count", "1",
+                    "--min-history-highest-marketcap", "200000", "--limit", "100",
+                )),
                 (f"trending-volume:{cli_chain}", ("market", "trending", "--chain", cli_chain, "--interval", "24h", "--order-by", "volume", "--limit", "100")),
                 # This is the retrospective runner lane. A coin remains discoverable
                 # after fading because GMGN exposes the highest market cap reached.
-                (f"trending-ath:{cli_chain}", ("market", "trending", "--chain", cli_chain, "--interval", "24h", "--order-by", "history_highest_market_cap", "--min-history-highest-marketcap", "250000", "--max-created", "24h", "--limit", "100")),
+                (f"trending-ath:{cli_chain}", ("market", "trending", "--chain", cli_chain, "--interval", "24h", "--order-by", "history_highest_market_cap", "--min-history-highest-marketcap", "200000", "--max-created", "30h", "--limit", "100")),
                 (f"trending-holders:{cli_chain}", ("market", "trending", "--chain", cli_chain, "--interval", "24h", "--order-by", "holder_count", "--limit", "100")),
                 (f"trenches:{cli_chain}", ("market", "trenches", "--chain", cli_chain, "--type", "new_creation", "--type", "near_completion", "--type", "completed", "--limit", "80")),
                 (f"hot-searches:{cli_chain}", ("market", "hot-searches", "--chain", cli_chain, "--interval", "24h", "--limit", "100")),

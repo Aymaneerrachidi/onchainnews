@@ -26,6 +26,7 @@ from brief.sources.openintel import (
 # Whether a post from outside the trusted list may ever be quoted.
 TRUSTED_ONLY = True
 from brief.models import Brief, Candidate
+from brief.newsletter import newsletter_coin_limit
 from brief.render.formatting import money, pct
 
 
@@ -224,7 +225,9 @@ def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candi
     clear the organic-quality gate. This keeps the recap useful without turning
     questionable moves into endorsements.
     """
-    limit = int(settings.get("delivery", "newsletter_observed_limit", 14) or 14)
+    # The writer and renderer must use one cap. Separate 30/25 settings caused
+    # five written rows to render without their peak, mint or trade link.
+    limit = newsletter_coin_limit(settings)
     recap_rows = brief.recap.get("all", []) if brief.recap else []
     if recap_rows:
         # The machine recap deliberately retains every measured threshold
@@ -232,11 +235,19 @@ def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candi
         # useful audit tape, but it is not the public newsletter. Once the
         # engine has produced an approved runner set, never let a larger blocked
         # cap displace those names merely because the raw ledger sorts by peak.
-        approved = [
-            candidate
-            for candidate in brief.runners
-            if _candidate_tier(candidate) in {"S", "A", "B"}
-        ]
+        approved = []
+        seen_identities: set[tuple[str, str]] = set()
+        for candidate in brief.runners:
+            if _candidate_tier(candidate) not in {"S", "A", "B"}:
+                continue
+            identity = (
+                candidate.token.chain_id.strip().lower(),
+                candidate.token.mint.strip().lower(),
+            )
+            if identity in seen_identities:
+                continue
+            seen_identities.add(identity)
+            approved.append(candidate)
         approved.sort(
             key=lambda candidate: float(
                 candidate.peak_market_cap
@@ -245,7 +256,7 @@ def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candi
             ),
             reverse=True,
         )
-        return approved[:limit]
+        return approved[:limit] if limit > 0 else approved
     min_score = float(settings.get("delivery", "newsletter_min_observed_runner_score", 25) or 25)
     max_manip = float(settings.get("delivery", "newsletter_max_observed_manipulation", 70) or 70)
     min_volume = float(settings.get("delivery", "newsletter_min_observed_volume", 250_000) or 250_000)
@@ -282,7 +293,7 @@ def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candi
         reverse=True,
     )
     for candidate in observed:
-        if len(chosen) >= limit:
+        if limit > 0 and len(chosen) >= limit:
             break
         chosen.append(candidate)
         seen.add(candidate.token.mint)
@@ -297,6 +308,76 @@ def _newsletter_recap_candidates(brief: Brief, settings: Settings) -> list[Candi
         reverse=True,
     )
     return chosen
+
+
+class NewsletterIntegrityError(ValueError):
+    """The email would publish incomplete or mismatched token identities."""
+
+
+def _candidate_maps(candidates: list[Candidate]) -> tuple[dict[str, Candidate], dict[str, list[Candidate]]]:
+    by_mint = {candidate.token.mint: candidate for candidate in candidates}
+    by_symbol: dict[str, list[Candidate]] = {}
+    for candidate in candidates:
+        by_symbol.setdefault(candidate.token.symbol.upper(), []).append(candidate)
+    return by_mint, by_symbol
+
+
+def _resolve_narrative_candidate(
+    item: dict,
+    by_mint: dict[str, Candidate],
+    by_symbol: dict[str, list[Candidate]],
+) -> Candidate | None:
+    mint = str(item.get("mint") or "").strip()
+    if mint:
+        return by_mint.get(mint)
+    matches = by_symbol.get(str(item.get("symbol") or "").strip().upper(), [])
+    return matches[0] if len(matches) == 1 else None
+
+
+def _validate_daily_email(brief: Brief, candidates: list[Candidate]) -> None:
+    """Fail closed before delivery when the recap and market rows disagree."""
+    approved_mints = {candidate.token.mint for candidate in brief.runners}
+    blocked_mints = {candidate.token.mint for candidate in brief.blocked_runners}
+    structured_recap_exists = bool((brief.recap or {}).get("all"))
+    seen: set[str] = set()
+    for candidate in candidates:
+        token = candidate.token
+        if not token.mint or not token.chain_id or peak_cap(candidate) <= 0:
+            raise NewsletterIntegrityError(
+                f"incomplete newsletter candidate: {token.symbol or token.mint or 'unknown'}"
+            )
+        # Production briefs have a structured audit recap and therefore a
+        # final approved set: nothing outside it may publish. Older/offline
+        # briefs without that stage may still use the explicit soft-caveat
+        # fallback selected by `_newsletter_recap_candidates`.
+        if token.mint not in approved_mints and (
+            structured_recap_exists or token.mint not in blocked_mints
+        ):
+            raise NewsletterIntegrityError(f"blocked/unapproved mint in newsletter: {token.mint}")
+        if token.mint in seen:
+            raise NewsletterIntegrityError(f"duplicate mint in newsletter: {token.mint}")
+        seen.add(token.mint)
+
+    narrative = brief.narrative or {}
+    if not narrative.get("sections"):
+        return
+    by_mint, by_symbol = _candidate_maps(candidates)
+    narrative_mints: list[str] = []
+    for section in narrative.get("sections") or []:
+        for item in section.get("coins") or []:
+            candidate = _resolve_narrative_candidate(item, by_mint, by_symbol)
+            if candidate is None:
+                identity = item.get("mint") or item.get("symbol") or "unknown"
+                raise NewsletterIntegrityError(f"unresolved narrative coin: {identity}")
+            narrative_mints.append(candidate.token.mint)
+    if len(narrative_mints) != len(set(narrative_mints)):
+        raise NewsletterIntegrityError("the written recap contains a duplicate coin")
+    if set(narrative_mints) != set(by_mint):
+        missing = set(by_mint) - set(narrative_mints)
+        extra = set(narrative_mints) - set(by_mint)
+        raise NewsletterIntegrityError(
+            f"written/rendered coin mismatch: missing={len(missing)} extra={len(extra)}"
+        )
 
 
 def _chip(text: str, background: str, color: str = SURFACE) -> str:
@@ -1656,6 +1737,7 @@ def _short_recap_coin(candidate: Candidate | None, item: dict) -> str:
 def render_email(brief: Brief, settings: Settings) -> str:
     report_url = str(settings.get("delivery", "report_url", "") or "")
     runners = _newsletter_recap_candidates(brief, settings)
+    _validate_daily_email(brief, runners)
     rows: list[str] = []
 
     rows.append(_masthead(brief, runners))
@@ -1673,7 +1755,7 @@ def render_email(brief: Brief, settings: Settings) -> str:
         # A researched recap is already organised into stories. Render each
         # coin once inside that story instead of summarising the same names and
         # then repeating them as a second stack of tier cards.
-        by_symbol = {candidate.token.symbol.upper(): candidate for candidate in runners}
+        by_mint, by_symbol = _candidate_maps(runners)
         for story in narrative["sections"]:
             title = str(story.get("title") or "").strip()
             coins = list(story.get("coins") or [])
@@ -1682,7 +1764,7 @@ def render_email(brief: Brief, settings: Settings) -> str:
             rows.append(_story_head(title))
             for item in coins:
                 symbol = str(item.get("symbol") or "").upper()
-                candidate = by_symbol.get(symbol)
+                candidate = _resolve_narrative_candidate(item, by_mint, by_symbol)
                 if narrative.get("layout") == "short":
                     rows.append(_short_recap_coin(candidate, item))
                 else:

@@ -8,6 +8,7 @@ from pathlib import Path
 import httpx
 
 from brief.config import Settings
+from brief.preflight import DeliveryProof
 
 
 log = logging.getLogger("brief.delivery")
@@ -37,12 +38,22 @@ async def send_telegram(messages: list[str]) -> None:
                 raise TelegramDeliveryError(f"Telegram HTTP {response.status_code}: {response.text[:200]}")
 
 
-async def send_email(settings: Settings, subject: str, html: str, *, transport=None) -> int:
+async def send_email(
+    settings: Settings,
+    subject: str,
+    html: str,
+    *,
+    audit: DeliveryProof | None = None,
+    transport=None,
+) -> int:
     """Send the rendered report to every address in [delivery].email_to.
 
     Supports Resend and Brevo. A mid-loop failure aborts the remaining
     recipients and propagates as EmailDeliveryError.
     """
+    if bool(settings.get("delivery", "require_preflight", False)) and audit is None:
+        raise EmailDeliveryError("delivery blocked: a passing runner preflight is required")
+
     # Keep a copy of exactly what was sent. Without it, "send that same email
     # to these people" means regenerating and hoping it matches.
     archive = str(settings.get("delivery", "email_archive_path", "output/email-sent.html") or "")

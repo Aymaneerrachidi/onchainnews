@@ -28,6 +28,7 @@ from brief.journal import kol_trade_count
 from datetime import datetime
 
 from brief.models import Candidate
+from brief.sources.gmgn import transfer_tax_pct
 from brief.render.formatting import money
 
 log = logging.getLogger("brief.newsletter")
@@ -54,11 +55,18 @@ def research_configured() -> bool:
 
 
 def _peak(candidate: Candidate) -> float:
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     return max(
         float(candidate.peak_market_cap or 0),
         float(candidate.observed_peak_market_cap or 0),
+        float(gmgn.get("kline24hPeakMarketCap") or 0),
         float(candidate.token.market_cap or 0),
     )
+
+
+def newsletter_coin_limit(settings: Settings) -> int:
+    """Return the publishing cap; zero means the complete verified runner set."""
+    return max(0, int(settings.get("newsletter", "max_coins", 0) or 0))
 
 
 ID_LEAK = re.compile(r"\s*[\(\[]\s*c\d{2}\s*[\)\]]")
@@ -179,6 +187,9 @@ def _coin_facts(candidate: Candidate, settings: Settings) -> dict[str, Any]:
     gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     facts: dict[str, Any] = {
         "id": "",  # assigned by build_facts; the model answers in ids, not tickers
+        # The mint is the identity. Tickers are presentation only and are
+        # routinely reused by unrelated (and sometimes malicious) launches.
+        "mint": token.mint,
         "symbol": token.symbol,
         "name": token.name,
         "chain": token.chain_id,
@@ -204,9 +215,9 @@ def _coin_facts(candidate: Candidate, settings: Settings) -> dict[str, Any]:
         facts["stillNearHigh"] = True
 
     # A transfer tax changes whether a coin is worth touching at all.
-    fee = float(gmgn.get("totalFee") or 0)
+    fee = transfer_tax_pct(gmgn)
     fee_chains = {str(c).lower() for c in (settings.section("journal").get("fee_check_chains", []) or [])}
-    if token.chain_id.lower() in fee_chains and 1 <= fee <= 50:
+    if token.chain_id.lower() in fee_chains and fee is not None and 1 <= fee <= 50:
         facts["transferTaxPct"] = round(fee, 1)
     cause = (candidate.provider_evidence.get("why", {}) or {}).get("cause")
     if cause:
@@ -262,22 +273,35 @@ def _coin_facts(candidate: Candidate, settings: Settings) -> dict[str, Any]:
 
 
 def recap_coins(runners: list[Candidate], tape: list[Candidate], limit: int) -> list[Candidate]:
-    """The day's coins, biggest peak first, each appearing once."""
-    seen: set[str] = set()
+    """The public recap candidates, biggest peak first and approved only.
+
+    The headline tape is useful for ordering, but it can contain candidates
+    that the safety/editorial pass rejected. It must never broaden the public
+    set. Previously a blocked DOPAMEME entered the writer through this merge,
+    then rendered without a market cap because the email correctly could not
+    resolve it among the approved runners.
+    """
+    approved = {candidate.token.mint: candidate for candidate in (runners or [])}
+    seen: set[tuple[str, str]] = set()
     ordered: list[Candidate] = []
     for candidate in sorted([*(tape or []), *(runners or [])], key=_peak, reverse=True):
-        if candidate.token.mint in seen:
+        candidate = approved.get(candidate.token.mint)
+        if candidate is None:
             continue
-        seen.add(candidate.token.mint)
+        identity = (candidate.token.chain_id.strip().lower(), candidate.token.mint.strip().lower())
+        if identity in seen:
+            continue
+        seen.add(identity)
         ordered.append(candidate)
-        if len(ordered) >= limit:
+        if limit > 0 and len(ordered) >= limit:
             break
     return ordered
 
 
 def build_facts(coins: list[Candidate], generated_at: datetime, settings: Settings) -> dict[str, Any]:
-    limit = int(settings.get("newsletter", "max_coins", 30) or 30)
-    rows = [_coin_facts(candidate, settings) for candidate in coins[:limit]]
+    limit = newsletter_coin_limit(settings)
+    selected = coins[:limit] if limit > 0 else coins
+    rows = [_coin_facts(candidate, settings) for candidate in selected]
     for index, row in enumerate(rows, start=1):
         row["id"] = f"c{index:02d}"
     return {"date": generated_at.strftime("%B %d, %Y"), "coins": rows}
@@ -582,6 +606,7 @@ def _explain_facts(coins: list[Candidate]) -> list[dict[str, Any]]:
             continue
         rows.append({
             "id": f"c{index:02d}",
+            "mint": candidate.token.mint,
             "symbol": candidate.token.symbol,
             "chain": candidate.token.chain_id,
             "evidence": evidence,
@@ -655,7 +680,7 @@ async def explain_runs(coins: list[Candidate], settings: Settings, *, transport=
             continue
 
         attached = 0
-        by_symbol = {c.token.symbol.upper(): c for c in coins}
+        by_mint = {c.token.mint: c for c in coins}
         for item in answer.get("why") or []:
             if not isinstance(item, dict):
                 continue
@@ -663,7 +688,7 @@ async def explain_runs(coins: list[Candidate], settings: Settings, *, transport=
             cause = " ".join(str(item.get("cause") or "").split())
             if not row or len(cause) < 12:
                 continue
-            candidate = by_symbol.get(str(row["symbol"]).upper())
+            candidate = by_mint.get(str(row["mint"]))
             if candidate is None:
                 continue
             candidate.provider_evidence.setdefault("why", {})["cause"] = cause[:200]
@@ -783,12 +808,17 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
     # names that we did not hand it is dropped rather than published.
     story_keys = ("news", "xPosts", "communityTakeover", "projectXAccountRenamedTimes")
     has_story = {
-        str(coin["symbol"]).upper(): any(coin.get(key) for key in story_keys)
+        str(coin["mint"]): any(coin.get(key) for key in story_keys)
         for coin in facts["coins"]
     }
-    by_id = {coin["id"]: str(coin["symbol"]) for coin in facts["coins"]}
-    by_symbol = {str(coin["symbol"]).upper(): str(coin["symbol"]) for coin in facts["coins"]}
+    by_id = {coin["id"]: coin for coin in facts["coins"]}
+    by_symbol: dict[str, list[dict[str, Any]]] = {}
+    for coin in facts["coins"]:
+        by_symbol.setdefault(str(coin["symbol"]).upper(), []).append(coin)
     clean: list[dict[str, Any]] = []
+    seen_model_mints: set[str] = set()
+    model_coin_items = 0
+    accepted_model_coins = 0
     for section in sections:
         if not isinstance(section, dict):
             continue
@@ -796,11 +826,23 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
         for item in section.get("coins") or []:
             if not isinstance(item, dict):
                 continue
+            model_coin_items += 1
             # Accept an id, or a ticker from a model that ignored the instruction.
-            symbol = by_id.get(str(item.get("id", "")).strip().lower()) or by_symbol.get(
-                str(item.get("symbol", "")).strip().upper()
-            )
-            if symbol:
+            coin = by_id.get(str(item.get("id", "")).strip().lower())
+            if coin is None:
+                matches = by_symbol.get(str(item.get("symbol", "")).strip().upper(), [])
+                # A reused ticker is ambiguous without the id/mint. Dropping
+                # it is safer than attaching another token's market data.
+                coin = matches[0] if len(matches) == 1 else None
+            if coin:
+                mint = str(coin["mint"])
+                # A model can repeat a popular coin in two themes. The first
+                # placement wins; the newsletter has one canonical coin list.
+                if mint in seen_model_mints:
+                    continue
+                seen_model_mints.add(mint)
+                accepted_model_coins += 1
+                symbol = str(coin["symbol"])
                 line = NO_DATA.sub("", str(item.get("line", ""))).strip(" ,;-")
                 # The renderer prints the ticker; a model that starts the line
                 # with it anyway produces "$CC CC hit". Remove it here, once.
@@ -808,7 +850,11 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
                     if line.lower().startswith(prefix.lower()):
                         line = line[len(prefix):].lstrip(" :,-—–")
                         break
-                coins.append({"symbol": symbol, "line": _drop_leading_peak(_strip_ids(line))})
+                coins.append({
+                    "mint": str(coin["mint"]),
+                    "symbol": symbol,
+                    "line": _drop_leading_peak(_strip_ids(line)),
+                })
         if not coins:
             continue
         bullets = [_strip_ids(str(b)) for b in (section.get("bullets") or []) if str(b).strip()]
@@ -819,7 +865,7 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
             and not _is_restatement(b, section_lines)
             and not _is_profit_claim(b)
         ][:2]
-        if not any(has_story.get(c["symbol"].upper()) for c in coins):
+        if not any(has_story.get(c["mint"]) for c in coins):
             bullets = []
         clean.append({
             "title": _strip_ids(str(section.get("title") or ""))[:80],
@@ -828,10 +874,10 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
         })
     # Whatever the model did, every coin ships. A recap that silently drops
     # seventeen of twenty-one runners is worse than a plain list.
-    placed = {c["symbol"].upper() for section in clean for c in section["coins"]}
+    placed = {c["mint"] for section in clean for c in section["coins"]}
     missing = [
         coin for coin in facts["coins"]
-        if str(coin["symbol"]).upper() not in placed
+        if str(coin["mint"]) not in placed
     ]
     # The final question is the one bullet that may stand without evidence, so
     # it must survive both filters above.
@@ -852,6 +898,7 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
             "title": "Also ran",
             "coins": [
                 {
+                    "mint": str(coin["mint"]),
                     "symbol": str(coin["symbol"]),
                     "line": f"hit {coin['peak']}" + (f", {coin['age']}" if coin.get("age") else ""),
                 }
@@ -863,7 +910,10 @@ async def _write_with(provider: str, facts: dict[str, Any], settings: Settings, 
 
     if not clean:
         return None
-    dropped = sum(len(s.get("coins") or []) for s in sections) - sum(len(s["coins"]) for s in clean)
+    # Count only model-supplied entries that failed identity validation. The
+    # backfilled "Also ran" section is added after validation, so including it
+    # in this subtraction could produce nonsense such as count=-1.
+    dropped = model_coin_items - accepted_model_coins
     if dropped:
         log.info("newsletter_dropped_unknown_coins count=%s", dropped)
     return {

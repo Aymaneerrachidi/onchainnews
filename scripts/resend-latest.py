@@ -34,7 +34,13 @@ from brief.models import (  # noqa: E402
     TokenSnapshot,
     XInteraction,
 )
-from brief.newsletter import recap_coins, research_day, write_recap  # noqa: E402
+from brief.newsletter import (  # noqa: E402
+    newsletter_coin_limit,
+    recap_coins,
+    research_day,
+    write_recap,
+)
+from brief.preflight import audit_brief  # noqa: E402
 from brief.render.email import email_subject, render_email  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,17 +72,30 @@ def _candidate(row: dict) -> Candidate:
         market_cap=float(row.get("marketCap") or 0),
         liquidity_usd=float(row.get("liquidity") or 0),
         volume_24h=float(row.get("volume24h") or 0),
-        price_change_24h=float(row.get("priceChange24h") or 0),
+        price_change_24h=float(row.get("change24h") or row.get("priceChange24h") or 0),
         price_change_1h=float(row.get("change1h") or 0),
     )
     candidate = Candidate(
         token=token,
         signals=_build(Signals, age_hours=float(row.get("ageHours") or 0)),
-        safety=_build(SafetyReport, holder_count=row.get("holders")),
+        safety=_build(
+            SafetyReport,
+            holder_count=row.get("holders"),
+            top10_pct=row.get("top10Pct"),
+            lp_locked_or_burned_pct=row.get("lpLockedPct"),
+            mint_authority_renounced=row.get("mintAuthorityRenounced"),
+            freeze_authority_disabled=row.get("freezeAuthorityDisabled"),
+            risk_flags=row.get("securityFlags") or [],
+            rugged=bool(row.get("rugged")),
+            source=row.get("safetySource") or "unavailable",
+        ),
         enrichment=_build(Enrichment),
     )
     candidate.peak_market_cap = float(row.get("peakMarketCap") or 0)
     candidate.observed_peak_market_cap = float(row.get("observedPeakMarketCap") or 0)
+    candidate.start_market_cap = float(row.get("startMarketCap") or 0) or None
+    candidate.run_multiple = float(row.get("runMultiple") or 1)
+    candidate.peak_multiple = float(row.get("peakMultiple") or 0) or None
     candidate.drawdown_from_peak_pct = row.get("drawdownFromPeakPct")
     candidate.runner_tier = row.get("runnerTier") or ""
     candidate.round_trip = bool(row.get("roundTrip"))
@@ -154,26 +173,47 @@ async def main() -> int:
             print("snapshot holds no runners")
             return 1
         generated = datetime.fromisoformat(snapshot["generatedAt"])
-        pool = recap_coins(runners, tape, int(settings.get("newsletter", "max_coins", 30) or 30))
-        found = await research_day(pool, settings)
-        narrative = await write_recap(pool, generated, settings) or {}
-        print(f"rebuilt from snapshot: {len(runners)} runners, {found} researched, "
-              f"{len(narrative.get('sections', []))} written sections")
+        pool = recap_coins(runners, tape, newsletter_coin_limit(settings))
+        # The published snapshot already contains the narrative that was
+        # validated against this exact runner set. Reusing it keeps a resend
+        # faithful and avoids a second model call producing a different or
+        # incomplete coin list. Older snapshots without narrative still use
+        # the research/writer fallback below.
+        narrative = snapshot.get("narrative") or {}
+        if narrative.get("sections"):
+            print(
+                f"rebuilt from snapshot: {len(runners)} runners, "
+                f"{len(narrative.get('sections', []))} preserved sections"
+            )
+        else:
+            found = await research_day(pool, settings)
+            narrative = await write_recap(pool, generated, settings) or {}
+            print(f"rebuilt from snapshot: {len(runners)} runners, {found} researched, "
+                  f"{len(narrative.get('sections', []))} written sections")
         brief = Brief(
             generated_at=generated,
             scorecard=_build(Scorecard),
             metas=[], new_and_moving=[], ctos=[], follow_ups=[],
             onchain=[], excluded=[], source_statuses=[],
             runners=runners,
+            blocked_runners=[_candidate(row) for row in snapshot.get("blockedRunners") or []],
             headline_tape=tape,
             narrative=narrative,
+            recap=snapshot.get("recap") or {},
         )
         html = render_email(brief, settings)
         subject = email_subject(brief, settings)
 
+    if args.archive:
+        print("refusing: archived HTML cannot prove the current exact-contract KOL and safety checks")
+        return 1
+
+    audit = audit_brief(brief, settings)
+    print(f"preflight passed: {audit.candidate_count} exact contracts")
+
     # The recipient list is the argument list, not config.
     settings.values.setdefault("delivery", {})["email_to"] = list(args.recipients)
-    sent = await send_email(settings, subject, html)
+    sent = await send_email(settings, subject, html, audit=audit)
     print(f"subject: {subject}")
     print(f"delivered to {sent} recipient(s): {', '.join(args.recipients)}")
     return 0

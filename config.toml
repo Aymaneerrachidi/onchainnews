@@ -18,7 +18,7 @@ archive_compress = true
 # Daily meme tape across the four established GMGN/Dexscreener markets. Each
 # chain uses its own contract-safety adapter; Solana additionally gets Helius
 # holder forensics.
-chains = ["solana", "base", "bsc", "ethereum"]
+chains = ["solana", "base", "bsc", "ethereum", "robinhood"]
 min_market_cap = 200000.0
 min_liquidity = 20000.0
 # Strength has to show up in the tape. Without these two floors a thin float
@@ -99,6 +99,20 @@ safety_ttl_seconds = 3600
 keyed_ttl_seconds = 900
 openintel_ttl_seconds = 900
 
+[rugcheck]
+# RugCheck rejects request bursts even below its nominal minute allowance.
+# Calls are serialized at this rate and the lane stops after the first 429.
+requests_per_minute = 45
+
+[geckoterminal]
+# Independent keyless discovery closes gaps left by sampled GMGN/Dexscreener
+# rankings. Three pages is 60 pools per supported chain and stays inside the
+# public API's rate allowance with explicit spacing.
+enabled = true
+trending_pages = 3
+requests_per_minute = 8
+request_interval_seconds = 8.0
+
 # GMGN is a read-only intelligence provider. The scanner never invokes swap,
 # order, cooking, token launch, or private-key commands. Its free allowance is
 # weighted, so CLI calls are cached, serialized, and stopped after the first
@@ -106,12 +120,18 @@ openintel_ttl_seconds = 900
 [gmgn]
 enabled = true
 kline_verification_enabled = true
-# Hourly candles prove the actual trailing-day high for the most relevant
-# KOL-backed names, including 24-30h launches and moves that faded before close.
-kline_candidate_limit = 40
+# Hourly candles prove the actual trailing-day high for every KOL-backed name,
+# including 24-30h launches and moves that faded before close. Zero means all.
+kline_candidate_limit = 0
 runner_trader_enrichment = true
-runner_trader_limit = 25
+runner_trader_limit = 0
 runner_trader_rows = 20
+# Discovery ranks occasionally omit wallet-tag counts. Recheck the strongest
+# exact mints before the publishing gate so missing data is never read as zero.
+wallet_count_fallback_limit = 0
+# Rebuild the real 24h high for exact-mint recoveries too; otherwise a coin
+# that peaked at noon and faded by morning can still be missed.
+recovered_kline_limit = 0
 timeout_seconds = 35
 cache_ttl_seconds = 900
 min_interval_seconds = 1.25
@@ -120,7 +140,7 @@ min_interval_seconds = 1.25
 # OpenNews' free hot feed works without a token. OPENNEWS_TOKEN unlocks precise
 # per-finalist news and OpenTwitter evidence searches.
 enabled = true
-finalist_limit = 25
+finalist_limit = 30
 # "Latest" returns whoever posted most recently, which on a running coin is
 # whoever is shilling hardest; "Top" returns what people actually engaged with.
 twitter_product = "Top"
@@ -315,7 +335,7 @@ x_timeout_seconds = 30.0
 # snapshots and tracked-wallet flow unless those sections are disabled above.
 solana_only = false
 max_ranked_tokens = 600
-disable_helius_enrichment = true
+disable_helius_enrichment = false
 disable_holder_snapshots = true
 disable_kol_scan = true
 disable_x_scan = true
@@ -358,7 +378,9 @@ provider = "openai"
 # older model takes the same payload, every field included, without complaint.
 cohere_model = "command-a-03-2025"
 model = "gpt-5.5"
-max_coins = 30
+# Zero publishes every verified runner. The model must place each one exactly
+# once, and the deterministic "Also ran" backfill catches anything it omits.
+max_coins = 0
 timeout_seconds = 120
 # Before writing, search the web for what each of the day's biggest coins
 # actually is and why it moved: the viral clip, the listing, the account that
@@ -425,7 +447,88 @@ trade_url_template = "https://fomo.family/tokens/{chain}/{mint}"
 # Appended to the deep link when set, e.g. "?ref=CODE" or "&ref=CODE".
 trade_url_suffix = ""
 
+# The established memes. These never appear in a discovery sweep — GMGN's
+# trending ranks fresh activity, and a name the audience already holds is not
+# fresh — so they are watched by contract address instead. Every address below
+# was resolved through GMGN and confirmed by symbol and holder count before it
+# was written down; a ticker search is not safe here, because searching "CATE"
+# returns a spoof carrying a right-to-left override in its name.
+#
+# A name only reaches the recap on a real move. Below the floor it is not news.
+[natives]
+enabled = true
+# A rally and a collapse are not the same size of event. 30% up on an
+# established name is a real move; 30% down is an ordinary red day. A drop has
+# to halve the coin before it carries the same weight.
+min_gain_pct = 30.0
+min_drop_pct = 50.0
+# Below this the name is a survivor, not a major. A 60% day on a $4M coin is
+# true and still not a story about the memes people actually hold.
+min_market_cap = 10000000.0
+tokens = [
+  # Solana
+  { symbol = "WIF", chain = "solana", mint = "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm" },
+  { symbol = "BONK", chain = "solana", mint = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" },
+  { symbol = "PUMP", chain = "solana", mint = "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn" },
+  { symbol = "PENGU", chain = "solana", mint = "2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv" },
+  { symbol = "TRUMP", chain = "solana", mint = "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN" },
+  { symbol = "FARTCOIN", chain = "solana", mint = "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump" },
+  { symbol = "SPX", chain = "solana", mint = "J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr" },
+  { symbol = "POPCAT", chain = "solana", mint = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr" },
+  { symbol = "MEW", chain = "solana", mint = "MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5" },
+  { symbol = "BOME", chain = "solana", mint = "ukHH6c7mMyiWCf1b9pnWe25TSpkDDt3H5pQZgZ74J82" },
+  { symbol = "PNUT", chain = "solana", mint = "2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump" },
+  { symbol = "GOAT", chain = "solana", mint = "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump" },
+  { symbol = "CHILLGUY", chain = "solana", mint = "Df6yfrKC8kZE3KNkrHERKzAetSxbrWeniQfyJY4Jpump" },
+  { symbol = "AI16Z", chain = "solana", mint = "HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC" },
+  { symbol = "MOODENG", chain = "solana", mint = "ED5nyyWEzpPPiWimP8vYm7sD7TD3LAt3Q3gRTWHzPJBY" },
+  { symbol = "ZEREBRO", chain = "solana", mint = "8x5VqbHA8D7NkD52uNuS5nnt3PwA8pLD34ymskeSo2Wn" },
+  { symbol = "ARC", chain = "solana", mint = "61V8vBaqAGMpgDQi4JcAwo1dmBGHsyhzodcPqnEVpump" },
+  { symbol = "ACT", chain = "solana", mint = "GJAFwWjJ3vnTsrQVabjBVK2TYB1YtRCQXRDfDgUnpump" },
+  { symbol = "GIGA", chain = "solana", mint = "63LfDmNb3MQ8mw9MtZ2To9bEA2M71kZUUGq5tiJxcqj9" },
+  { symbol = "ANSEM", chain = "solana", mint = "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump" },
+  { symbol = "CATE", chain = "solana", mint = "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump" },
+  { symbol = "USELESS", chain = "solana", mint = "Dz9mQ9NzkBcCsuGPFJ3r1bS4wgqKMHBPiVuniW8Mbonk" },
+  { symbol = "TROLL", chain = "solana", mint = "5UUH9RTDiSpq6HKS6bp4NdU9PNJpXRXuiw6ShBTBhgH2" },
+  # Ethereum
+  { symbol = "PEPE", chain = "ethereum", mint = "0x6982508145454ce325ddbe47a25d4ec3d2311933" },
+  { symbol = "SHIB", chain = "ethereum", mint = "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce" },
+  { symbol = "MOG", chain = "ethereum", mint = "0xaaeE1A9723aaDB7afA2810263653A34bA2C21C7a" },
+  { symbol = "TURBO", chain = "ethereum", mint = "0xA35923162C49cF95e6BF26623385eb431ad920D3" },
+  { symbol = "NEIRO", chain = "ethereum", mint = "0x812Ba41e071C7b7fA4EBcFB62dF5F45f6fA853Ee" },
+  # Base
+  { symbol = "BRETT", chain = "base", mint = "0x532f27101965dd16442e59d40670faf5ebb142e4" },
+  { symbol = "TOSHI", chain = "base", mint = "0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4" },
+  { symbol = "DEGEN", chain = "base", mint = "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed" },
+  { symbol = "KEYCAT", chain = "base", mint = "0x9a26F5433671751C3276a065f57e5a02D2817973" },
+  { symbol = "MIGGLES", chain = "base", mint = "0xB1a03EdA10342529bBF8EB700a06C60441fEf25d" },
+  { symbol = "TIBBIR", chain = "base", mint = "0xa4a2e2ca3fbfe21aed83471d28b6f65a233c6e00" },
+  # BNB Chain
+  { symbol = "BITCOIN-CN", chain = "bsc", mint = "0x18d0e455b3491e09210292d3953157a4bf104444" },
+  { symbol = "SPCXB", chain = "bsc", mint = "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1" },
+  { symbol = "NIULAI", chain = "bsc", mint = "0xbeea1d618e533a387d941f58a7d4c9b7bd377777" },
+  { symbol = "MARSCOIN", chain = "bsc", mint = "0xfe189e97832da1573e4e4ff034f4ffc3a15c7777" },
+  { symbol = "MOOLAH", chain = "bsc", mint = "0xbab528425edb1e0e36d3719bc3307d9c8cce8888" },
+  { symbol = "CETS", chain = "bsc", mint = "0xb0c2ab5af4028461ace3f6e1c33a4ee1404e7777" },
+  { symbol = "HAJIMI", chain = "bsc", mint = "0x82ec31d69b3c289e541b50e30681fd1acad24444" },
+  # Robinhood
+  { symbol = "CASHCAT", chain = "robinhood", mint = "0x020bfc650a365f8bb26819deaabf3e21291018b4" },
+  { symbol = "PONS", chain = "robinhood", mint = "0x39dbed3a2bd333467115de45665cc57f813c4571" },
+  { symbol = "STONKBROKER", chain = "robinhood", mint = "0xe934e36a439c94017b64a3fece66af12099abf50" },
+  { symbol = "AI", chain = "robinhood", mint = "0x2e8c31162b855a2ffa90f6f8634643ad6f111e18" },
+  { symbol = "PIPEDOG", chain = "robinhood", mint = "0x5cb6f181081301b44905f3ae15419112ecabd8a6" },
+  { symbol = "TENDIES", chain = "robinhood", mint = "0x45242320dbb855eea8fd36804c6487e10e97fcf9" },
+  { symbol = "INDEX", chain = "robinhood", mint = "0x56910d4409f3a0c78c64dd8d0545ff0705389870" },
+  { symbol = "HMM", chain = "robinhood", mint = "0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f" },
+]
+
 [delivery]
+# No outbound email/Telegram/Discord is allowed until every named contract has
+# a clean exact-mint KOL history plus complete authority, holder,
+# concentration and LP checks. Missing provider data blocks the whole edition.
+require_preflight = true
+preflight_min_exact_kol_trades = 1
+preflight_block_any_security_flag = true
 # Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env.
 # A missing credential warns and skips; it never fails the run.
 telegram_enabled = true
@@ -454,7 +557,9 @@ email_subject_prefix = "Fomo Onchain"
 # Newsletter recap breadth. Clean runners always appear. These settings add
 # strong observed movers that did not clear the strict organic publisher gate,
 # with their caveats shown inline, so the email reads like a real market recap.
-newsletter_observed_limit = 25
+# Kept for backward-compatible configuration parsing. The actual public cap is
+# `[newsletter].max_coins`, shared by the writer, subject and HTML renderer.
+newsletter_observed_limit = 30
 newsletter_min_observed_runner_score = 25.0
 newsletter_max_observed_manipulation = 70.0
 newsletter_min_observed_volume = 250000.0
@@ -494,6 +599,10 @@ enabled = true
 excluded_mints = [
   "n8MQ3kqhTjyiw4FCJ6kr93auxaBBZ43TkJMNKNnpump", # TNOS
   "DGX9HZznvcyiBAyVCPKZuof3Qb7XayvWgMMJbJJhpump", # KERMIT
+  "0xb166e8b140d35d9d8226e40c09f757bac5a4d87d", # NPC
+  "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump", # CLAW
+  "0x8226dda5f73619dedc671e09be738fa308da1944", # HEDGE
+  "0x777777780838c00038ecd48f63f3c37669322bc8", # ETHCAT
 ]
 max_runners = 0
 # The day's biggest markets, chosen on volume rather than on the size of the move.
@@ -526,19 +635,61 @@ min_liquidity = 40000.0
 # Peak-led recap: an established token may belong if it made a measured move in
 # this 24h window. GMGN lifetime ATH is only trusted for <=24h-old launches.
 max_age_hours = 0
-peak_market_cap_floor = 250000.0
+peak_market_cap_floor = 1000000.0
 min_window_multiple = 1.50
-# Launch discovery extends to 30h so the morning cutoff does not lose coins born
-# just before yesterday's 24h window. GMGN candles still prove that their peak
-# happened inside the trailing day.
-fresh_window_hours = 30
+# The daily public board is launch-first: a coin is new only during its first
+# 24 hours. Anything older must prove an exceptional trailing-day move.
+fresh_window_hours = 24
 min_fresh_change_pct = 30.0
-# An established coin belongs in the recap only if it actually moved today:
-# a measured double inside the trailing window, not merely a large cap.
-older_than_a_day_multiple = 2.0
-# An established coin that is flat or down on the live tape did not run today.
-older_min_live_change_pct = 20.0
+# An established coin belongs only when candles or the hourly tape prove a
+# +50% move inside this report window. A lifetime ATH or large cap is not proof.
+# Zero delegates the threshold to min_daily_change_pct below.
+older_than_a_day_multiple = 0.0
+# A runner may round-trip before the morning report. Preserve the verified peak
+# and disclose the drawdown instead of deleting what happened.
+older_min_live_change_pct = 0.0
 min_daily_change_pct = 50.0
+# The broad journal also starts the established-coin gate after 24 hours.
+old_coin_age_hours = 24.0
+old_coin_small_cap_ceiling = 10000000.0
+old_coin_large_cap_floor = 20000000.0
+old_coin_small_min_change_pct = 75.0
+old_coin_mid_min_change_pct = 50.0
+old_coin_large_min_change_pct = 30.0
+old_coin_allow_aggregate_change_with_kline = true
+# Final publication is smaller and Solana-led. Other chains must make a much
+# stronger move to use one of the four non-Solana slots.
+publication_fresh_hours = 24.0
+publication_max_coins = 15
+publication_max_non_solana = 4
+publication_max_top10_pct = 50.0
+publication_min_holders = 1000
+publication_min_solana_kols = 1
+publication_min_other_kols = 5
+publication_min_other_liquidity = 100000.0
+publication_other_max_drawdown_pct = 80.0
+publication_other_max_entrapment_ratio = 0.50
+# Entrapment above 50% may be a provider false positive in a mature, broadly
+# traded market. Override that warning only when every independent organic
+# signal below is present. This never overrides honeypot, rug, authority,
+# wash-trading or bundle failures.
+publication_entrapment_override_enabled = true
+publication_entrapment_override_min_liquidity = 250000.0
+publication_entrapment_override_min_volume_24h = 1000000.0
+publication_entrapment_override_min_holders = 5000
+publication_entrapment_override_max_top10_pct = 20.0
+publication_entrapment_override_min_kols = 10
+publication_solana_old_small_move_pct = 75.0
+publication_solana_old_mid_move_pct = 50.0
+publication_solana_old_large_move_pct = 30.0
+publication_other_old_small_move_pct = 300.0
+publication_other_old_mid_move_pct = 150.0
+# Large-cap moves are market-wide tape events. Keep the same +30% rule used by
+# the broad journal; contract, KOL, liquidity and entrapment gates still apply.
+publication_other_old_large_move_pct = 30.0
+# An ATH alone is not a fresh event for an established coin; its trailing-day
+# candles must also clear the size-adjusted move above.
+allow_old_new_ath_exception = false
 new_ath_tolerance_pct = 2.0
 min_new_ath_move_pct = 10.0
 # Above this multiple, expect at least one tracked wallet to have been in it.
@@ -555,7 +706,9 @@ require_wallet_touch_for_publish = false
 # follow touched is genuinely suspicious; off Solana that silence only measures
 # who we follow, so the requirement is scoped to the chain it means something on.
 require_kol_trade_for_publish = true
-require_kol_trade_chains = ["solana"]
+# Empty means every supported chain. A runner is never published merely because
+# our wallet coverage was weaker on its chain.
+require_kol_trade_chains = []
 min_kol_trades_for_publish = 1
 gate_editorial_tracks = true
 wallet_touch_required_above_multiple = 1.8
@@ -585,7 +738,7 @@ fresh_publisher_max_top10_pct = 35.0
 block_on_missing_safety_data = false
 # Pool depth is not comparable across chains: a BNB or Base runner works a much
 # smaller pool than a Solana one at the same market cap.
-min_liquidity_by_chain = { solana = 40000.0, bsc = 20000.0, base = 20000.0, ethereum = 30000.0 }
+min_liquidity_by_chain = { solana = 40000.0, bsc = 20000.0, base = 20000.0, ethereum = 30000.0, robinhood = 20000.0 }
 max_turnover = 30.0               # 24h volume against market cap
 # Cadence was measured against a coin the client confirmed was normal: it ran
 # 219 trades a minute over the hour. Speed is a crowd. Dust is a bot, so only
@@ -611,10 +764,9 @@ one_sided_min_trades = 300
 # Disqualifying: a top 10 this large means the supply was never distributed.
 bundle_top10_pct = 50.0
 max_total_fee_pct = 3.0
-# GMGN's fee fields only read as a percentage on the EVM chains. On Solana the
-# same field returned 384.3 for an ordinary coin, so the check is scoped to the
-# chains where the unit is known.
-fee_check_chains = ["bsc", "base", "ethereum"]
+# Only GMGN's explicit buy_tax/sell_tax fields are contract taxes. total_fee and
+# trade_fee are market-activity fields and must never disqualify a token.
+fee_check_chains = ["bsc", "base", "ethereum", "robinhood"]
 # A cap the pool cannot support. Impostor clones of a running coin arrive
 # claiming hundreds of millions off a few thousand dollars of liquidity.
 max_market_cap_liquidity = 200.0
@@ -628,6 +780,19 @@ phantom_min_turnover = 0.05
 gmgn_max_bundler_rate = 0.30
 gmgn_max_insider_rate = 0.30
 gmgn_max_dev_team_hold_rate = 0.15
+# Launch bundles remain a hard stop until the market itself proves dispersion.
+# This lets an established, widely distributed coin through without forgiving
+# wash trading, insider control, dev concentration, live authorities, or rugs.
+allow_redistributed_launch_bundles = true
+bundle_redistribution_min_age_hours = 72.0
+bundle_redistribution_min_holders = 5000
+bundle_redistribution_max_top10_pct = 20.0
+bundle_redistribution_min_lp_pct = 90.0
+bundle_redistribution_min_kol = 5
+bundle_redistribution_max_insider_rate = 0.05
+bundle_redistribution_max_dev_rate = 0.05
+bundle_redistribution_min_liquidity = 100000.0
+bundle_redistribution_min_volume_24h = 1000000.0
 # Not disqualifying, shown on the row.
 caution_top10_pct = 25.0
 # A transfer tax at or above this is shown on the row; at or above

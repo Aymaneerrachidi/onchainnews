@@ -27,7 +27,13 @@ from brief.journal import (
     kol_touch_required, rug_or_bundle, risk_labels,
 )
 from brief.lore import attach_lore
-from brief.newsletter import explain_runs, recap_coins, research_day, write_recap
+from brief.newsletter import (
+    explain_runs,
+    newsletter_coin_limit,
+    recap_coins,
+    research_day,
+    write_recap,
+)
 from brief.lifecycle import attach_lifecycles, build_structured_recap, persist_market_tape
 from brief.kol import KolTracker
 from brief.ledger import Ledger, iso
@@ -57,6 +63,7 @@ from brief.sources.birdeye import BirdeyeSource
 from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
 from brief.sources.dune import DuneSource
 from brief.sources.goplus import GoPlusSource, supports as goplus_supports
+from brief.sources.gmgn import safety_from_evidence
 from brief.sources.geckoterminal import GeckoTerminalSource
 from brief.sources.gmgn import GmgnDiscovery, GmgnSource, aggregate_wallet_evidence
 from brief.sources.helius import HeliusSource
@@ -74,6 +81,32 @@ from brief.sources.x import XSource
 
 
 log = logging.getLogger("brief.engine")
+
+
+def _apply_intraday_snapshot(token: TokenSnapshot, fresh: TokenSnapshot, now: datetime) -> None:
+    """Copy Dexscreener's exact short windows without replacing the base pair.
+
+    GMGN/Birdeye can win the provider union because they carry the strongest
+    daily market snapshot, but their six-hour buckets may be absent. Replacing
+    the whole token would throw away that context; copying only the short
+    windows lets the liveness gates read real data.
+    """
+    token.volume_6h = fresh.volume_6h
+    token.volume_1h = fresh.volume_1h
+    token.txns_6h = fresh.txns_6h
+    token.txns_1h = fresh.txns_1h
+    token.price_change_6h = fresh.price_change_6h
+    token.price_change_1h = fresh.price_change_1h
+    token.price_change_5m = fresh.price_change_5m
+    token.intraday_known = fresh.intraday_known
+    if fresh.pair_created_at is not None and (
+        token.pair_created_at is None
+        or (now - token.pair_created_at).total_seconds() < 60
+    ):
+        # A zero-age provider stamp is missing data, not a launch this minute.
+        token.pair_created_at = fresh.pair_created_at
+    if not token.socials and fresh.socials:
+        token.socials = fresh.socials
 
 
 def kol_discovery_mints(kol_activity: dict[str, object], settings: Settings) -> list[str]:
@@ -840,6 +873,48 @@ async def build_brief(
                     payload={"name": event.get("name")},
                 )
 
+        # Independent keyless market ranking. Provider top-N pages are not the
+        # same universe: CYBERLEEK was the first GeckoTerminal trending pool at
+        # +80% / $34M volume while absent from both sampled primary feeds. This
+        # lane supplies exact contracts only; Dexscreener hydration and the
+        # normal safety/KOL gates still decide whether anything is published.
+        if bool(settings.get("geckoterminal", "enabled", True)) and not fixture_path and not replay_date:
+            gecko_discovery = GeckoTerminalSource(
+                http,
+                str(urls.get("geckoterminal_base_url", "https://api.geckoterminal.com/api/v2")),
+                ttl=int(cache.get("discovery_ttl_seconds", 600)),
+                requests_per_minute=int(settings.get("geckoterminal", "requests_per_minute", 25) or 25),
+                request_interval_seconds=float(settings.get("geckoterminal", "request_interval_seconds", 2.5) or 2.5),
+            )
+            try:
+                ranked = await gecko_discovery.trending_addresses(
+                    chains,
+                    pages=int(settings.get("geckoterminal", "trending_pages", 3) or 3),
+                )
+                known = {(token.chain_id.lower(), token.mint) for token in tokens}
+                independent_additions = sum(key not in known for key in ranked)
+                # Hydrate every ranked contract, including mints another source
+                # already named. A broad GMGN row may omit the short windows;
+                # exact Dex data is what proves that the coin actually moved.
+                discovered = await dex.token_pairs(ranked)
+                direct_markets = gecko_discovery.trending_snapshots
+                tokens = merge_token_snapshots([*tokens, *direct_markets, *discovered])
+                statuses.append(SourceStatus(
+                    "GeckoTerminal trending discovery",
+                    not gecko_discovery.partial_error,
+                    f"{len(ranked)} exact contracts ranked across supported chains; "
+                    f"{len(discovered)} exact markets hydrated; "
+                    f"{len(direct_markets)} ranked pool snapshots retained; "
+                    f"{independent_additions} were independent additions"
+                    + (
+                        f"; partial: {gecko_discovery.partial_error[:120]}"
+                        if gecko_discovery.partial_error else ""
+                    ),
+                ))
+            except Exception as exc:
+                log.warning("geckoterminal_discovery_failed error=%s", exc)
+                statuses.append(SourceStatus("GeckoTerminal trending discovery", False, str(exc)[:160]))
+
         # Birdeye ranks the whole token universe by 24h volume. Those names
         # enter the brief only as mover candidates, so they are pre-filtered on
         # the motion gate before reaching the expensive safety path.
@@ -857,7 +932,15 @@ async def build_brief(
             if birdeye.configured:
                 try:
                     ranked: list[tuple[str, str]] = []
-                    for chain in chains:
+                    # Birdeye's package-access matrix limits Token List V3 to
+                    # Solana. Some endpoint reference pages expose additional
+                    # x-chain enum values, but free-package calls on those
+                    # networks return 429/unsupported responses. Dexscreener,
+                    # GeckoTerminal and GMGN remain the EVM discovery lanes.
+                    birdeye_chains = [
+                        chain for chain in chains if chain.lower() == "solana"
+                    ]
+                    for chain in birdeye_chains:
                         birdeye.chain = chain
                         for mint in await birdeye.top_by_volume(
                             int(settings.get("birdeye", "max_tokens", 600)),
@@ -889,7 +972,7 @@ async def build_brief(
                     tokens = merge_token_snapshots([*tokens, *motion])
                     statuses.append(SourceStatus(
                         "Birdeye ranked discovery", True,
-                        f"{len(ranked):,} tokens ranked by 24h volume across {len(chains)} chain(s); "
+                        f"{len(ranked):,} Solana tokens ranked by 24h volume; "
                         f"{birdeye_added} cleared the motion gate",
                     ))
                 except Exception as exc:
@@ -1021,7 +1104,10 @@ async def build_brief(
             missing_pulse_mints = [mint for mint in pulse_passes_for_day if mint not in known_mints]
             if missing_pulse_mints:
                 try:
-                    pulse_tokens = await dex.token_pairs(missing_pulse_mints)
+                    pulse_tokens = await dex.token_pairs([
+                        (str((pulse_passes_for_day[mint] or {}).get("chain") or "solana"), mint)
+                        for mint in missing_pulse_mints
+                    ])
                     tokens = merge_token_snapshots([*tokens, *pulse_tokens])
                     statuses.append(SourceStatus(
                         "Intraday tape discovery",
@@ -1044,9 +1130,63 @@ async def build_brief(
                 tokens,
                 gmgn_evidence,
                 now=now,
-                limit=int(settings.get("gmgn", "kline_candidate_limit", 40) or 40),
+                limit=int(settings.get("gmgn", "kline_candidate_limit", 40)),
                 min_kol_count=int(settings.get("journal", "min_kol_trades_for_publish", 1) or 1),
             ))
+
+        # Hydrate missing 6h/1h windows before the hard screen. Previously this
+        # happened after ``screen()``, so a healthy GMGN/Birdeye candidate with
+        # an empty 6h bucket was rejected as "no trades" before Dexscreener was
+        # ever asked. Limit the lookup to tokens that already clear every other
+        # cheap market floor, keeping the free endpoint workload bounded.
+        if not fixture_path and not replay_date:
+            thresholds = settings.section("thresholds")
+            journal_rules = settings.section("journal")
+            motion_floor = min(
+                float(journal_rules.get("min_fresh_change_pct", 30) or 30),
+                float(journal_rules.get("min_daily_change_pct", 50) or 50),
+            )
+            min_kol = int(journal_rules.get("min_kol_trades_for_publish", 1) or 1)
+
+            def runner_shaped(token: TokenSnapshot) -> bool:
+                evidence = gmgn_evidence.get(token.mint, {}) or {}
+                return bool(
+                    abs(float(token.price_change_24h or 0)) >= motion_floor
+                    or float(evidence.get("kline24hPeakFromOpenPct") or 0) >= motion_floor
+                    or int(evidence.get("kolCount") or 0) >= min_kol
+                    or token.mint in kol_activity
+                )
+
+            pre_screen_sparse = [
+                token for token in tokens
+                if token.chain_id.lower() in chains
+                and token.market_cap >= float(thresholds.get("min_market_cap", 0) or 0)
+                and token.liquidity_usd >= float(thresholds.get("min_liquidity", 0) or 0)
+                and token.volume_24h >= float(thresholds.get("min_volume_24h", 0) or 0)
+                and token.txns_6h.total <= 0
+                and runner_shaped(token)
+            ]
+            if pre_screen_sparse:
+                try:
+                    hydrated_rows = merge_token_snapshots(await dex.token_pairs([
+                        (token.chain_id, token.mint) for token in pre_screen_sparse
+                    ]))
+                    hydrated = {token.mint: token for token in hydrated_rows}
+                    filled = 0
+                    for token in pre_screen_sparse:
+                        fresh = hydrated.get(token.mint)
+                        if fresh is None:
+                            continue
+                        _apply_intraday_snapshot(token, fresh, now)
+                        filled += 1
+                    statuses.append(SourceStatus(
+                        "Pre-screen intraday hydration",
+                        filled == len(pre_screen_sparse),
+                        f"{filled}/{len(pre_screen_sparse)} missing 6h windows resolved before market gates",
+                    ))
+                except Exception as exc:
+                    log.warning("pre_screen_intraday_hydration_failed error=%s", exc)
+                    statuses.append(SourceStatus("Pre-screen intraday hydration", False, str(exc)[:120]))
 
         # Store the complete provider union before any safety/editorial gate.
         # This is what lets tomorrow's recap prove that a questionable token
@@ -1063,20 +1203,19 @@ async def build_brief(
         peak_floor = float(settings.get("journal", "peak_market_cap_floor", 250_000) or 250_000)
 
         def peak_provenance(token: TokenSnapshot) -> float:
-            """Best peak that can honestly be assigned to this 24h window."""
-            age = _token_age_hours(token, now)
+            """Best verified peak for size eligibility; motion is gated later."""
             token_gmgn = gmgn_evidence.get(token.mint, {}) or {}
             gmgn_ath = float(token_gmgn.get("athMarketCap") or 0)
             kline_peak = float(token_gmgn.get("kline24hPeakMarketCap") or 0)
-            # Lifetime ATH is a valid daily peak only when the whole token life
-            # sits inside this report window.
-            young_ath = gmgn_ath if age is not None and age <= 24 else 0.0
             lifecycle = ledger.lifecycle(token.mint, window_start, now)
             local_peak = float((lifecycle or {}).get("peak_market_cap") or 0)
             daily_move_peak = float(token.market_cap or 0) if token.price_change_24h >= float(
                 settings.get("journal", "min_daily_change_pct", 25.0) or 25.0
             ) else 0.0
-            return max(young_ath, kline_peak, local_peak, daily_move_peak)
+            # Lifetime ATH supplies the universal $1M eligibility check. Old
+            # coins are still rejected later unless their trailing-day candles
+            # clear the size-adjusted movement gate.
+            return max(gmgn_ath, kline_peak, local_peak, daily_move_peak)
 
         peak_tape = {
             token.mint: peak
@@ -1100,12 +1239,13 @@ async def build_brief(
             http,
             str(urls.get("rugcheck_base_url", "https://api.rugcheck.xyz/v1")),
             int(cache.get("safety_ttl_seconds", 3600)),
+            requests_per_minute=int(settings.get("rugcheck", "requests_per_minute", 45) or 45),
         )
         # Safety is answered by a different service per chain. RugCheck knows
         # Solana; GoPlus knows the EVM chains and also answers questions Solana
         # does not have, like whether a sale is taxed or can be blocked.
         chain_of = {token.mint: token.chain_id.lower() for token in tokens}
-        solana_mints = sorted(
+        solana_safety_pool = sorted(
             {
                 m for m in [*hard_pass_mints, *kol_tape_mints, *peak_tape]
                 if chain_of.get(m) == "solana"
@@ -1125,6 +1265,22 @@ async def build_brief(
             if token.volume_24h < min_journal_volume:
                 return False
             return token.price_change_24h >= min(fresh_bar, old_bar)
+
+        # Safety calls are reserved for candidates that can still appear in the
+        # recap. Always retain proven intraday peaks and KOL-discovered names;
+        # flat raw-discovery rows cannot become runners and used to consume the
+        # RugCheck allowance before the real tape was reached.
+        solana_mints = [
+            mint
+            for mint in solana_safety_pool
+            if mint in peak_tape
+            or mint in kol_tape_mints
+            or mint in ctos
+            or (
+                (token := token_by_mint.get(mint)) is not None
+                and could_be_reported(token)
+            )
+        ]
 
         evm_mints: dict[str, list[str]] = {}
         unchecked_chains: set[str] = set()
@@ -1192,11 +1348,25 @@ async def build_brief(
             ))
 
         if unchecked_chains:
-            # Said plainly rather than left implied: these coins are reported
-            # with no contract-level safety behind them.
+            # GoPlus does not reach these chains, but GMGN already answered the
+            # questions that decide whether a coin can be named: can it be sold,
+            # what does it tax, how concentrated is it. Falling back to that
+            # beats shipping a ticker with nothing behind it.
+            recovered = 0
+            for mint in dict.fromkeys([*hard_pass_mints, *peak_tape]):
+                if chain_of.get(mint, "") not in unchecked_chains or mint in safety:
+                    continue
+                evidence = (gmgn_evidence.get(mint) or {})
+                if not evidence:
+                    continue
+                safety[mint] = safety_from_evidence(mint, evidence)
+                recovered += 1
             statuses.append(SourceStatus(
-                "Contract safety", False,
-                f"no safety source covers {', '.join(sorted(unchecked_chains))}; "
+                "Contract safety (GMGN)", recovered > 0,
+                f"{recovered} token(s) on {', '.join(sorted(unchecked_chains))} screened from GMGN; "
+                "GoPlus does not cover these chains"
+                if recovered
+                else f"no safety source covers {', '.join(sorted(unchecked_chains))}; "
                 "tokens there are labelled unverified",
             ))
 
@@ -1218,18 +1388,28 @@ async def build_brief(
         else:
             statuses.append(SourceStatus("Helius", False, "not configured; holder and authority cross-checks unavailable"))
 
-        # Fill only missing values from GMGN. RugCheck/Helius remain independent
-        # checks; agreement is preserved as provenance, disagreement is not
-        # overwritten by whichever provider happened to return last.
+        # Holder-count precedence is deliberate: Helius reads Solana token
+        # accounts directly; GMGN supplies a full-chain count everywhere else;
+        # contract-security providers are the fallback. Some GoPlus responses
+        # contain a small sampled count, which previously rejected a 1,300-
+        # holder token as if it had only 104 holders.
         for mint, evidence in gmgn_evidence.items():
             report = safety.setdefault(mint, SafetyReport(mint))
-            if report.holder_count is None and evidence.get("holders") is not None:
-                report.holder_count = int(evidence["holders"])
+            enrichment = enrichments.setdefault(mint, Enrichment())
+            helius_holders = (
+                int(enrichment.holder_count)
+                if enrichment.source == "helius" and enrichment.holder_count
+                else None
+            )
+            gmgn_holders = int(evidence["holders"]) if evidence.get("holders") else None
+            if helius_holders is not None:
+                report.holder_count = helius_holders
+            elif gmgn_holders is not None:
+                report.holder_count = gmgn_holders
             if report.top10_pct is None and evidence.get("top10Pct") is not None:
                 report.top10_pct = float(evidence["top10Pct"])
-            enrichment = enrichments.setdefault(mint, Enrichment())
-            if enrichment.holder_count is None and evidence.get("holders") is not None:
-                enrichment.holder_count = int(evidence["holders"])
+            if helius_holders is None and gmgn_holders is not None:
+                enrichment.holder_count = gmgn_holders
 
         # A morning snapshot cannot prove where a faded coin traded earlier.
         # Reconstruct the 30-hour high from free hourly candles. KOL profit by
@@ -1386,6 +1566,10 @@ async def build_brief(
                             safety[token.mint] = SafetyReport(token.mint)
                     report = safety[token.mint]
                     snapshot = await snapshotter.pull(token, report, now, commit=commit)
+                    # The paginated DAS snapshot is the authoritative Solana
+                    # holder count and concentration view for downstream gates.
+                    report.holder_count = snapshot.holder_count
+                    report.top10_pct = snapshot.top10_pct
                     current_snapshots[token.mint] = snapshot
                     prior = ledger.snapshot_at_or_before(
                         token.mint,
@@ -1618,10 +1802,31 @@ async def build_brief(
             and not fixture_path
             and not replay_date
         ):
+            # Broad ranking rows sometimes omit wallet-tag counts. Resolve the
+            # exact mint before the KOL gate, then spend the heavier trader call
+            # only on finalists the fallback proves are relevant.
+            statuses.append(await gmgn.enrich_missing_wallet_counts(
+                journal_pool,
+                gmgn_evidence,
+                limit=int(settings.get("gmgn", "wallet_count_fallback_limit", 30)),
+            ))
+            # The first candle pass only knows the broad discovery counts.
+            # Recovered exact mints need their own pass or a coin that ran and
+            # faded intraday can still disappear despite its KOL count being
+            # corrected above. Cached broad-pass candles are reused here.
+            if bool(settings.get("gmgn", "kline_verification_enabled", True)):
+                statuses.append(await gmgn.enrich_runner_klines(
+                    [candidate.token for candidate in journal_pool],
+                    gmgn_evidence,
+                    now=now,
+                    limit=int(settings.get("gmgn", "recovered_kline_limit", 30)),
+                    min_kol_count=int(settings.get("journal", "min_kol_trades_for_publish", 1) or 1),
+                    exact_only=True,
+                ))
             statuses.append(await gmgn.enrich_runner_traders(
                 journal_pool,
                 gmgn_evidence,
-                limit=int(settings.get("gmgn", "runner_trader_limit", 25) or 25),
+                limit=int(settings.get("gmgn", "runner_trader_limit", 40)),
                 rows_per_token=int(settings.get("gmgn", "runner_trader_rows", 20) or 20),
             ))
         # GMGN and Birdeye describe a coin in daily totals; only Dexscreener
@@ -1645,24 +1850,11 @@ async def build_brief(
                     if fresh is None:
                         continue
                     token = candidate.token
-                    token.volume_6h = fresh.volume_6h
-                    token.volume_1h = fresh.volume_1h
-                    token.txns_6h = fresh.txns_6h
-                    token.txns_1h = fresh.txns_1h
-                    token.price_change_6h = fresh.price_change_6h
-                    token.price_change_1h = fresh.price_change_1h
-                    token.intraday_known = fresh.intraday_known
-                    if fresh.pair_created_at is not None and (
-                        token.pair_created_at is None
-                        or (now - token.pair_created_at).total_seconds() < 60
-                    ):
-                        # A zero age is a bad stamp, not a coin born this minute.
-                        token.pair_created_at = fresh.pair_created_at
+                    _apply_intraday_snapshot(token, fresh, now)
+                    if token.pair_created_at is not None:
                         candidate.signals.age_hours = max(
-                            0.0, (now - fresh.pair_created_at).total_seconds() / 3600
+                            0.0, (now - token.pair_created_at).total_seconds() / 3600
                         )
-                    if not token.socials and fresh.socials:
-                        token.socials = fresh.socials
                     filled += 1
                 statuses.append(SourceStatus(
                     "Intraday window hydration", True,
@@ -1753,7 +1945,10 @@ async def build_brief(
                         if mint not in token_by_mint
                     ]
                     if missing_pulse_mints:
-                        for token in await dex.token_pairs(missing_pulse_mints):
+                        for token in await dex.token_pairs([
+                            (str((pulse_passes[mint] or {}).get("chain") or "solana"), mint)
+                            for mint in missing_pulse_mints
+                        ]):
                             token_by_mint.setdefault(token.mint, token)
                     current_blocked = {candidate.token.mint: candidate for candidate in blocked_runners}
                     existing = {candidate.token.mint for candidate in runners}
@@ -2072,8 +2267,16 @@ async def build_brief(
             "A genuinely fresh pair, new profile discovery, measurable CTO activity, linked context, or holder growth; "
             "reused tickers are withheld by a transparent originality proxy."
         )
+        chain_labels = {
+            "solana": "Solana",
+            "base": "Base",
+            "bsc": "BNB Chain",
+            "ethereum": "Ethereum",
+            "robinhood": "Robinhood Chain",
+        }
+        recap_chains = ", ".join(chain_labels.get(chain, chain.title()) for chain in chains)
         selection_rule = (
-            "KOL-backed recap across Solana, Base, BNB Chain, and Ethereum: launches up to 30h old that crossed $250K, "
+            f"KOL-backed recap across {recap_chains}: launches up to 30h old that crossed $250K, "
             "plus older coins that rose at least 50% to their GMGN-verified 24h high or printed a fresh ATH. "
             "Faded moves remain visible; contract, bundle, holder, and wash evidence is attached as context."
         )
@@ -2141,7 +2344,17 @@ async def build_brief(
         missing_due = [mint for mint in due_mints if mint not in current_mcaps]
         if missing_due:
             try:
-                for token in await dex.token_pairs(missing_due):
+                # Old observations predate chain-aware rows. Never send an EVM
+                # address to the Solana route: probe only configured EVM chains
+                # for 0x addresses and Solana for base58 mints.
+                due_lookups: list[tuple[str, str]] = []
+                evm_chains = [chain for chain in chains if chain != "solana"]
+                for mint in missing_due:
+                    if mint.lower().startswith("0x"):
+                        due_lookups.extend((chain, mint) for chain in evm_chains)
+                    else:
+                        due_lookups.append(("solana", mint))
+                for token in await dex.token_pairs(due_lookups):
                     current_mcaps[token.mint] = max(current_mcaps.get(token.mint, 0), token.market_cap)
             except Exception as exc:
                 statuses.append(SourceStatus("Forward-return lookup", False, str(exc)))
@@ -2186,7 +2399,7 @@ async def build_brief(
         try:
             recap_pool = recap_coins(
                 runners, headline_tape,
-                int(settings.get("newsletter", "max_coins", 30) or 30),
+                newsletter_coin_limit(settings),
             )
             # A long run means the numbers gathered at the start are stale by
             # the time the recap is written: one coin was published 178% away

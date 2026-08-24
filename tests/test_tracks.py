@@ -1392,6 +1392,78 @@ def test_old_coin_new_ath_exception_requires_an_in_window_gmgn_candle(tmp_path):
     assert belongs_in_journal(coin, settings, NOW), "the trailing-day candle verifies the ATH"
 
 
+def test_production_peak_floor_and_size_adjusted_old_coin_moves(tmp_path):
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "tiered-old-runner-bands")
+    settings.values["journal"].update({
+        "max_age_hours": 0,
+        "fresh_window_hours": 30,
+        "peak_market_cap_floor": 1_000_000,
+        "older_than_a_day_multiple": 0,
+        "old_coin_age_hours": 720,
+        "old_coin_small_cap_ceiling": 10_000_000,
+        "old_coin_large_cap_floor": 20_000_000,
+        "old_coin_small_min_change_pct": 75,
+        "old_coin_mid_min_change_pct": 50,
+        "old_coin_large_min_change_pct": 30,
+        "allow_old_new_ath_exception": False,
+    })
+
+    def old_coin(symbol: str, peak: float, move: float):
+        coin = _tape(symbol, mcap=peak * 0.8, vol24=2_000_000, vol6=600_000,
+                     liq=120_000, trades6=2_000, buys6=1_050)
+        coin.token.pair_created_at = NOW - timedelta(days=45)
+        coin.peak_market_cap = peak
+        coin.provider_evidence["gmgn"] = {
+            "kline24hCandleCount": 24,
+            "kline24hPeakMarketCap": peak,
+            "kline24hPeakFromOpenPct": move,
+            "kline24hChangePct": move - 10,
+        }
+        return coin
+
+    assert not belongs_in_journal(old_coin("SMALLMISS", 9_000_000, 74.9), settings, NOW)
+    assert belongs_in_journal(old_coin("SMALLPASS", 9_000_000, 75), settings, NOW)
+    assert not belongs_in_journal(old_coin("MIDMISS", 15_000_000, 49.9), settings, NOW)
+    assert belongs_in_journal(old_coin("MIDPASS", 15_000_000, 50), settings, NOW)
+    assert not belongs_in_journal(old_coin("LARGEMISS", 25_000_000, 29.9), settings, NOW)
+    assert belongs_in_journal(old_coin("LARGEPASS", 25_000_000, 30), settings, NOW)
+
+    below_floor = old_coin("BELOWFLOOR", 999_999, 500)
+    assert not belongs_in_journal(below_floor, settings, NOW)
+
+
+def test_recent_coin_uses_verified_daily_kline_peak_for_one_million_floor(tmp_path):
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "recent-million-peak")
+    settings.values["journal"].update({
+        "max_age_hours": 0,
+        "fresh_window_hours": 30,
+        "peak_market_cap_floor": 1_000_000,
+        "old_coin_age_hours": 720,
+    })
+    coin = _tape("LAPEACE", mcap=258_000, vol24=2_900_000, vol6=240_000,
+                 liq=45_000, trades6=4_700, buys6=2_500)
+    coin.token.pair_created_at = NOW - timedelta(days=4)
+    coin.peak_market_cap = 470_000
+    coin.provider_evidence["gmgn"] = {
+        "athMarketCap": 1_145_000,
+        "kline24hCandleCount": 24,
+        "kline24hPeakMarketCap": 1_145_000,
+        "kline24hPeakFromOpenPct": 337,
+    }
+    assert belongs_in_journal(coin, settings, NOW)
+
+    # A provider ATH also fixes a high that occurred between our local hourly
+    # snapshots. Because this coin is under 30 days old, no legacy-move gate is
+    # required after the $1M size requirement is established.
+    coin.provider_evidence["gmgn"].pop("kline24hPeakMarketCap")
+    coin.peak_market_cap = 470_000
+    assert belongs_in_journal(coin, settings, NOW)
+
+
 def test_kol_publish_gate_applies_to_every_supported_chain(tmp_path):
     from brief.journal import publisher_quality_reasons
     from brief.models import SafetyReport
@@ -1430,3 +1502,109 @@ def test_gmgn_direct_manipulation_evidence_is_a_hard_stop(tmp_path):
     # GMGN data itself shows established community coins can score high here.
     coin.provider_evidence["gmgn"] = {"rugRatio": 0.95}
     assert rug_or_bundle(coin, settings) == []
+
+    coin.provider_evidence["gmgn"] = {"isHoneypot": 1}
+    assert "GMGN marks the contract as a honeypot" in rug_or_bundle(coin, settings)
+
+    coin.safety.top10_pct = None
+    coin.provider_evidence["gmgn"] = {"top10Pct": 62.2}
+    assert any("top 10 circulating wallets hold 62%" in reason for reason in rug_or_bundle(coin, settings))
+
+
+def test_old_launch_bundle_can_pass_only_after_measured_redistribution(tmp_path):
+    from brief.journal import risk_labels, rug_or_bundle
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "redistributed-bundle")
+    settings.values["journal"].update({
+        "allow_redistributed_launch_bundles": True,
+        "bundle_redistribution_min_age_hours": 72,
+        "bundle_redistribution_min_holders": 5_000,
+        "bundle_redistribution_max_top10_pct": 20,
+        "bundle_redistribution_min_lp_pct": 90,
+        "bundle_redistribution_min_kol": 5,
+        "bundle_redistribution_min_liquidity": 100_000,
+        "bundle_redistribution_min_volume_24h": 1_000_000,
+    })
+    coin = _tape("REDIST", mcap=13_000_000, vol24=33_000_000, vol6=5_000_000,
+                 liq=1_600_000, trades6=35_000, buys6=21_000)
+    coin.token.pair_created_at = NOW - timedelta(days=8)
+    coin.signals.age_hours = 8 * 24
+    coin.safety = SafetyReport(
+        "m", holder_count=55_000, top10_pct=12.0, lp_locked_or_burned_pct=98.0,
+    )
+    coin.provider_evidence["gmgn"] = {
+        "bundlerRate": 0.41,
+        "insiderRate": 0.0,
+        "devTeamHoldRate": 0.0,
+        "kolCount": 34,
+    }
+
+    assert not any("bundled launch flow" in reason for reason in rug_or_bundle(coin, settings))
+    assert any("launch bundle" in label for label in risk_labels(coin, settings, NOW))
+
+    # The same launch remains blocked if current ownership is concentrated.
+    coin.safety.top10_pct = 35.0
+    assert any("bundled launch flow" in reason for reason in rug_or_bundle(coin, settings))
+
+
+def test_gmgn_market_fees_are_not_misread_as_transfer_tax(tmp_path):
+    from brief.journal import risk_labels, rug_or_bundle
+
+    settings = build_settings(tmp_path / "explicit-tax")
+    settings.values["journal"].update({
+        "fee_check_chains": ["bsc"],
+        "max_total_fee_pct": 3.0,
+        "caution_total_fee_pct": 1.0,
+    })
+    coin = _tape("FEES", mcap=900_000, vol24=2_000_000, vol6=600_000,
+                 liq=120_000, trades6=2_000, buys6=1_050)
+    coin.token.chain_id = "bsc"
+    coin.provider_evidence["gmgn"] = {
+        # These are market-activity fees, not token tax.
+        "totalFee": 33.4,
+        "tradeFee": 28.1,
+        "buyTax": 0.03,
+        "sellTax": 0.03,
+    }
+    assert not any("taxed token" in reason for reason in rug_or_bundle(coin, settings))
+    assert "3.0% tax on every trade" in risk_labels(coin, settings, NOW)
+
+    coin.provider_evidence["gmgn"]["sellTax"] = 0.031
+    assert any("taxed token: 3.1%" in reason for reason in rug_or_bundle(coin, settings))
+
+
+def test_full_holder_enrichment_overrides_a_partial_safety_count(tmp_path):
+    from brief.journal import inorganic_reasons
+    from brief.models import Enrichment, SafetyReport
+
+    settings = build_settings(tmp_path / "holder-precedence")
+    coin = _tape("HOLDERS", mcap=900_000, vol24=2_000_000, vol6=600_000,
+                 liq=120_000, trades6=2_000, buys6=1_050)
+    coin.safety = SafetyReport("m", holder_count=104)
+    coin.enrichment = Enrichment(holder_count=1_329, source="gmgn")
+    assert not any("holders" in reason for reason in inorganic_reasons(coin, settings))
+
+
+def test_verified_old_runner_survives_a_negative_close(tmp_path):
+    from brief.journal import belongs_in_journal
+
+    settings = build_settings(tmp_path / "faded-old-runner")
+    settings.values["journal"].update({
+        "max_age_hours": 0,
+        "fresh_window_hours": 30,
+        "peak_market_cap_floor": 250_000,
+        "older_than_a_day_multiple": 0,
+        "min_daily_change_pct": 50,
+        "older_min_live_change_pct": 0,
+    })
+    coin = _tape("FADED", mcap=700_000, vol24=2_000_000, vol6=600_000,
+                 liq=120_000, trades6=2_000, buys6=1_050)
+    coin.token.pair_created_at = NOW - timedelta(days=8)
+    coin.token.price_change_24h = -64
+    coin.provider_evidence["gmgn"] = {
+        "kline24hCandleCount": 24,
+        "kline24hPeakFromOpenPct": 81,
+        "kline24hChangePct": -64,
+    }
+    assert belongs_in_journal(coin, settings, NOW)

@@ -83,13 +83,63 @@ def parse_pair(pair: dict[str, Any]) -> TokenSnapshot | None:
 
 
 def merge_token_snapshots(tokens: list[TokenSnapshot]) -> list[TokenSnapshot]:
-    """Choose the deepest market per mint while preserving cross-feed context."""
+    """Choose the deepest market per mint while preserving cross-feed context.
+
+    Ranked providers often have better broad discovery but omit Dexscreener's
+    one- and six-hour windows.  Selecting only by liquidity used to let such a
+    row erase a real daily move from an exact Dex lookup, which meant an
+    independently discovered runner could disappear before screening.
+    """
     grouped: dict[str, list[TokenSnapshot]] = {}
     for token in tokens:
         grouped.setdefault(token.mint, []).append(token)
     best: dict[str, TokenSnapshot] = {}
     for mint, group in grouped.items():
-        chosen = max(group, key=lambda token: token.liquidity_usd)
+        # When an exact Dexscreener lookup is present it owns the market
+        # identity and current pair fields. Ranked-provider rows occasionally
+        # report slightly deeper aggregate liquidity while omitting pair age;
+        # choosing that row made fresh trending launches silently fail the
+        # journal because their age became unknown. Provider rows still
+        # contribute discovery metadata and evidence elsewhere in the engine.
+        exact_rows = [
+            token
+            for token in group
+            if isinstance(token.raw, dict)
+            and (
+                "pairAddress" in token.raw
+                or "baseToken" in token.raw
+                or "geckoterminal" in token.raw
+            )
+        ]
+        chosen = max(exact_rows or group, key=lambda token: token.liquidity_usd)
+        intraday_rows = exact_rows or [token for token in group if token.intraday_known]
+        if intraday_rows:
+            # Prefer the active exact market when more than one DEX reports the
+            # mint. These fields share units and belong to one coherent window.
+            intraday = max(
+                intraday_rows,
+                key=lambda token: (token.volume_24h, token.txns_24h.total, token.liquidity_usd),
+            )
+            chosen.volume_1h = intraday.volume_1h
+            chosen.volume_6h = intraday.volume_6h
+            chosen.price_change_5m = intraday.price_change_5m
+            chosen.price_change_1h = intraday.price_change_1h
+            chosen.price_change_6h = intraday.price_change_6h
+            chosen.price_change_24h = intraday.price_change_24h
+            chosen.txns_1h = intraday.txns_1h
+            chosen.txns_6h = intraday.txns_6h
+            chosen.txns_24h = intraday.txns_24h
+            chosen.intraday_known = True
+        socials: list[dict[str, str]] = []
+        seen_socials: set[tuple[str, str]] = set()
+        for token in group:
+            for social in token.socials:
+                key = (str(social.get("type") or ""), str(social.get("url") or ""))
+                if key not in seen_socials:
+                    seen_socials.add(key)
+                    socials.append(social)
+        chosen.socials = socials
+        chosen.active_boosts = max((token.active_boosts for token in group), default=0)
         chosen.meta_slugs = set().union(*(token.meta_slugs for token in group))
         chosen.from_profile = any(token.from_profile for token in group)
         volume_by_dex: dict[str, float] = {}

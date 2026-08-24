@@ -97,6 +97,40 @@ def test_payload_contains_runner_score_and_classification(tmp_path):
     assert row["classification"]
 
 
+def test_payload_builds_chain_correct_research_links(tmp_path):
+    from brief.models import Brief, Scorecard
+    from brief.render.payload import build_payload
+
+    settings = build_settings(tmp_path / "payload-links")
+    candidate = _tape(
+        "BASELINK", mcap=500_000, vol24=1_000_000, vol6=350_000,
+        liq=80_000, trades6=1_500, buys6=800,
+    )
+    candidate.token.chain_id = "base"
+    candidate.token.mint = "0x" + "a" * 40
+    candidate.token.pair_address = "0x" + "b" * 40
+    candidate.token.url = f"https://gmgn.ai/base/token/{candidate.token.mint}"
+    brief = Brief(
+        generated_at=NOW,
+        scorecard=Scorecard(),
+        metas=[],
+        new_and_moving=[],
+        ctos=[],
+        follow_ups=[],
+        onchain=[],
+        excluded=[],
+        source_statuses=[],
+        runners=[candidate],
+    )
+
+    row = build_payload(brief, settings)["runners"][0]
+    links = {item["label"]: item["url"] for item in row["sources"]}
+
+    assert links["Dexscreener"].endswith(candidate.token.pair_address)
+    assert links["GMGN"] == f"https://gmgn.ai/base/token/{candidate.token.mint}"
+    assert "Bubblemaps" not in links
+
+
 def test_gmgn_organic_lane_is_positive_corroboration_not_a_requirement(tmp_path):
     settings = build_settings(tmp_path / "gmgn-organic-score")
     ordinary = _tape(

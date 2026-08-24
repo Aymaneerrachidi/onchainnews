@@ -13,12 +13,20 @@ from brief.models import (
     TransactionWindow,
     XPost,
 )
-from brief.sources.social import build_dex_evidence, match_x_interactions
+from brief.sources.social import build_dex_evidence, match_x_interactions, x_handle
+from brief.sources.openintel import OpenIntelSource
+from brief.sources.http import SourceError
 from brief.sources.x import XSource
 
 
 NOW = datetime(2026, 8, 12, 6, 45, tzinfo=timezone.utc)
 MINT = "GCa9TZMK9Q3VUSkhZgX76YAQBjqQd1dPxkBnZojFpump"
+
+
+def test_x_community_link_is_not_misread_as_the_i_account():
+    socials = [{"type": "twitter", "url": "https://x.com/i/communities/1861401413311443182"}]
+
+    assert x_handle(socials) is None
 
 
 def candidate() -> Candidate:
@@ -130,3 +138,69 @@ async def test_x_source_parses_authors_metrics_interaction_and_links():
     assert post.interaction == "quoted"
     assert post.like_count == 50 and post.repost_count == 8
     assert post.expanded_urls == ("https://dexscreener.com/solana/PAIR",)
+
+
+class QuotaHttp:
+    def __init__(self):
+        self.calls = 0
+
+    async def post_json(self, *_args, **_kwargs):
+        self.calls += 1
+        raise SourceError("opentwitter failed after 3 attempts: HTTP 402")
+
+
+@pytest.mark.asyncio
+async def test_trusted_timeline_stops_after_permanent_provider_failure():
+    http = QuotaHttp()
+    source = OpenIntelSource(http, "https://ai.6551.test", pause_seconds=0)
+    source.token = "test-token"
+    hits, failures = await source.trusted_timeline(
+        [candidate()], ["one", "two", "three"], NOW
+    )
+
+    assert hits == 0
+    assert http.calls == 1
+    assert [failure.split(":", 1)[0] for failure in failures] == ["one", "two", "three"]
+
+
+class TimelineHttp:
+    def __init__(self, text: str):
+        self.text = text
+
+    async def post_json(self, *_args, **_kwargs):
+        return {"data": [{
+            "id": "99", "text": self.text, "createdAt": NOW.isoformat(),
+            "userName": "Desk",
+        }]}
+
+
+@pytest.mark.asyncio
+async def test_trusted_timeline_does_not_guess_between_reused_tickers():
+    first = candidate()
+    second = candidate()
+    second.token.mint = "B" * 32
+    source = OpenIntelSource(TimelineHttp("watching $PLUMBER"), "https://ai.6551.test", pause_seconds=0)
+    source.token = "test-token"
+
+    hits, _ = await source.trusted_timeline([first, second], ["desk"], NOW)
+
+    assert hits == 0
+    assert first.x_interactions == [] and second.x_interactions == []
+
+
+@pytest.mark.asyncio
+async def test_trusted_timeline_uses_exact_mint_for_reused_ticker():
+    first = candidate()
+    second = candidate()
+    second.token.mint = "B" * 32
+    source = OpenIntelSource(
+        TimelineHttp(f"watching $PLUMBER {second.token.mint}"),
+        "https://ai.6551.test",
+        pause_seconds=0,
+    )
+    source.token = "test-token"
+
+    hits, _ = await source.trusted_timeline([first, second], ["desk"], NOW)
+
+    assert hits == 1
+    assert first.x_interactions == [] and len(second.x_interactions) == 1

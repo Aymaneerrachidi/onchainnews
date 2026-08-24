@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from brief.models import SafetyReport, number
-from brief.sources.http import CachedHttpClient
+from brief.sources.http import CachedHttpClient, SourceError
 
 
 def integer_or_none(value: Any) -> int | None:
@@ -113,14 +114,39 @@ def parse_report(mint: str, payload: dict[str, Any]) -> SafetyReport:
 
 
 class RugCheckSource:
-    def __init__(self, http: CachedHttpClient, base_url: str, ttl: int) -> None:
+    def __init__(
+        self,
+        http: CachedHttpClient,
+        base_url: str,
+        ttl: int,
+        *,
+        requests_per_minute: int = 45,
+    ) -> None:
         self.http = http
         self.base_url = base_url.rstrip("/")
         self.ttl = ttl
+        self.requests_per_minute = max(1, int(requests_per_minute))
+        self._request_lock = asyncio.Lock()
+        self.rate_limited = False
 
     async def report(self, mint: str) -> SafetyReport:
-        payload = await self.http.get_json(
-            f"{self.base_url}/tokens/{mint}/report",
-            family="rugcheck", limit=60, ttl=self.ttl,
-        )
+        # The shared minute limiter protects sustained throughput but permits a
+        # startup burst. RugCheck rejects that burst, so serialize and pace this
+        # source explicitly. Once a 429 is seen, queued work must fail locally
+        # instead of extending the provider's temporary ban.
+        async with self._request_lock:
+            if self.rate_limited:
+                raise SourceError("RugCheck rate-limit circuit is open")
+            try:
+                payload = await self.http.get_json(
+                    f"{self.base_url}/tokens/{mint}/report",
+                    family="rugcheck",
+                    limit=self.requests_per_minute,
+                    ttl=self.ttl,
+                    min_interval_seconds=60.0 / self.requests_per_minute,
+                )
+            except SourceError as exc:
+                if "HTTP 429" in str(exc):
+                    self.rate_limited = True
+                raise
         return parse_report(mint, payload if isinstance(payload, dict) else {})

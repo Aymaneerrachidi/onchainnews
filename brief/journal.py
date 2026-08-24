@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 from brief.config import Settings
 from brief.models import Candidate, TokenSnapshot
+from brief.sources.gmgn import transfer_tax_pct
 
 
 def _age_hours(token: TokenSnapshot, now: datetime) -> float | None:
@@ -180,14 +181,23 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     if ceiling > 0 and (age is None or age > ceiling):
         return False
 
-    peak = max(
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    kline_peak_cap = float(gmgn.get("kline24hPeakMarketCap") or 0)
+    lifetime_ath = float(gmgn.get("athMarketCap") or 0)
+    window_peak = max(
         float(candidate.peak_market_cap or 0),
         float(candidate.observed_peak_market_cap or 0),
         float(token.market_cap or 0),
+        kline_peak_cap,
     )
+    # The size gate is lifetime ATH >= $1M. For established coins that ATH is
+    # only eligibility; the trailing-day candles below must still prove a new
+    # move. Keeping those concepts separate fixes runners that peaked between
+    # local hourly snapshots without resurrecting flat legacy coins.
+    peak = max(window_peak, lifetime_ath)
     peak_floor = float(section.get("peak_market_cap_floor", 250_000) or 250_000)
     start = float(candidate.start_market_cap or 0)
-    measured_window_multiple = peak / start if start > 0 else 1.0
+    measured_window_multiple = window_peak / start if start > 0 else 1.0
     fresh_window = float(section.get("fresh_window_hours", 24) or 24)
     min_volume = float(section.get("min_volume_24h", 50_000))
     new_launch_peak = (
@@ -206,6 +216,11 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     if implausible_run(candidate, settings):
         return False
 
+    # The peak floor is universal. Previously it was checked only in the fresh
+    # launch branch, allowing a sub-floor old coin through on percentage alone.
+    if peak < peak_floor:
+        return False
+
     # A raw daily-change fallback is only meaningful when the pair age is
     # known.  Peak-tape candidates with a measured in-window peak have already
     # returned above; an undated coin must not slip into a 24-hour recap merely
@@ -216,9 +231,16 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     if age <= fresh_window:
         return token.price_change_24h >= float(section.get("min_fresh_change_pct", 30))
 
-    # A peak recorded days ago is not today's move. If the live tape says an
-    # established coin is flat or down, no reconstructed high should carry it
-    # into a recap of what ran.
+    # The public recap treats the first 30 days as the token's launch lifecycle.
+    # Reaching the verified daily peak floor is the event. After day 30, a large
+    # existing market must make a fresh, size-adjusted move to return to the tape.
+    old_coin_age = float(section.get("old_coin_age_hours", fresh_window) or fresh_window)
+    if age <= old_coin_age:
+        return True
+
+    # A close-only floor is optional. Production leaves it disabled because an
+    # established coin that ran 80% and round-tripped is still part of the
+    # day's tape; its drawdown is disclosed rather than used to erase history.
     floor_change = float(section.get("older_min_live_change_pct", 0) or 0)
     if floor_change and token.price_change_24h < floor_change:
         return False
@@ -228,7 +250,6 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     # that the token ran today.  GMGN candles preserve a spike even when the
     # close gave it back; the local hourly tape supplies the same proof once it
     # has accumulated enough observations.
-    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     kline_peak_change = float(gmgn.get("kline24hPeakFromOpenPct") or 0)
     kline_close_change = float(gmgn.get("kline24hChangePct") or 0)
     has_gmgn_candles = int(gmgn.get("kline24hCandleCount") or 0) > 0
@@ -237,24 +258,42 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     if older_multiple > 0:
         required_change = (older_multiple - 1.0) * 100.0
     else:
-        required_change = float(section.get("min_daily_change_pct", 50.0) or 50.0)
+        baseline_change = float(section.get("min_daily_change_pct", 50.0) or 50.0)
+        small_ceiling = float(section.get("old_coin_small_cap_ceiling", 0) or 0)
+        large_floor = float(section.get("old_coin_large_cap_floor", 0) or 0)
+        # Choose the movement band from the market size reached today, not a
+        # stale lifetime ATH. A former $100M coin trading at $3M still needs the
+        # sub-$10M +75% revival, not the large-cap +30% shortcut.
+        market_size = window_peak
+        if small_ceiling > 0 and market_size < small_ceiling:
+            required_change = float(section.get("old_coin_small_min_change_pct", baseline_change) or baseline_change)
+        elif large_floor > 0 and market_size >= large_floor:
+            required_change = float(section.get("old_coin_large_min_change_pct", baseline_change) or baseline_change)
+        else:
+            required_change = float(section.get("old_coin_mid_min_change_pct", baseline_change) or baseline_change)
     # When GMGN candles exist they are the authority. This prevents a noisy
     # local market-cap estimate or a conflicting aggregate percentage from
     # promoting a flat/falling old token. Without candles, Dex and our own
     # hourly tape remain the graceful fallback.
-    observed_move = (
-        max(kline_peak_change, kline_close_change)
-        if has_gmgn_candles
-        else max(token.price_change_24h, measured_peak_change)
-    )
+    if has_gmgn_candles:
+        observed_move = max(kline_peak_change, kline_close_change)
+        # Production uses several independent market feeds. Keep GMGN candles
+        # authoritative by default, but allow the verified aggregate daily
+        # change to preserve a large-cap move such as CATE when one provider's
+        # first candle starts after the move had already begun.
+        if bool(section.get("old_coin_allow_aggregate_change_with_kline", False)):
+            observed_move = max(observed_move, token.price_change_24h)
+    else:
+        observed_move = max(token.price_change_24h, measured_peak_change)
     if observed_move >= required_change:
         return True
 
     # The only lower-change exception for an older pair is a high printed in
     # this trailing-day candle set that reaches its GMGN lifetime ATH.  Requiring
     # an in-window candle prevents a stale historical ATH from qualifying it.
-    lifetime_ath = float(gmgn.get("athMarketCap") or 0)
-    kline_peak_cap = float(gmgn.get("kline24hPeakMarketCap") or 0)
+    if not bool(section.get("allow_old_new_ath_exception", True)):
+        return False
+
     ath_tolerance = float(section.get("new_ath_tolerance_pct", 2.0) or 2.0) / 100.0
     min_ath_move = float(section.get("min_new_ath_move_pct", 10.0) or 10.0)
     verified_fresh_ath = (
@@ -264,6 +303,39 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
         and kline_peak_change >= min_ath_move
     )
     return verified_fresh_ath
+
+
+def redistributed_launch_bundle(candidate: Candidate, settings: Settings) -> bool:
+    """Whether a launch bundle has demonstrably dispersed into a real market.
+
+    Launch bundling is a serious warning, but it is not immutable. An older
+    token with tens of thousands of holders, low current concentration, deep
+    locked liquidity and broad KOL participation is no longer controlled by
+    the launch allocation in the same way. This exception never overrides
+    wash trading, insider/dev concentration, live authorities or a rug verdict.
+    """
+    section = settings.section("journal")
+    if not bool(section.get("allow_redistributed_launch_bundles", True)):
+        return False
+    token = candidate.token
+    report = candidate.safety
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    age = candidate.signals.age_hours
+    if age is None:
+        return False
+    return bool(
+        age >= float(section.get("bundle_redistribution_min_age_hours", 72) or 72)
+        and (report.holder_count or 0) >= int(section.get("bundle_redistribution_min_holders", 5_000) or 5_000)
+        and report.top10_pct is not None
+        and report.top10_pct <= float(section.get("bundle_redistribution_max_top10_pct", 20) or 20)
+        and report.lp_locked_or_burned_pct is not None
+        and report.lp_locked_or_burned_pct >= float(section.get("bundle_redistribution_min_lp_pct", 90) or 90)
+        and int(gmgn.get("kolCount") or 0) >= int(section.get("bundle_redistribution_min_kol", 5) or 5)
+        and float(gmgn.get("insiderRate") or 0) <= float(section.get("bundle_redistribution_max_insider_rate", 0.05) or 0.05)
+        and float(gmgn.get("devTeamHoldRate") or 0) <= float(section.get("bundle_redistribution_max_dev_rate", 0.05) or 0.05)
+        and token.liquidity_usd >= float(section.get("bundle_redistribution_min_liquidity", 100_000) or 100_000)
+        and token.volume_24h >= float(section.get("bundle_redistribution_min_volume_24h", 1_000_000) or 1_000_000)
+    )
 
 
 def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
@@ -280,6 +352,13 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
 
     if report.rugged:
         reasons.append("RugCheck has already marked this token as rugged")
+    gmgn_honeypot = gmgn.get("isHoneypot")
+    if (
+        gmgn_honeypot is True
+        or gmgn_honeypot == 1
+        or str(gmgn_honeypot or "").strip().lower() in {"true", "yes"}
+    ):
+        reasons.append("GMGN marks the contract as a honeypot")
     if report.mint_authority_renounced is False or enrichment.mint_authority_renounced is False:
         reasons.append("mint authority still live, supply can be inflated")
     if report.freeze_authority_disabled is False or enrichment.freeze_authority_disabled is False:
@@ -295,8 +374,11 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     ):
         reasons.append("liquidity neither locked nor burned, it can be pulled")
     bundle_pct = float(section.get("bundle_top10_pct", 50))
-    if report.top10_pct is not None and report.top10_pct > bundle_pct:
-        reasons.append(f"bundled supply, top 10 circulating wallets hold {report.top10_pct:.0f}%")
+    effective_top10 = report.top10_pct
+    if effective_top10 is None and gmgn.get("top10Pct") is not None:
+        effective_top10 = float(gmgn["top10Pct"])
+    if effective_top10 is not None and effective_top10 > bundle_pct:
+        reasons.append(f"bundled supply, top 10 circulating wallets hold {effective_top10:.0f}%")
 
     # GMGN sees launch-specific manipulation that a contract audit cannot:
     # bundled buys, insider flow and coordinated wash volume. These are direct
@@ -306,19 +388,15 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
         reasons.append("GMGN detected wash trading")
 
     max_fee = float(section.get("max_total_fee_pct", 0) or 0)
-    total_fee = float(gmgn.get("totalFee") or 0)
-    trade_fee = float(gmgn.get("tradeFee") or 0)
+    transfer_tax = transfer_tax_pct(gmgn)
     fee_chains = {
         str(chain).strip().lower()
         for chain in (section.get("fee_check_chains", []) or [])
     }
-    fee_is_percentage = (
-        candidate.token.chain_id.lower() in fee_chains
-        and 0 < max(total_fee, trade_fee) <= 50
-    )
-    if max_fee and fee_is_percentage and max(total_fee, trade_fee) >= max_fee:
+    fee_is_percentage = candidate.token.chain_id.lower() in fee_chains and transfer_tax is not None
+    if max_fee and fee_is_percentage and transfer_tax > max_fee:
         reasons.append(
-            f"taxed token: {max(total_fee, trade_fee):.1f}% is taken on every trade"
+            f"taxed token: {transfer_tax:.1f}% is taken on every trade"
         )
     for field, label, setting, default in (
         ("bundlerRate", "GMGN bundled launch flow", "gmgn_max_bundler_rate", 0.30),
@@ -328,6 +406,8 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
         value = gmgn.get(field)
         ceiling = float(section.get(setting, default) or default)
         if value is not None and float(value) > ceiling:
+            if field == "bundlerRate" and redistributed_launch_bundle(candidate, settings):
+                continue
             reasons.append(f"{label} is {float(value):.0%}, above {ceiling:.0%}")
     for flag in report.risk_flags:
         lowered = flag.lower()
@@ -633,7 +713,12 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
         )
 
     min_holders = int(_floor(section, "min_holders", 200, fresh=publisher_is_fresh(candidate, settings)))
-    holders = candidate.safety.holder_count
+    # Helius/GMGN holder counts are full-chain counts. Some contract-security
+    # providers return a partial sample; using that smaller number made a
+    # 1,300-holder runner look like it had only 104 holders. The engine already
+    # applies source precedence, and enrichment carries the authoritative count
+    # as a final guard for candidates reconstructed from old snapshots.
+    holders = candidate.enrichment.holder_count or candidate.safety.holder_count
     # Zero means the source had no figure. A coin with genuinely no holders
     # cannot trade, so a zero here is always missing data.
     if holders:
@@ -751,6 +836,17 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
     gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     labels: list[str] = []
 
+    bundler_rate = gmgn.get("bundlerRate")
+    bundler_ceiling = float(section.get("gmgn_max_bundler_rate", 0.30) or 0.30)
+    if (
+        bundler_rate is not None
+        and float(bundler_rate) > bundler_ceiling
+        and redistributed_launch_bundle(candidate, settings)
+    ):
+        labels.append(
+            f"{float(bundler_rate):.0%} launch bundle; current holders and concentration show redistribution"
+        )
+
     caution_pct = float(section.get("caution_top10_pct", 25))
     if report.top10_pct is not None and report.top10_pct > caution_pct:
         labels.append(f"top 10 hold {report.top10_pct:.0f}%")
@@ -758,13 +854,14 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
         labels.append("concentration unknown")
     if report.lp_locked_or_burned_pct is None:
         labels.append("LP lock unknown")
-    total_fee = float(gmgn.get("totalFee") or 0)
+    transfer_tax = transfer_tax_pct(gmgn)
     fee_chains = {str(c).strip().lower() for c in (section.get("fee_check_chains", []) or [])}
     if (
         token.chain_id.lower() in fee_chains
-        and float(section.get("caution_total_fee_pct", 1) or 1) <= total_fee <= 50
+        and transfer_tax is not None
+        and float(section.get("caution_total_fee_pct", 1) or 1) <= transfer_tax <= 50
     ):
-        labels.append(f"{total_fee:.1f}% tax on every trade")
+        labels.append(f"{transfer_tax:.1f}% tax on every trade")
     ratio = token.volume_24h / token.liquidity_usd if token.liquidity_usd else float("inf")
     if ratio > float(section.get("thin_liquidity_ratio", 60)):
         labels.append(f"thin pool, {ratio:.0f}x its liquidity traded")

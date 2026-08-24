@@ -15,6 +15,32 @@ from brief.models import Brief, Candidate
 from brief.render.qr import qr_matrix, trade_url
 
 
+GMGN_CHAIN_PATH = {
+    "solana": "sol",
+    "bsc": "bsc",
+    "base": "base",
+    "ethereum": "eth",
+    "robinhood": "robinhood",
+}
+
+
+def _source_links(candidate: Candidate) -> list[dict[str, str]]:
+    token = candidate.token
+    chain = token.chain_id.lower()
+    chart_url = token.url
+    if "dexscreener.com/" not in chart_url.lower():
+        chart_url = f"https://dexscreener.com/{chain}/{token.pair_address or token.mint}"
+    links = [{"label": "Dexscreener", "url": chart_url}]
+    gmgn_chain = GMGN_CHAIN_PATH.get(chain)
+    if gmgn_chain:
+        links.append({"label": "GMGN", "url": f"https://gmgn.ai/{gmgn_chain}/token/{token.mint}"})
+    # The requested Bubblemaps deep link is Solana-specific. Publishing it for
+    # EVM addresses created a plausible-looking but wrong destination.
+    if chain == "solana":
+        links.append({"label": "Bubblemaps", "url": f"https://app.bubblemaps.io/sol/token/{token.mint}"})
+    return links
+
+
 def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]:
     token = candidate.token
     signal = candidate.signals
@@ -22,7 +48,7 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "symbol": token.symbol,
         "name": token.name,
         "mint": token.mint,
-        "url": token.url,
+        "url": _source_links(candidate)[0]["url"],
         "chain": token.chain_id,
         "dex": token.dex_id,
         "marketCap": token.market_cap,
@@ -50,6 +76,11 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "top10Pct": candidate.safety.top10_pct,
         "holders": candidate.safety.holder_count,
         "lpLockedPct": candidate.safety.lp_locked_or_burned_pct,
+        "safetySource": candidate.safety.source,
+        "mintAuthorityRenounced": candidate.safety.mint_authority_renounced,
+        "freezeAuthorityDisabled": candidate.safety.freeze_authority_disabled,
+        "securityFlags": candidate.safety.risk_flags,
+        "rugged": candidate.safety.rugged,
         "riskLabels": candidate.risk_labels,
         "lore": candidate.lore,
         "loreIsFresh": candidate.lore_is_fresh,
@@ -107,9 +138,7 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "providerEvidence": candidate.provider_evidence,
         "lifecycleEvents": candidate.lifecycle_events,
         "sources": [
-            {"label": "Dexscreener", "url": token.url},
-            {"label": "GMGN", "url": f"https://gmgn.ai/sol/token/{token.mint}"},
-            {"label": "Bubblemaps", "url": f"https://app.bubblemaps.io/sol/token/{token.mint}"},
+            *_source_links(candidate),
             *[
                 {"label": item.get("source") or "News", "url": item.get("url")}
                 for item in candidate.news_evidence if item.get("url")

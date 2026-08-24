@@ -292,16 +292,22 @@ class OpenIntelSource:
         """
         if not self.configured or not accounts:
             return 0, []
-        by_ticker: dict[str, Candidate] = {}
+        ticker_candidates: dict[str, list[Candidate]] = {}
         by_mint: dict[str, Candidate] = {}
         for candidate in candidates:
             symbol = str(candidate.token.symbol or "").strip().lower()
             if symbol:
-                by_ticker.setdefault(symbol, candidate)
+                ticker_candidates.setdefault(symbol, []).append(candidate)
             mint = str(candidate.token.mint or "").strip().lower()
             if mint:
                 by_mint[mint] = candidate
 
+        # A ticker is not an identity. Reused meme tickers are common; only a
+        # unique ticker can be matched without an exact contract address.
+        by_ticker = {
+            symbol: rows[0] for symbol, rows in ticker_candidates.items()
+            if len(rows) == 1
+        }
         matched = 0
         failures: list[str] = []
         for index, handle in enumerate(accounts):
@@ -326,7 +332,19 @@ class OpenIntelSource:
                     },
                 )
             except Exception as exc:
-                failures.append(f"{handle}: {str(exc)[:60]}")
+                detail = str(exc)
+                failures.append(f"{handle}: {detail[:60]}")
+                # Authentication and quota failures apply to the account/API
+                # token, not to an individual X handle.  Continuing through a
+                # 100-account watchlist only repeats the same permanent error
+                # (and used to delay the daily email by several minutes).
+                if any(f"HTTP {status}" in detail for status in (401, 402, 403)):
+                    failures.extend(
+                        f"{str(rest).strip().lstrip('@')}: provider unavailable"
+                        for rest in accounts[index + 1:]
+                        if str(rest).strip()
+                    )
+                    break
                 continue
 
             for row in _items(payload):
@@ -382,6 +400,11 @@ class OpenIntelSource:
         news_available = True
         twitter_available = True
         rate_limited = 0
+        symbol_counts: dict[str, int] = {}
+        for candidate in candidates:
+            symbol = str(candidate.token.symbol or "").strip().casefold()
+            if symbol:
+                symbol_counts[symbol] = symbol_counts.get(symbol, 0) + 1
         for index, candidate in enumerate(candidates[:limit]):
             if index and self.pause_seconds:
                 await asyncio.sleep(self.pause_seconds)
@@ -408,7 +431,11 @@ class OpenIntelSource:
                 )
                 for row in _items(news_payload):
                     searchable = " ".join(str(row.get(key) or "") for key in ("title", "text", "summary_en", "link"))
-                    if token.mint not in searchable and f"${token.symbol}".lower() not in searchable.lower():
+                    ticker_match = (
+                        symbol_counts.get(str(token.symbol).strip().casefold(), 0) == 1
+                        and f"${token.symbol}".lower() in searchable.lower()
+                    )
+                    if token.mint not in searchable and not ticker_match:
                         continue
                     published = _dt(row.get("ts") or row.get("published_at") or row.get("createdAt"))
                     if published and (published > now or (now - published).total_seconds() > 30 * 3600):
@@ -454,7 +481,11 @@ class OpenIntelSource:
                 )
                 for row in _items(twitter_payload):
                     post_text = str(row.get("text") or row.get("content") or "")
-                    if token.mint not in post_text and f"${token.symbol}".lower() not in post_text.lower():
+                    ticker_match = (
+                        symbol_counts.get(str(token.symbol).strip().casefold(), 0) == 1
+                        and f"${token.symbol}".lower() in post_text.lower()
+                    )
+                    if token.mint not in post_text and not ticker_match:
                         continue
                     created = _dt(row.get("createdAt") or row.get("created_at"))
                     if created and (created > now or (now - created).total_seconds() > 30 * 3600):

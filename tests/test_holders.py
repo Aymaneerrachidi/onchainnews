@@ -8,6 +8,7 @@ from brief.holders import analyze_changes, build_snapshot, collapse_clusters, gi
 from brief.ledger import Ledger
 from brief.models import HolderBalance, TokenSnapshot, WalletTrace
 from brief.sources.helius import HeliusSource, parse_acquisition, parse_wallet_trace
+from brief.sources.http import SourceError
 
 
 UTC = timezone.utc
@@ -41,6 +42,25 @@ async def test_helius_holder_pagination_aggregation_and_exclusions():
     )
     assert [(item.owner, item.amount) for item in balances] == [("OWNER1", 15), ("OWNER2", 7)]
     assert excluded == 1
+
+
+@pytest.mark.asyncio
+async def test_helius_opens_run_circuit_after_first_rate_limit():
+    class LimitedHttp:
+        def __init__(self):
+            self.calls = 0
+
+        async def post_json(self, *_args, **_kwargs):
+            self.calls += 1
+            raise SourceError("helius failed after 1 attempt: HTTP 429")
+
+    http = LimitedHttp()
+    source = HeliusSource(http, "https://helius.test", "key", 60)
+    with pytest.raises(SourceError, match="HTTP 429"):
+        await source.enrich("FIRST")
+    with pytest.raises(SourceError, match="circuit open"):
+        await source.enrich("SECOND")
+    assert http.calls == 1
 
 
 def test_gini_and_snapshot_concentration():

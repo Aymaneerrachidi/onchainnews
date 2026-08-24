@@ -180,6 +180,97 @@ def test_daily_email_does_not_truncate_the_24_hour_runner_ledger(tmp_path):
         assert f"$DAY{index}" in body
 
 
+def test_zero_newsletter_cap_publishes_every_verified_runner(tmp_path):
+    from brief.models import Brief, Scorecard
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    settings.values.setdefault("newsletter", {})["max_coins"] = 0
+    runners = []
+    for index in range(47):
+        candidate = _tape(
+            f"ALL{index}", mcap=300_000 + index * 10_000,
+            vol24=800_000, vol6=250_000, liq=60_000,
+            trades6=1_200, buys6=650,
+        )
+        candidate.token.mint = f"MINT{index:04d}".ljust(32, "X")
+        candidate.run_multiple = 2.0
+        runners.append(candidate)
+    brief = Brief(
+        generated_at=NOW, scorecard=Scorecard(), metas=[], new_and_moving=[],
+        ctos=[], follow_ups=[], onchain=[], excluded=[], source_statuses=[],
+        runners=runners, blocked_runners=[],
+        recap={"all": [{"mint": candidate.token.mint} for candidate in runners]},
+    )
+
+    body = render_email(brief, settings)
+
+    for index in range(47):
+        assert f"$ALL{index}" in body
+
+
+def test_written_recap_and_renderer_share_mint_identity_and_limit(tmp_path):
+    from brief.models import Brief, Scorecard
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    settings.values.setdefault("newsletter", {})["max_coins"] = 2
+    settings.values.setdefault("delivery", {})["newsletter_observed_limit"] = 1
+    first = _tape(
+        "SAME", mcap=900_000, vol24=1_000_000, vol6=300_000,
+        liq=90_000, trades6=1_200, buys6=650,
+    )
+    second = _tape(
+        "SAME", mcap=800_000, vol24=900_000, vol6=280_000,
+        liq=80_000, trades6=1_100, buys6=600,
+    )
+    second.token.mint = "B" * 32
+    brief = Brief(
+        generated_at=NOW, scorecard=Scorecard(), metas=[], new_and_moving=[],
+        ctos=[], follow_ups=[], onchain=[], excluded=[], source_statuses=[],
+        runners=[first, second], blocked_runners=[],
+        recap={"all": [{"mint": first.token.mint}, {"mint": second.token.mint}]},
+        narrative={"sections": [{"title": "Two runners", "coins": [
+            {"mint": first.token.mint, "symbol": "SAME", "line": "first mint"},
+            {"mint": second.token.mint, "symbol": "SAME", "line": "second mint"},
+        ], "bullets": []}]},
+    )
+
+    body = render_email(brief, settings)
+
+    assert first.token.mint in body
+    assert second.token.mint in body
+
+
+def test_daily_email_refuses_unapproved_narrative_coin(tmp_path):
+    from brief.models import Brief, Scorecard
+    from brief.render.email import NewsletterIntegrityError
+    from tests.test_tracks import _tape
+
+    settings = build_settings(tmp_path)
+    approved = _tape(
+        "GOOD", mcap=900_000, vol24=1_000_000, vol6=300_000,
+        liq=90_000, trades6=1_200, buys6=650,
+    )
+    blocked = _tape(
+        "BAD", mcap=2_000_000, vol24=3_000_000, vol6=900_000,
+        liq=100_000, trades6=2_000, buys6=1_100,
+    )
+    brief = Brief(
+        generated_at=NOW, scorecard=Scorecard(), metas=[], new_and_moving=[],
+        ctos=[], follow_ups=[], onchain=[], excluded=[], source_statuses=[],
+        runners=[approved], blocked_runners=[blocked],
+        recap={"all": [{"mint": approved.token.mint}, {"mint": blocked.token.mint}]},
+        narrative={"sections": [{"title": "Bad merge", "coins": [
+            {"mint": approved.token.mint, "symbol": "GOOD", "line": "approved"},
+            {"mint": blocked.token.mint, "symbol": "BAD", "line": "blocked"},
+        ], "bullets": []}]},
+    )
+
+    with pytest.raises(NewsletterIntegrityError, match="unresolved narrative coin"):
+        render_email(brief, settings)
+
+
 def test_email_recaps_observed_movers_with_caveats(tmp_path):
     """The newsletter is a recap, not only the clean gate output."""
     from brief.models import Brief, Enrichment, SafetyReport, Scorecard

@@ -24,6 +24,7 @@ from brief.config import Settings
 from brief.journal import kol_trade_count
 from brief.links import fomo_token_url
 from brief.models import Brief, Candidate
+from brief.preflight import DeliveryProof
 from brief.render.email import _candidate_tier, _usable_lore, peak_cap
 from brief.render.formatting import money
 
@@ -197,7 +198,13 @@ def build_payload(brief: Brief, settings: Settings) -> dict[str, Any] | None:
     }
 
 
-async def send_discord(brief: Brief, settings: Settings, *, transport=None) -> bool:
+async def send_discord(
+    brief: Brief,
+    settings: Settings,
+    *,
+    audit: DeliveryProof | None = None,
+    transport=None,
+) -> bool:
     """Post the recap; False when it is switched off or unconfigured.
 
     Failures propagate. The caller in main.py catches them so a chat post can
@@ -205,6 +212,8 @@ async def send_discord(brief: Brief, settings: Settings, *, transport=None) -> b
     """
     if not bool(settings.get("delivery", "discord_enabled", False)):
         return False
+    if bool(settings.get("delivery", "require_preflight", False)) and audit is None:
+        raise RuntimeError("delivery blocked: a passing runner preflight is required")
     urls = webhook_urls()
     if not urls:
         return False

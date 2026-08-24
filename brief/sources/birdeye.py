@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Any
 
 from brief.models import number
@@ -39,7 +40,7 @@ class BirdeyeSource:
     the question is "what is strongest today". Birdeye ranks every token with
     real liquidity by 24h volume, which is the pool the movers track needs.
 
-    Only `sort_by=v24hUSD` is used. Sorting by market cap returns tokens with
+    Only `sort_by=volume_24h_usd` is used. Sorting by market cap returns tokens with
     fabricated supply (observed at $108 trillion), and `v24hChangePercent` is a
     change in volume rather than price.
     """
@@ -59,10 +60,16 @@ class BirdeyeSource:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.ttl = ttl
-        self.page_size = max(1, min(50, page_size))
+        self.page_size = max(1, min(100, page_size))
         self.chain = "solana"
         self.requests_per_minute = requests_per_minute
         self.request_interval = max(0.0, request_interval)
+        # One source instance is reused while discovery walks every configured
+        # chain.  Keep the pacing state on that instance so the first page of a
+        # new chain cannot burst immediately after the last page of the prior
+        # chain and exhaust Birdeye's free-tier lane.
+        self._request_lock = asyncio.Lock()
+        self._last_request_at = 0.0
 
     @property
     def configured(self) -> bool:
@@ -72,6 +79,16 @@ class BirdeyeSource:
         # The key travels as a header, so it never reaches the archived request
         # parameters or the request log line.
         return {"X-API-KEY": str(self.api_key), "x-chain": self.chain, "accept": "application/json"}
+
+    async def _wait_for_request_slot(self) -> None:
+        """Space all Birdeye requests, including transitions between chains."""
+        async with self._request_lock:
+            if self.request_interval and self._last_request_at:
+                elapsed = time.monotonic() - self._last_request_at
+                remaining = self.request_interval - elapsed
+                if remaining > 0:
+                    await asyncio.sleep(remaining)
+            self._last_request_at = time.monotonic()
 
     @staticmethod
     def _tokens(payload: Any) -> list[dict[str, Any]]:
@@ -97,25 +114,24 @@ class BirdeyeSource:
             return []
         found: list[str] = []
         seen: set[str] = set()
-        for index, offset in enumerate(range(0, max(0, max_tokens), self.page_size)):
-            if index and self.request_interval:
-                # The free tier allows roughly one request per second. The
-                # per-minute limiter permits a burst inside the minute, which
-                # earns a run of 429s, so pages are spaced explicitly.
-                await asyncio.sleep(self.request_interval)
+        for offset in range(0, max(0, max_tokens), self.page_size):
+            # The per-minute limiter permits short bursts. Explicit spacing is
+            # still required, and must cover chain boundaries as well as pages.
+            await self._wait_for_request_slot()
             try:
                 payload = await self.http.get_json(
-                    f"{self.base_url}/defi/tokenlist",
+                    f"{self.base_url}/defi/v3/token/list",
                     family="birdeye",
                     limit=self.requests_per_minute,
                     ttl=self.ttl,
                     headers=self._headers(),
                     params={
-                        "sort_by": "v24hUSD",
+                        "sort_by": "volume_24h_usd",
                         "sort_type": "desc",
                         "offset": offset,
                         "limit": self.page_size,
                         "min_liquidity": int(min_liquidity),
+                        "min_market_cap": int(min_market_cap),
                     },
                 )
             except Exception as exc:
@@ -133,7 +149,7 @@ class BirdeyeSource:
                 seen.add(address)
                 if number(item.get("liquidity")) < min_liquidity:
                     continue
-                if number(item.get("mc")) < min_market_cap:
+                if number(item.get("market_cap") if item.get("market_cap") is not None else item.get("mc")) < min_market_cap:
                     continue
                 found.append(address)
             # When the provider rejects an offset the cache can legally return

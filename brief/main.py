@@ -19,6 +19,8 @@ from brief.interface import serve_interface
 from brief.ledger import open_ledger
 from brief.launch_collector import run_launch_collector
 from brief.pulse import load_state, run_pulse, save_state
+from brief.preflight import DeliveryPreflightError, audit_brief, delivery_candidates
+from brief.recheck import refresh_delivery_evidence
 from brief.render.email import email_subject, pulse_email_subject, render_email, render_pulse_email
 from brief.render.html import render_html
 from brief.render.payload import build_payload
@@ -35,6 +37,7 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("--dry-run", action="store_true", help="do not update feature/return history")
     run.add_argument("--no-telegram", action="store_true", help="skip Telegram even when configured")
     run.add_argument("--no-email", action="store_true", help="skip email even when configured")
+    run.add_argument("--no-discord", action="store_true", help="skip Discord even when configured")
     sub.add_parser("status", help="show ledger statistics")
     sub.add_parser("providers", help="show persisted provider health and circuit state")
     prune = sub.add_parser("prune", help="delete archived HTTP bodies older than the retention window")
@@ -88,6 +91,29 @@ async def run(args: argparse.Namespace) -> int:
     try:
         brief = await build_brief(settings, ledger, commit=not args.dry_run)
         render_terminal(brief, console)
+        outbound_requested = any((
+            telegram_enabled,
+            bool(settings.get("delivery", "email_enabled", False)) and not args.no_email,
+            bool(settings.get("delivery", "discord_enabled", False)) and not args.no_discord,
+        ))
+        delivery_audit = None
+        if outbound_requested and bool(settings.get("delivery", "require_preflight", False)):
+            try:
+                brief.source_statuses.extend(await refresh_delivery_evidence(
+                    delivery_candidates(brief), settings, ledger,
+                ))
+                delivery_audit = audit_brief(brief, settings)
+            except DeliveryPreflightError as exc:
+                # Do not route this through the outer failure handler: that
+                # handler can itself send Telegram, while a failed safety audit
+                # must produce no outbound message at all.
+                logging.getLogger("brief.preflight").error("%s", exc)
+                console.print(f"[bold red]{exc}[/bold red]")
+                console.print("[yellow]No web snapshot, email, Telegram or Discord message was sent.[/yellow]")
+                return 1
+            console.print(
+                f"[dim]Delivery preflight passed for {delivery_audit.candidate_count} exact contract(s).[/dim]"
+            )
         if settings.get("delivery", "html_enabled", True):
             html_path = settings.path("run", "html_path")
             write_html(html_path, render_html(brief))
@@ -126,22 +152,29 @@ async def run(args: argparse.Namespace) -> int:
                 console.print(f"[yellow]Email enabled but {required_key}/email_to unset; skipping delivery.[/yellow]")
             else:
                 try:
-                    count = await send_email(settings, email_subject(brief, settings), render_email(brief, settings))
+                    count = await send_email(
+                        settings,
+                        email_subject(brief, settings),
+                        render_email(brief, settings),
+                        audit=delivery_audit,
+                    )
                     console.print(f"[dim]Email digest delivered ({count} recipient(s)).[/dim]")
                 except EmailDeliveryError as exc:
                     # The public report is already rendered. Keep web publishing
                     # independent from a temporary email/API failure.
                     logging.getLogger("brief.delivery").error("Email delivery failed: %s", exc)
                     console.print("[yellow]Email delivery failed; the web report will still publish.[/yellow]")
-        if settings.get("delivery", "discord_enabled", False):
+        if settings.get("delivery", "discord_enabled", False) and not args.no_discord:
             try:
-                if await send_discord(brief, settings):
+                if await send_discord(brief, settings, audit=delivery_audit):
                     console.print("[dim]Discord recap posted.[/dim]")
                 else:
                     console.print("[dim]Discord enabled but DISCORD_WEBHOOK_URL unset; skipping.[/dim]")
             except Exception as exc:  # a chat post must never cost the report
                 logging.getLogger("brief.delivery").error("Discord post failed: %s", exc)
                 console.print("[yellow]Discord post failed; the report is unaffected.[/yellow]")
+        elif args.no_discord:
+            console.print("[dim]Discord disabled for this run by --no-discord.[/dim]")
         return 0
     except Exception as exc:
         logging.getLogger("brief").exception("Daily brief failed")
@@ -340,6 +373,7 @@ async def pulse(args: argparse.Namespace) -> int:
                         settings,
                         pulse_email_subject(items, settings),
                         render_pulse_email(items, settings, generated_at),
+                        audit=result.audit,
                     )
                     console.print(f"[dim]Hourly runner alert delivered ({count} recipient(s)).[/dim]")
                 except EmailDeliveryError as exc:

@@ -60,8 +60,14 @@ class Ledger:
     def __init__(self, path: str | Path, *, compress_archive: bool = True) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(self.path)
+        # The launch collector, hourly pulse, interface and morning report are
+        # intentionally separate processes sharing this database. WAL permits
+        # that, but SQLite's short default busy timeout still surfaced transient
+        # writer overlap as lost provider evidence. Wait for the active writer
+        # instead of dropping the token currently being enriched.
+        self.db = sqlite3.connect(self.path, timeout=30.0)
         self.db.row_factory = sqlite3.Row
+        self.db.execute("PRAGMA busy_timeout=30000")
         self.compress_archive = compress_archive
         self._migrate()
 

@@ -19,6 +19,8 @@ from brief.delivery import TelegramDeliveryError, send_telegram, write_html
 from brief.engine import build_brief
 from brief.ledger import Ledger
 from brief.models import Brief, Candidate
+from brief.preflight import DeliveryProof, audit_candidates
+from brief.recheck import refresh_delivery_evidence
 from brief.openai_images import OpenAIImageError, configured as openai_image_configured, generate_runner_background
 from brief.render.formatting import money, pct
 from brief.render.payload import build_payload
@@ -43,6 +45,7 @@ class PulseResult:
     triggers: list[PulseTrigger]
     state_path: Path
     latest_written: Path | None = None
+    audit: DeliveryProof | None = None
 
 
 def _iso(value: datetime) -> str:
@@ -809,11 +812,6 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
         if helius_key is not None:
             os.environ["HELIUS_API_KEY"] = helius_key
 
-    latest_written = None
-    if bool(settings.get("pulse", "write_latest_json", True)) and settings.get("run", "json_path"):
-        latest_written = settings.path("run", "json_path")
-        write_html(latest_written, json.dumps(build_payload(brief, settings), indent=1))
-
     state_path = _state_path(settings)
     state = load_state(state_path)
     manually_excluded_mints = {
@@ -853,6 +851,20 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
             }
             if mint not in active and (mint.startswith("0x") or (known_chains and not known_chains <= allowed_chains)):
                 passes.pop(mint, None)
+
+    delivery_audit = None
+    if bool(settings.get("delivery", "require_preflight", False)):
+        # This runs before state claims, image generation, X, Telegram, email,
+        # or the public JSON write. One incomplete coin blocks the entire pulse.
+        brief.source_statuses.extend(await refresh_delivery_evidence(
+            brief.runners, settings, ledger,
+        ))
+        delivery_audit = audit_candidates(brief.runners, settings)
+
+    latest_written = None
+    if bool(settings.get("pulse", "write_latest_json", True)) and settings.get("run", "json_path"):
+        latest_written = settings.path("run", "json_path")
+        write_html(latest_written, json.dumps(build_payload(brief, settings), indent=1))
     triggered = record_runner_passes(
         state,
         brief.runners,
@@ -899,4 +911,4 @@ async def run_pulse(settings: Settings, ledger: Ledger, *, now: datetime | None 
             await send_telegram(["RUNNER PULSE\n" + "\n".join(telegram_lines)])
         except TelegramDeliveryError as exc:
             log.warning("pulse_telegram_failed error=%s", exc)
-    return PulseResult(len(brief.runners), triggers, state_path, latest_written)
+    return PulseResult(len(brief.runners), triggers, state_path, latest_written, delivery_audit)
