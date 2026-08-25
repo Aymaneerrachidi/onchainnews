@@ -4,6 +4,7 @@ import hashlib
 import json
 import sqlite3
 import math
+import time
 import zlib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -70,6 +71,27 @@ class Ledger:
         self.db.execute("PRAGMA busy_timeout=30000")
         self.compress_archive = compress_archive
         self._migrate()
+
+    def _write_retry(self, operation, *, attempts: int = 8):
+        """Run one atomic write unit, retrying transient SQLite contention.
+
+        The collector, interface and report runner are separate processes that
+        intentionally share this WAL database.  A busy timeout handles ordinary
+        overlap, but a continuously active writer can still win the lock again
+        immediately after the timeout.  Roll back the local connection before
+        retrying so one failed write never poisons every later write in the run.
+        """
+        delay = 0.05
+        for attempt in range(attempts):
+            try:
+                with self.db:
+                    return operation()
+            except sqlite3.OperationalError as exc:
+                self.db.rollback()
+                if "locked" not in str(exc).lower() or attempt + 1 >= attempts:
+                    raise
+                time.sleep(delay)
+                delay = min(delay * 2, 1.0)
 
     def close(self) -> None:
         self.db.close()
@@ -370,24 +392,26 @@ class Ledger:
         circuit_open_until: datetime | None = None,
     ) -> None:
         stamp = iso(now)
-        if ok:
-            self.db.execute(
-                """INSERT INTO provider_health(provider,last_success,consecutive_failures,circuit_open_until,detail)
-                   VALUES(?,?,0,NULL,?)
-                   ON CONFLICT(provider) DO UPDATE SET last_success=excluded.last_success,
-                   consecutive_failures=0,circuit_open_until=NULL,detail=excluded.detail""",
-                (provider, stamp, detail),
-            )
-        else:
-            self.db.execute(
-                """INSERT INTO provider_health(provider,last_failure,consecutive_failures,circuit_open_until,detail)
-                   VALUES(?,?,1,?,?)
-                   ON CONFLICT(provider) DO UPDATE SET last_failure=excluded.last_failure,
-                   consecutive_failures=provider_health.consecutive_failures+1,
-                   circuit_open_until=excluded.circuit_open_until,detail=excluded.detail""",
-                (provider, stamp, iso(circuit_open_until) if circuit_open_until else None, detail),
-            )
-        self.db.commit()
+        def write() -> None:
+            if ok:
+                self.db.execute(
+                    """INSERT INTO provider_health(provider,last_success,consecutive_failures,circuit_open_until,detail)
+                       VALUES(?,?,0,NULL,?)
+                       ON CONFLICT(provider) DO UPDATE SET last_success=excluded.last_success,
+                       consecutive_failures=0,circuit_open_until=NULL,detail=excluded.detail""",
+                    (provider, stamp, detail),
+                )
+            else:
+                self.db.execute(
+                    """INSERT INTO provider_health(provider,last_failure,consecutive_failures,circuit_open_until,detail)
+                       VALUES(?,?,1,?,?)
+                       ON CONFLICT(provider) DO UPDATE SET last_failure=excluded.last_failure,
+                       consecutive_failures=provider_health.consecutive_failures+1,
+                       circuit_open_until=excluded.circuit_open_until,detail=excluded.detail""",
+                    (provider, stamp, iso(circuit_open_until) if circuit_open_until else None, detail),
+                )
+
+        self._write_retry(write)
 
     def provider_state(self, provider: str) -> sqlite3.Row | None:
         return self.db.execute(
@@ -569,12 +593,14 @@ class Ledger:
         return json.loads(row["payload"])
 
     def cache_put(self, key: str, payload: Any) -> None:
-        self.db.execute(
-            "INSERT INTO api_cache(cache_key, fetched_at, payload) VALUES (?, ?, ?) "
-            "ON CONFLICT(cache_key) DO UPDATE SET fetched_at=excluded.fetched_at, payload=excluded.payload",
-            (key, iso(datetime.now(UTC)), json.dumps(payload, separators=(",", ":"))),
-        )
-        self.db.commit()
+        def write() -> None:
+            self.db.execute(
+                "INSERT INTO api_cache(cache_key, fetched_at, payload) VALUES (?, ?, ?) "
+                "ON CONFLICT(cache_key) DO UPDATE SET fetched_at=excluded.fetched_at, payload=excluded.payload",
+                (key, iso(datetime.now(UTC)), json.dumps(payload, separators=(",", ":"))),
+            )
+
+        self._write_retry(write)
 
     def feature_state(self, mint: str) -> sqlite3.Row | None:
         return self.db.execute("SELECT * FROM featured WHERE mint = ?", (mint,)).fetchone()
@@ -612,7 +638,7 @@ class Ledger:
 
     def record_holder_snapshot(self, snapshot: HolderSnapshot, *, price_usd: float | None, market_cap: float | None, pair_created_at: datetime | None) -> None:
         stamp = iso(snapshot.taken_at)
-        with self.db:
+        def write() -> None:
             self.db.execute(
                 "INSERT OR REPLACE INTO snapshots(mint,taken_at,holder_count,top10_pct,top50_pct,gini) VALUES(?,?,?,?,?,?)",
                 (snapshot.mint, stamp, snapshot.holder_count, snapshot.top10_pct, snapshot.top50_pct, snapshot.gini),
@@ -626,6 +652,8 @@ class Ledger:
                 "INSERT INTO balances(mint,taken_at,owner,amount) VALUES(?,?,?,?)",
                 ((snapshot.mint, stamp, balance.owner, balance.amount) for balance in snapshot.balances),
             )
+
+        self._write_retry(write)
 
     def snapshot_at_or_before(self, mint: str, when: datetime, *, exclude_taken_at: str | None = None) -> sqlite3.Row | None:
         query = """SELECT s.*,c.price_usd,c.market_cap,c.total_amount,c.excluded_accounts,c.pair_created_at
@@ -645,11 +673,10 @@ class Ledger:
         }
 
     def record_cluster_snapshot(self, mint: str, taken_at: datetime, effective_top10_pct: float | None, cluster_count: int, coverage: int) -> None:
-        self.db.execute(
+        self._write_retry(lambda: self.db.execute(
             "INSERT OR REPLACE INTO snapshot_clusters(mint,taken_at,effective_top10_pct,cluster_count,coverage) VALUES(?,?,?,?,?)",
             (mint, iso(taken_at), effective_top10_pct, cluster_count, coverage),
-        )
-        self.db.commit()
+        ))
 
     def cluster_at_or_before(self, mint: str, when: datetime, *, exclude_taken_at: str | None = None) -> sqlite3.Row | None:
         query = "SELECT * FROM snapshot_clusters WHERE mint=? AND taken_at<=?"
@@ -672,11 +699,10 @@ class Ledger:
         )
 
     def save_wallet_trace(self, trace: WalletTrace, now: datetime) -> None:
-        self.db.execute(
+        self._write_retry(lambda: self.db.execute(
             "INSERT OR REPLACE INTO wallet_traces(owner,first_funder,first_funded_at,wallet_created_at,checked_at,complete) VALUES(?,?,?,?,?,?)",
             (trace.owner, trace.first_funder, iso(trace.first_funded_at) if trace.first_funded_at else None, iso(trace.wallet_created_at) if trace.wallet_created_at else None, iso(now), int(trace.complete)),
-        )
-        self.db.commit()
+        ))
 
     def acquisition_trace(self, mint: str, owner: str) -> AcquisitionTrace | None:
         row = self.db.execute("SELECT * FROM acquisition_traces WHERE mint=? AND owner=?", (mint, owner)).fetchone()
@@ -685,11 +711,10 @@ class Ledger:
         return AcquisitionTrace(mint, owner, datetime.fromisoformat(row["first_acquired_at"]) if row["first_acquired_at"] else None, row["initial_amount"])
 
     def save_acquisition_trace(self, trace: AcquisitionTrace, now: datetime) -> None:
-        self.db.execute(
+        self._write_retry(lambda: self.db.execute(
             "INSERT OR REPLACE INTO acquisition_traces(mint,owner,first_acquired_at,initial_amount,checked_at) VALUES(?,?,?,?,?)",
             (trace.mint, trace.owner, iso(trace.first_acquired_at) if trace.first_acquired_at else None, trace.initial_amount, iso(now)),
-        )
-        self.db.commit()
+        ))
 
     def archive_response(
         self,
@@ -707,16 +732,16 @@ class Ledger:
             key: value for key, value in (request_params or {}).items()
             if key.lower() not in {"api-key", "apikey", "key", "token"}
         }
-        self.db.execute(
-            "INSERT INTO raw_responses(captured_at,run_date,method,endpoint,request_params,request_body,status,response_body) VALUES(?,?,?,?,?,?,?,?)",
-            (
-                iso(captured_at), captured_at.date().isoformat(), method.upper(), endpoint,
-                json.dumps(safe_params, sort_keys=True),
-                json.dumps(request_body, sort_keys=True) if request_body is not None else None,
-                status, _pack(response_body) if self.compress_archive else response_body,
-            ),
+        values = (
+            iso(captured_at), captured_at.date().isoformat(), method.upper(), endpoint,
+            json.dumps(safe_params, sort_keys=True),
+            json.dumps(request_body, sort_keys=True) if request_body is not None else None,
+            status, _pack(response_body) if self.compress_archive else response_body,
         )
-        self.db.commit()
+        self._write_retry(lambda: self.db.execute(
+            "INSERT INTO raw_responses(captured_at,run_date,method,endpoint,request_params,request_body,status,response_body) VALUES(?,?,?,?,?,?,?,?)",
+            values,
+        ))
 
     def prune_archive(self, now: datetime, retention_days: int, *, vacuum: bool = False) -> int:
         """Drop archived HTTP bodies older than the replay window.

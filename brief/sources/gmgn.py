@@ -413,6 +413,15 @@ class GmgnSource:
             token_tags = [str(value) for value in (row.get("maker_token_tags") or [])]
             holding = number(row.get("balance") or row.get("amount_cur")) > 0
             suspicious = bool(row.get("is_suspicious")) or "wash_trader" in tags
+            # A renowned wallet can be sent tokens without ever choosing to
+            # trade them.  Those transfer-only rows are useful holder context,
+            # but they are not KOL confirmation for the public runner gate.
+            traded = bool(
+                number(row.get("buy_volume_cur")) > 0
+                or number(row.get("sell_volume_cur")) > 0
+                or integer(row.get("buy_tx_count_cur")) > 0
+                or integer(row.get("sell_tx_count_cur")) > 0
+            )
             traders.append({
                 "address": str(row.get("address") or ""),
                 "name": str(row.get("name") or row.get("twitter_username") or str(row.get("address") or "")[:8]),
@@ -426,13 +435,14 @@ class GmgnSource:
                 "unrealizedProfitUsd": number(row.get("unrealized_profit")),
                 "pnlPct": _ratio_pct(row.get("profit_change")),
                 "suspicious": suspicious,
+                "traded": traded,
                 "tags": tags,
                 "tokenTags": token_tags,
                 "startedAt": started.isoformat() if (started := _timestamp(row.get("start_holding_at"))) else None,
                 "endedAt": ended.isoformat() if (ended := _timestamp(row.get("end_holding_at"))) else None,
                 "lastActiveAt": active.isoformat() if (active := _timestamp(row.get("last_active_timestamp"))) else None,
             })
-        trusted = [row for row in traders if not row["suspicious"]]
+        trusted = [row for row in traders if not row["suspicious"] and row["traded"]]
         profitable = [row for row in trusted if row["profitUsd"] > 0]
         holding = [row for row in trusted if row["holding"]]
         return {

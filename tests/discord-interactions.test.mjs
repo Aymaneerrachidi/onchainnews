@@ -282,6 +282,14 @@ test("Discord rejects confirmed danger without treating missing legacy data as a
   assert.equal(securityEligible(safeRunner({ lpLockedPct: 0 })), false);
   assert.equal(securityEligible(safeRunner({ mintAuthorityRenounced: false })), false);
   assert.equal(securityEligible(safeRunner({
+    mintAuthorityRenounced: false,
+    freezeAuthorityDisabled: false,
+    riskLabels: [
+      "mint authority/contract mintability not confirmed disabled",
+      "freeze/pause/blacklist powers not confirmed disabled",
+    ],
+  })), true);
+  assert.equal(securityEligible(safeRunner({
     providerEvidence: { gmgn: { isHoneypot: 1 } },
   })), false);
   assert.equal(securityEligible(safeRunner({

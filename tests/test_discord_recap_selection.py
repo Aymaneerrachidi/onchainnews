@@ -270,6 +270,27 @@ def test_discord_result_always_includes_current_market_cap():
     assert "now $1.5M" in result
 
 
+def test_legacy_unknown_authority_labels_do_not_become_live_authorities():
+    row = {
+        "mint": "legacy-mint",
+        "symbol": "LEGACY",
+        "chain": "solana",
+        "mintAuthorityRenounced": False,
+        "freezeAuthorityDisabled": False,
+        "riskLabels": [
+            "mint authority/contract mintability not confirmed disabled",
+            "freeze/pause/blacklist powers not confirmed disabled",
+        ],
+        "scores": {"runner": 88.0},
+    }
+
+    candidate = recap._candidate(row)
+
+    assert candidate.safety.mint_authority_renounced is None
+    assert candidate.safety.freeze_authority_disabled is None
+    assert candidate.scores["runner"] == 88.0
+
+
 def test_sectioned_recap_layout_is_preserved():
     candidate = _coin("CATE", peak=74_900_000)
     narrative = {

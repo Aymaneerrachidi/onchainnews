@@ -59,6 +59,18 @@ def _build(cls, **overrides):
 
 
 def _candidate(row: dict) -> Candidate:
+    risk_labels = [str(item) for item in (row.get("riskLabels") or [])]
+    risk_text = " ".join(risk_labels).lower()
+    mint_authority = row.get("mintAuthorityRenounced")
+    freeze_authority = row.get("freezeAuthorityDisabled")
+    # Snapshot schema v4 used ``false`` for both a measured live authority and
+    # an unavailable provider answer.  The accompanying labels preserve the
+    # distinction, so legacy snapshots can be rebuilt without turning an
+    # unknown into a false rug verdict.
+    if mint_authority is False and "mint authority/contract mintability not confirmed disabled" in risk_text:
+        mint_authority = None
+    if freeze_authority is False and "freeze/pause/blacklist powers not confirmed disabled" in risk_text:
+        freeze_authority = None
     token = _build(
         TokenSnapshot,
         mint=row.get("mint") or "",
@@ -83,8 +95,8 @@ def _candidate(row: dict) -> Candidate:
             holder_count=row.get("holders"),
             top10_pct=row.get("top10Pct"),
             lp_locked_or_burned_pct=row.get("lpLockedPct"),
-            mint_authority_renounced=row.get("mintAuthorityRenounced"),
-            freeze_authority_disabled=row.get("freezeAuthorityDisabled"),
+            mint_authority_renounced=mint_authority,
+            freeze_authority_disabled=freeze_authority,
             risk_flags=row.get("securityFlags") or [],
             rugged=bool(row.get("rugged")),
             source=row.get("safetySource") or "unavailable",
@@ -99,7 +111,7 @@ def _candidate(row: dict) -> Candidate:
     candidate.drawdown_from_peak_pct = row.get("drawdownFromPeakPct")
     candidate.runner_tier = row.get("runnerTier") or ""
     candidate.round_trip = bool(row.get("roundTrip"))
-    candidate.risk_labels = row.get("riskLabels") or []
+    candidate.risk_labels = risk_labels
     candidate.read = row.get("read") or ""
     candidate.track = row.get("track") or ""
     candidate.lore = row.get("lore") or ""
@@ -111,6 +123,10 @@ def _candidate(row: dict) -> Candidate:
     # silently drops every story, quote and stated cause.
     candidate.news_evidence = list(row.get("newsEvidence") or [])
     candidate.provider_evidence = dict(row.get("providerEvidence") or {})
+    candidate.scores = dict(row.get("scores") or {})
+    candidate.score_confidence = dict(row.get("scoreConfidence") or {})
+    candidate.score_components = dict(row.get("scoreComponents") or {})
+    candidate.classification = str(row.get("classification") or "")
     for post in row.get("xInteractions") or []:
         try:
             candidate.x_interactions.append(XInteraction(

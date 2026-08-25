@@ -131,12 +131,16 @@ def test_hidden_discord_filter_universe_is_part_of_delivery_preflight():
     ]
 
 
-def test_filter_universe_allows_unknown_authorities_but_requires_holder_structure(settings):
+def test_filter_universe_allows_unknown_authorities_with_holder_and_kol_structure(settings):
     filtered = candidate("FILTERED")
     filtered.safety.mint_authority_renounced = None
     filtered.safety.freeze_authority_disabled = None
     filtered.enrichment.mint_authority_renounced = None
     filtered.enrichment.freeze_authority_disabled = None
+    filtered.provider_evidence["gmgn"] = {
+        "renownedTrustedCount": 1,
+        "exactTraderHistoryChecked": True,
+    }
     brief = Brief(
         generated_at=datetime.now(timezone.utc),
         scorecard=Scorecard(),

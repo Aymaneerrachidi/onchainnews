@@ -24,6 +24,19 @@ GMGN_CHAIN_PATH = {
 }
 
 
+def _authority_state(*values: bool | None) -> bool | None:
+    """Preserve unknown authority data in the public snapshot.
+
+    A confirmed-safe result from either source wins.  Otherwise a measured
+    live authority remains unsafe, while two unavailable sources stay null.
+    """
+    if any(value is True for value in values):
+        return True
+    if any(value is False for value in values):
+        return False
+    return None
+
+
 def _source_links(candidate: Candidate) -> list[dict[str, str]]:
     token = candidate.token
     chain = token.chain_id.lower()
@@ -81,13 +94,13 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "holders": candidate.enrichment.holder_count or candidate.safety.holder_count,
         "lpLockedPct": candidate.safety.lp_locked_or_burned_pct,
         "safetySource": candidate.safety.source,
-        "mintAuthorityRenounced": (
-            candidate.safety.mint_authority_renounced is True
-            or candidate.enrichment.mint_authority_renounced is True
+        "mintAuthorityRenounced": _authority_state(
+            candidate.safety.mint_authority_renounced,
+            candidate.enrichment.mint_authority_renounced,
         ),
-        "freezeAuthorityDisabled": (
-            candidate.safety.freeze_authority_disabled is True
-            or candidate.enrichment.freeze_authority_disabled is True
+        "freezeAuthorityDisabled": _authority_state(
+            candidate.safety.freeze_authority_disabled,
+            candidate.enrichment.freeze_authority_disabled,
         ),
         "securityFlags": candidate.safety.risk_flags,
         "rugged": candidate.safety.rugged,

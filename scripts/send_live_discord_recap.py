@@ -1006,6 +1006,10 @@ async def main() -> int:
         "--webhook-url", action="append", default=[],
         help="send only to this explicit webhook; repeat for multiple approval destinations",
     )
+    parser.add_argument(
+        "--max-coins", type=int, default=15,
+        help="maximum runners on the public lead page (default: 15)",
+    )
     args = parser.parse_args()
 
     settings = load_settings(str(ROOT / "config.toml"))
@@ -1014,9 +1018,10 @@ async def main() -> int:
         str(mint).strip().lower()
         for mint in settings.get("journal", "excluded_mints", []) or []
     }
-    candidates = _select_recap_candidates(
-        _dedupe(list(snapshot.get("runners") or []), excluded), settings
-    )
+    source_rows = list(snapshot.get("runnerUniverse") or snapshot.get("runners") or [])
+    settings.values.setdefault("journal", {})["publication_max_coins"] = max(1, args.max_coins)
+    settings.values.setdefault("journal", {})["publication_standard_coins"] = max(1, args.max_coins)
+    candidates = _select_recap_candidates(_dedupe(source_rows, excluded), settings)
     if not candidates:
         raise RuntimeError("latest snapshot has no publishable runners")
 

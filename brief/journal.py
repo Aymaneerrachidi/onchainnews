@@ -55,6 +55,22 @@ def verified_window_multiple(candidate: Candidate) -> float:
     return max(multiples)
 
 
+def verified_window_peak_market_cap(candidate: Candidate) -> float:
+    """Largest market cap measured inside the report window.
+
+    Security-depth requirements should follow the size the token actually
+    reached today.  Using current market cap would let a large runner evade
+    the appropriate liquidity and holder floor after it round-trips.
+    """
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    return max(
+        float(candidate.peak_market_cap or 0),
+        float(candidate.observed_peak_market_cap or 0),
+        float(gmgn.get("kline24hPeakMarketCap") or 0),
+        float(candidate.token.market_cap or 0),
+    )
+
+
 def limit_runner_board(runners: list[Candidate], settings: Settings) -> list[Candidate]:
     """Keep the normal edition compact and reserve overflow for real multiples.
 
@@ -142,10 +158,16 @@ def kol_trade_count(candidate: Candidate) -> int:
     """
     gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
     flow = gmgn.get("walletFlow", {}) or {}
+    provider_count = int(gmgn.get("renownedTrustedCount") or 0)
+    # Discovery-level KOL counts are useful before exact trader history exists,
+    # but can include passive receipts. Once exact history has been checked,
+    # only renowned wallets with a real buy/sell count as confirmation.
+    if not gmgn.get("exactTraderHistoryChecked"):
+        provider_count = max(provider_count, int(gmgn.get("kolCount") or 0))
     return max(
         len(kol_traders(candidate)),
         len(set(flow.get("kolBuyerNames", [])) | set(flow.get("kolSellerNames", []))),
-        int(gmgn.get("kolCount") or 0),
+        provider_count,
     )
 
 
@@ -187,14 +209,67 @@ def latin_symbol(symbol: str) -> bool:
     return all(ord(character) < 0x2E80 for character in str(symbol or ""))
 
 
-def chain_min_liquidity(section: Settings, chain: str, default: float) -> float:
-    """Pool depth expectations differ per chain; Solana's floor is not universal."""
+def market_cap_band_value(
+    section: Settings,
+    key: str,
+    market_cap: float,
+    default: float,
+    *,
+    chain: str | None = None,
+) -> float:
+    """Return the first configured peak-market-cap band matching a token."""
+    bands = section.get(key) or []
+    if not isinstance(bands, list):
+        return float(default)
+    normalized_chain = str(chain or "").lower()
+    for band in bands:
+        if not isinstance(band, dict):
+            continue
+        ceiling = float(band.get("max_peak_market_cap") or 0)
+        if ceiling > 0 and float(market_cap or 0) >= ceiling:
+            continue
+        if normalized_chain and band.get(normalized_chain) is not None:
+            return float(band[normalized_chain])
+        if band.get("value") is not None:
+            return float(band["value"])
+    return float(default)
+
+
+def chain_min_liquidity(
+    section: Settings,
+    chain: str,
+    default: float,
+    *,
+    market_cap: float | None = None,
+) -> float:
+    """Pool depth scaled by both chain and the verified in-window peak."""
     table = section.get("min_liquidity_by_chain") or {}
+    fallback = float(section.get("min_liquidity", default) or default)
     if isinstance(table, dict):
         override = table.get(str(chain or "").lower())
         if override is not None:
-            return float(override)
-    return float(section.get("min_liquidity", default) or default)
+            fallback = float(override)
+    if market_cap is not None:
+        return market_cap_band_value(
+            section,
+            "min_liquidity_by_peak_market_cap",
+            market_cap,
+            fallback,
+            chain=chain,
+        )
+    return fallback
+
+
+def band_min_holders(section: Settings, candidate: Candidate, default: float) -> int:
+    """Holder participation expected for the size reached during the window."""
+    return int(
+        market_cap_band_value(
+            section,
+            "min_holders_by_peak_market_cap",
+            verified_window_peak_market_cap(candidate),
+            default,
+        )
+    )
 
 
 def _floor(section: Settings, key: str, default: float, *, fresh: bool) -> float:
@@ -252,7 +327,12 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
     start = float(candidate.start_market_cap or 0)
     measured_window_multiple = window_peak / start if start > 0 else 1.0
     fresh_window = float(section.get("fresh_window_hours", 24) or 24)
-    min_volume = float(section.get("min_volume_24h", 50_000))
+    min_volume = market_cap_band_value(
+        section,
+        "min_volume_24h_by_peak_market_cap",
+        window_peak,
+        float(section.get("min_volume_24h", 50_000)),
+    )
     new_launch_peak = (
         age is not None
         and age <= fresh_window
@@ -457,13 +537,19 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
         reasons.append(
             f"taxed token: {transfer_tax:.1f}% is taken on every trade"
         )
-    for field, label, setting, default in (
-        ("bundlerRate", "GMGN bundled launch flow", "gmgn_max_bundler_rate", 0.30),
-        ("insiderRate", "GMGN insider/rat-trader flow", "gmgn_max_insider_rate", 0.30),
-        ("devTeamHoldRate", "GMGN dev-team holding", "gmgn_max_dev_team_hold_rate", 0.15),
+    peak_market_cap = verified_window_peak_market_cap(candidate)
+    for field, label, setting, band_setting, default in (
+        ("bundlerRate", "GMGN bundled launch flow", "gmgn_max_bundler_rate", "max_bundler_rate_by_peak_market_cap", 0.30),
+        ("insiderRate", "GMGN insider/rat-trader flow", "gmgn_max_insider_rate", "max_insider_rate_by_peak_market_cap", 0.30),
+        ("devTeamHoldRate", "GMGN dev-team holding", "gmgn_max_dev_team_hold_rate", "max_dev_team_hold_rate_by_peak_market_cap", 0.15),
     ):
         value = gmgn.get(field)
-        ceiling = float(section.get(setting, default) or default)
+        ceiling = market_cap_band_value(
+            section,
+            band_setting,
+            peak_market_cap,
+            float(section.get(setting, default) or default),
+        )
         if value is not None and float(value) > ceiling:
             if field == "bundlerRate" and redistributed_launch_bundle(candidate, settings):
                 continue
@@ -536,7 +622,13 @@ def runner_universe_reasons(candidate: Candidate, settings: Settings) -> list[st
     }
     holder_exception = candidate.token.mint.lower() in holder_exceptions
 
-    min_runner_score = float(section.get("runner_universe_min_runner_score", 0) or 0)
+    peak_market_cap = verified_window_peak_market_cap(candidate)
+    min_runner_score = market_cap_band_value(
+        section,
+        "min_runner_score_by_peak_market_cap",
+        peak_market_cap,
+        float(section.get("runner_universe_min_runner_score", 0) or 0),
+    )
     runner_score = candidate.scores.get("runner")
     if min_runner_score and (runner_score is None or float(runner_score) < min_runner_score):
         rendered = "unavailable" if runner_score is None else f"{float(runner_score):.1f}"
@@ -562,20 +654,36 @@ def runner_universe_reasons(candidate: Candidate, settings: Settings) -> list[st
         reasons.append("GMGN detected wash trading")
 
     holder_count = enrichment.holder_count or report.holder_count
+    minimum_holders = band_min_holders(section, candidate, 1)
     if not holder_exception and (holder_count is None or int(holder_count) <= 0):
         reasons.append("holder count unavailable or zero")
+    elif not holder_exception and int(holder_count) < minimum_holders:
+        reasons.append(
+            f"only {int(holder_count):,} holders, below ${verified_window_peak_market_cap(candidate):,.0f} "
+            f"peak band floor of {minimum_holders:,}"
+        )
 
     top10 = report.top10_pct
     if top10 is None and gmgn.get("top10Pct") is not None:
         top10 = float(gmgn["top10Pct"])
-    max_top10 = float(section.get("publisher_max_top10_pct", 30) or 30)
+    max_top10 = market_cap_band_value(
+        section,
+        "max_top10_pct_by_peak_market_cap",
+        peak_market_cap,
+        float(section.get("publisher_max_top10_pct", 30) or 30),
+    )
     if top10 is None and not holder_exception:
         reasons.append("top-10 concentration unavailable")
     elif float(top10) > max_top10:
         reasons.append(f"top 10 hold {float(top10):.0f}%, above {max_top10:.0f}%")
 
     dev_hold = gmgn.get("devTeamHoldRate")
-    max_dev = float(section.get("gmgn_max_dev_team_hold_rate", 0.15) or 0.15)
+    max_dev = market_cap_band_value(
+        section,
+        "max_dev_team_hold_rate_by_peak_market_cap",
+        peak_market_cap,
+        float(section.get("gmgn_max_dev_team_hold_rate", 0.15) or 0.15),
+    )
     if dev_hold is not None and float(dev_hold) > max_dev:
         reasons.append(f"dev team holds {float(dev_hold):.0%}, above {max_dev:.0%}")
 
@@ -587,12 +695,68 @@ def runner_universe_reasons(candidate: Candidate, settings: Settings) -> list[st
     if lp_pct is not None and float(lp_pct) <= 0 and not burned:
         reasons.append("liquidity is confirmed pullable")
 
-    min_liquidity = chain_min_liquidity(section, candidate.token.chain_id, 0)
+    min_liquidity = chain_min_liquidity(
+        section,
+        candidate.token.chain_id,
+        0,
+        market_cap=peak_market_cap,
+    )
     if min_liquidity and candidate.token.liquidity_usd < min_liquidity:
         reasons.append(
-            f"liquidity below chain floor "
+            f"liquidity below chain/market-cap floor "
             f"(${candidate.token.liquidity_usd:,.0f} < ${min_liquidity:,.0f})"
         )
+
+    min_volume = market_cap_band_value(
+        section,
+        "min_volume_24h_by_peak_market_cap",
+        peak_market_cap,
+        float(section.get("min_volume_24h", 0) or 0),
+    )
+    if min_volume and candidate.token.volume_24h < min_volume:
+        reasons.append(
+            f"24h volume below market-cap floor "
+            f"(${candidate.token.volume_24h:,.0f} < ${min_volume:,.0f})"
+        )
+
+    min_trades = int(market_cap_band_value(
+        section,
+        "min_trades_24h_by_peak_market_cap",
+        peak_market_cap,
+        float(section.get("min_trades_24h", 0) or 0),
+    ))
+    if min_trades and candidate.token.txns_24h.total and candidate.token.txns_24h.total < min_trades:
+        reasons.append(
+            f"only {candidate.token.txns_24h.total:,} trades, below peak-band floor of {min_trades:,}"
+        )
+
+    min_kols = int(market_cap_band_value(
+        section,
+        "min_kol_trades_by_peak_market_cap",
+        peak_market_cap,
+        float(section.get("min_kol_trades_for_publish", 1) or 1),
+    ))
+    actual_kols = kol_trade_count(candidate)
+    if actual_kols < min_kols:
+        reasons.append(
+            f"only {actual_kols} verified KOL trade(s), below peak-band floor of {min_kols}"
+        )
+
+    for field, label, setting, band_setting, default in (
+        ("bundlerRate", "bundled launch flow", "gmgn_max_bundler_rate", "max_bundler_rate_by_peak_market_cap", 0.30),
+        ("insiderRate", "insider flow", "gmgn_max_insider_rate", "max_insider_rate_by_peak_market_cap", 0.30),
+    ):
+        value = gmgn.get(field)
+        ceiling = market_cap_band_value(
+            section,
+            band_setting,
+            peak_market_cap,
+            float(section.get(setting, default) or default),
+        )
+        if value is not None and float(value) > ceiling:
+            if field == "bundlerRate" and redistributed_launch_bundle(candidate, settings):
+                continue
+            reasons.append(f"GMGN {label} is {float(value):.0%}, above {ceiling:.0%}")
     return list(dict.fromkeys(reasons))
 
 
@@ -615,7 +779,12 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     strong_kol_flow = kol_touch_count >= int(section.get("strong_kol_wallets", 3) or 3)
 
     if kol_touch_required(candidate, settings):
-        min_kol_touches = int(section.get("min_kol_trades_for_publish", 1) or 1)
+        min_kol_touches = int(market_cap_band_value(
+            section,
+            "min_kol_trades_by_peak_market_cap",
+            verified_window_peak_market_cap(candidate),
+            float(section.get("min_kol_trades_for_publish", 1) or 1),
+        ))
         coverage_available = bool(candidate.kol_wallets_scanned or gmgn_flow.get("coverageAvailable") or "kolCount" in gmgn)
         if coverage_available:
             if kol_touch_count < min_kol_touches:
@@ -628,7 +797,12 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     if bool(section.get("exclude_boosted", False)) and token.active_boosts:
         reasons.append("active Dexscreener boost; paid placement is not organic discovery")
 
-    min_liquidity = chain_min_liquidity(section, token.chain_id, 0)
+    min_liquidity = chain_min_liquidity(
+        section,
+        token.chain_id,
+        0,
+        market_cap=verified_window_peak_market_cap(candidate),
+    )
     if min_liquidity and token.liquidity_usd < min_liquidity:
         reasons.append(f"liquidity below publisher floor (${token.liquidity_usd:,.0f} < ${min_liquidity:,.0f})")
 
@@ -661,7 +835,11 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
         reasons.append("freeze/pause/blacklist powers not confirmed disabled")
 
     if bool(section.get("require_holder_count", False)):
-        min_holders = int(_floor(section, "min_holders", 0, fresh=fresh))
+        min_holders = band_min_holders(
+            section,
+            candidate,
+            _floor(section, "min_holders", 0, fresh=fresh),
+        )
         holder_count = enrichment.holder_count or report.holder_count
         if holder_count is None:
             if strict_missing:
@@ -685,7 +863,12 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
         ):
             reasons.append(f"LP only {report.lp_locked_or_burned_pct:.0f}% locked or burned")
 
-    max_top10 = _floor(section, "publisher_max_top10_pct", 0, fresh=fresh)
+    max_top10 = market_cap_band_value(
+        section,
+        "max_top10_pct_by_peak_market_cap",
+        verified_window_peak_market_cap(candidate),
+        _floor(section, "publisher_max_top10_pct", 0, fresh=fresh),
+    )
     if max_top10:
         top10_pct = report.top10_pct
         if top10_pct is None and gmgn.get("top10Pct") is not None:
@@ -777,11 +960,36 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     min_confirmations = int(section.get("min_organic_confirmations", 0) or 0)
     if min_confirmations:
         confirmations: list[str] = []
-        min_holders = int(_floor(section, "min_holders", 0, fresh=fresh))
-        min_trades = int(_floor(section, "min_trades_24h", 0, fresh=fresh))
-        min_volume = float(section.get("min_volume_24h", 0) or 0)
-        min_liquidity = chain_min_liquidity(section, token.chain_id, 0)
-        max_top10 = _floor(section, "publisher_max_top10_pct", 0, fresh=fresh)
+        min_holders = band_min_holders(
+            section,
+            candidate,
+            _floor(section, "min_holders", 0, fresh=fresh),
+        )
+        peak_market_cap = verified_window_peak_market_cap(candidate)
+        min_trades = int(market_cap_band_value(
+            section,
+            "min_trades_24h_by_peak_market_cap",
+            peak_market_cap,
+            _floor(section, "min_trades_24h", 0, fresh=fresh),
+        ))
+        min_volume = market_cap_band_value(
+            section,
+            "min_volume_24h_by_peak_market_cap",
+            peak_market_cap,
+            float(section.get("min_volume_24h", 0) or 0),
+        )
+        min_liquidity = chain_min_liquidity(
+            section,
+            token.chain_id,
+            0,
+            market_cap=verified_window_peak_market_cap(candidate),
+        )
+        max_top10 = market_cap_band_value(
+            section,
+            "max_top10_pct_by_peak_market_cap",
+            peak_market_cap,
+            _floor(section, "publisher_max_top10_pct", 0, fresh=fresh),
+        )
         min_buy_ratio = float(section.get("organic_min_buy_ratio", 0.42) or 0.42)
         max_buy_ratio = float(section.get("organic_max_buy_ratio", 0.72) or 0.72)
 
@@ -865,7 +1073,13 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
     if token.liquidity_usd and ratio > max_ratio:
         reasons.append(f"wash-trading shape: {ratio:,.0f}x its own liquidity traded in 24h")
 
-    max_turnover = float(section.get("max_turnover", 30))
+    peak_market_cap = verified_window_peak_market_cap(candidate)
+    max_turnover = market_cap_band_value(
+        section,
+        "max_turnover_by_peak_market_cap",
+        peak_market_cap,
+        float(section.get("max_turnover", 30)),
+    )
     if signal.turnover > max_turnover:
         reasons.append(f"{signal.turnover:,.0f}x its market cap traded in 24h")
 
@@ -883,7 +1097,11 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
             "which is spam rather than demand"
         )
 
-    min_holders = int(_floor(section, "min_holders", 200, fresh=publisher_is_fresh(candidate, settings)))
+    min_holders = band_min_holders(
+        section,
+        candidate,
+        _floor(section, "min_holders", 200, fresh=publisher_is_fresh(candidate, settings)),
+    )
     # Helius/GMGN holder counts are full-chain counts. Some contract-security
     # providers return a partial sample; using that smaller number made a
     # 1,300-holder runner look like it had only 104 holders. The engine already
@@ -899,7 +1117,12 @@ def inorganic_reasons(candidate: Candidate, settings: Settings) -> list[str]:
     if holders is not None and holders < min_holders:
         reasons.append(f"only {holders} holders, which is not a market yet")
 
-    min_trades = int(_floor(section, "min_trades_24h", 300, fresh=publisher_is_fresh(candidate, settings)))
+    min_trades = int(market_cap_band_value(
+        section,
+        "min_trades_24h_by_peak_market_cap",
+        peak_market_cap,
+        _floor(section, "min_trades_24h", 300, fresh=publisher_is_fresh(candidate, settings)),
+    ))
     if token.txns_24h.total and token.txns_24h.total < min_trades:
         reasons.append(f"only {token.txns_24h.total} trades in 24h")
 
@@ -1008,7 +1231,12 @@ def risk_labels(candidate: Candidate, settings: Settings, now: datetime) -> list
     labels: list[str] = []
 
     bundler_rate = gmgn.get("bundlerRate")
-    bundler_ceiling = float(section.get("gmgn_max_bundler_rate", 0.30) or 0.30)
+    bundler_ceiling = market_cap_band_value(
+        section,
+        "max_bundler_rate_by_peak_market_cap",
+        verified_window_peak_market_cap(candidate),
+        float(section.get("gmgn_max_bundler_rate", 0.30) or 0.30),
+    )
     if (
         bundler_rate is not None
         and float(bundler_rate) > bundler_ceiling

@@ -96,6 +96,24 @@ def test_gmgn_renowned_trader_tape_preserves_outcomes_and_filters_wash_labels():
     assert evidence["renownedTraders"][1]["suspicious"] is True
 
 
+def test_transfer_only_renowned_wallet_is_not_counted_as_a_kol_trade():
+    evidence = GmgnSource.trader_evidence({"list": [{
+        "address": "wallet-airdrop",
+        "name": "Passive KOL",
+        "balance": 1_000_000,
+        "transfer_in": True,
+        "buy_volume_cur": 0,
+        "sell_volume_cur": 0,
+        "buy_tx_count_cur": 0,
+        "sell_tx_count_cur": 0,
+        "tags": ["kol"],
+    }]})
+
+    assert evidence["renownedTraderCount"] == 1
+    assert evidence["renownedTrustedCount"] == 0
+    assert evidence["renownedTraders"][0]["traded"] is False
+
+
 def test_exact_token_info_recovers_wallet_counts_missing_from_discovery():
     evidence = GmgnSource.wallet_count_evidence({
         "holder_count": 55_421,

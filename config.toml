@@ -641,7 +641,7 @@ intraday_min_trades_24h = 1000
 intraday_min_change_24h_pct = 50.0
 intraday_min_runner_score = 25.0
 intraday_max_manipulation = 55.0
-min_volume_24h = 250000.0
+min_volume_24h = 200000.0
 min_liquidity = 40000.0
 # Peak-led recap: an established token may belong if it made a measured move in
 # this 24h window. GMGN lifetime ATH is only trusted for <=24h-old launches.
@@ -673,6 +673,30 @@ old_coin_mid_min_change_pct = 50.0
 old_coin_large_min_change_pct = 30.0
 old_coin_allow_aggregate_change_with_kline = true
 runner_universe_min_runner_score = 40.0
+min_runner_score_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 38.0 },
+  { max_peak_market_cap = 1000000.0, value = 40.0 },
+  { max_peak_market_cap = 10000000.0, value = 42.0 },
+  { max_peak_market_cap = 0.0, value = 45.0 },
+]
+min_volume_24h_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 200000.0 },
+  { max_peak_market_cap = 1000000.0, value = 250000.0 },
+  { max_peak_market_cap = 10000000.0, value = 500000.0 },
+  { max_peak_market_cap = 0.0, value = 1000000.0 },
+]
+min_trades_24h_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 400 },
+  { max_peak_market_cap = 1000000.0, value = 700 },
+  { max_peak_market_cap = 10000000.0, value = 1000 },
+  { max_peak_market_cap = 0.0, value = 1500 },
+]
+min_kol_trades_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 1 },
+  { max_peak_market_cap = 1000000.0, value = 1 },
+  { max_peak_market_cap = 10000000.0, value = 2 },
+  { max_peak_market_cap = 0.0, value = 3 },
+]
 # Final publication is smaller and Solana-led. Other chains must make a much
 # stronger move to use one of the four non-Solana slots.
 publication_fresh_hours = 24.0
@@ -753,10 +777,58 @@ fresh_min_holders = 300
 fresh_min_trades_24h = 400
 fresh_publisher_max_top10_pct = 30.0
 # A measurement we could not take is not a failure. Reported on the row instead.
-block_on_missing_safety_data = true
+# Missing provider fields stay visibly unavailable. Only a measured live
+# authority/pause power, honeypot, rug, unsafe LP or concentration failure
+# blocks a runner; provider coverage gaps must not erase an otherwise verified
+# market move from the recap.
+block_on_missing_safety_data = false
 # Pool depth is not comparable across chains: a BNB or Base runner works a much
-# smaller pool than a Solana one at the same market cap.
+# smaller pool than a Solana one at the same market cap. The banded table is
+# keyed to the highest market cap measured inside this report window, so a coin
+# that ran to $10M cannot qualify on the tiny pool left after a round trip.
 min_liquidity_by_chain = { solana = 40000.0, bsc = 30000.0, base = 30000.0, ethereum = 50000.0, robinhood = 30000.0 }
+min_liquidity_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, solana = 12000.0, bsc = 10000.0, base = 10000.0, ethereum = 15000.0, robinhood = 10000.0 },
+  { max_peak_market_cap = 1000000.0, solana = 20000.0, bsc = 15000.0, base = 15000.0, ethereum = 25000.0, robinhood = 15000.0 },
+  { max_peak_market_cap = 10000000.0, solana = 40000.0, bsc = 30000.0, base = 30000.0, ethereum = 50000.0, robinhood = 30000.0 },
+  { max_peak_market_cap = 0.0, solana = 100000.0, bsc = 75000.0, base = 75000.0, ethereum = 100000.0, robinhood = 75000.0 },
+]
+min_holders_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 300 },
+  { max_peak_market_cap = 1000000.0, value = 500 },
+  { max_peak_market_cap = 10000000.0, value = 1000 },
+  { max_peak_market_cap = 0.0, value = 2500 },
+]
+max_top10_pct_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 30.0 },
+  { max_peak_market_cap = 1000000.0, value = 30.0 },
+  { max_peak_market_cap = 10000000.0, value = 28.0 },
+  { max_peak_market_cap = 0.0, value = 25.0 },
+]
+max_dev_team_hold_rate_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 0.15 },
+  { max_peak_market_cap = 1000000.0, value = 0.12 },
+  { max_peak_market_cap = 10000000.0, value = 0.10 },
+  { max_peak_market_cap = 0.0, value = 0.05 },
+]
+max_bundler_rate_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 0.30 },
+  { max_peak_market_cap = 1000000.0, value = 0.28 },
+  { max_peak_market_cap = 10000000.0, value = 0.25 },
+  { max_peak_market_cap = 0.0, value = 0.20 },
+]
+max_insider_rate_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 0.20 },
+  { max_peak_market_cap = 1000000.0, value = 0.18 },
+  { max_peak_market_cap = 10000000.0, value = 0.15 },
+  { max_peak_market_cap = 0.0, value = 0.10 },
+]
+max_turnover_by_peak_market_cap = [
+  { max_peak_market_cap = 500000.0, value = 50.0 },
+  { max_peak_market_cap = 1000000.0, value = 35.0 },
+  { max_peak_market_cap = 10000000.0, value = 25.0 },
+  { max_peak_market_cap = 0.0, value = 15.0 },
+]
 max_turnover = 30.0               # 24h volume against market cap
 # Cadence was measured against a coin the client confirmed was normal: it ran
 # 219 trades a minute over the hour. Speed is a crowd. Dust is a bot, so only

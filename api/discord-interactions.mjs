@@ -433,6 +433,12 @@ export function activityEligible(row) {
 
 export function securityEligible(row) {
   const gmgn = gmgnEvidence(row);
+  const riskLabels = (Array.isArray(row?.riskLabels) ? row.riskLabels : [])
+    .map((label) => String(label).toLowerCase());
+  const mintAuthorityUnknown = riskLabels.some((label) =>
+    label.includes("mint authority/contract mintability not confirmed disabled"));
+  const freezeAuthorityUnknown = riskLabels.some((label) =>
+    label.includes("freeze/pause/blacklist powers not confirmed disabled"));
   const peak = runnerPeak(row);
   const chain = String(row?.chain || "").toLowerCase();
   const mint = String(row?.mint || "").toLowerCase();
@@ -465,8 +471,8 @@ export function securityEligible(row) {
     && peak >= 250000
     && row?.rugged !== true
     && !honeypot
-    && row?.mintAuthorityRenounced !== false
-    && row?.freezeAuthorityDisabled !== false
+    && (row?.mintAuthorityRenounced !== false || mintAuthorityUnknown)
+    && (row?.freezeAuthorityDisabled !== false || freezeAuthorityUnknown)
     && (
       holderStructureException
       || (

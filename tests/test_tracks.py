@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import sqlite3
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -14,6 +15,28 @@ from tests.conftest import build_settings
 
 
 NOW = datetime(2026, 8, 6, 6, 45, tzinfo=ZoneInfo("Europe/Paris"))
+
+
+def test_ledger_write_retry_recovers_after_transient_lock(tmp_path):
+    ledger = Ledger(tmp_path / "retry.db")
+    attempts = 0
+
+    def flaky_write() -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise sqlite3.OperationalError("database is locked")
+        ledger.db.execute(
+            "INSERT INTO collector_state(key,value) VALUES(?,?)",
+            ("retry-test", "ok"),
+        )
+
+    try:
+        ledger._write_retry(flaky_write)
+        assert attempts == 3
+        assert ledger.collector_state("retry-test") == "ok"
+    finally:
+        ledger.close()
 
 
 @pytest.mark.asyncio
@@ -599,6 +622,102 @@ def _tape(symbol, *, mcap, vol24, vol6, liq, trades6, buys6, boosts=0, reuse=0):
     c = Candidate(token=token, signals=signals, safety=SafetyReport("m"), enrichment=Enrichment())
     c.recycled_label_count = reuse
     return c
+
+
+def test_runner_universe_scales_liquidity_and_holders_by_verified_peak(tmp_path):
+    from brief.journal import runner_universe_reasons
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "banded-runner-gates")
+    settings.values["journal"].update({
+        "runner_universe_min_runner_score": 40,
+        "publisher_max_top10_pct": 30,
+        "gmgn_max_dev_team_hold_rate": 0.15,
+        "min_liquidity_by_chain": {"solana": 40_000},
+        "min_liquidity_by_peak_market_cap": [
+            {"max_peak_market_cap": 500_000, "solana": 12_000},
+            {"max_peak_market_cap": 1_000_000, "solana": 20_000},
+            {"max_peak_market_cap": 10_000_000, "solana": 40_000},
+            {"max_peak_market_cap": 0, "solana": 100_000},
+        ],
+        "min_holders_by_peak_market_cap": [
+            {"max_peak_market_cap": 500_000, "value": 300},
+            {"max_peak_market_cap": 1_000_000, "value": 500},
+            {"max_peak_market_cap": 10_000_000, "value": 1_000},
+            {"max_peak_market_cap": 0, "value": 2_500},
+        ],
+    })
+
+    coin = _tape("EARLY", mcap=300_000, vol24=500_000, vol6=200_000, liq=12_500,
+                 trades6=2_000, buys6=1_050)
+    coin.peak_market_cap = 300_000
+    coin.scores["runner"] = 60
+    coin.safety = SafetyReport(
+        coin.token.mint,
+        mint_authority_renounced=True,
+        freeze_authority_disabled=True,
+        lp_locked_or_burned_pct=100,
+        top10_pct=20,
+        holder_count=350,
+        source="rugcheck",
+    )
+    coin.provider_evidence["gmgn"] = {
+        "isHoneypot": 0,
+        "washTrading": False,
+        "devTeamHoldRate": 0.02,
+        "renownedTrustedCount": 1,
+        "exactTraderHistoryChecked": True,
+    }
+    assert runner_universe_reasons(coin, settings) == []
+
+    coin.token.liquidity_usd = 11_999
+    assert any("$12,000" in reason for reason in runner_universe_reasons(coin, settings))
+    coin.token.liquidity_usd = 12_500
+    coin.safety.holder_count = 299
+    assert any("floor of 300" in reason for reason in runner_universe_reasons(coin, settings))
+
+
+def test_large_runner_requires_large_pool_and_holder_base(tmp_path):
+    from brief.journal import runner_universe_reasons
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "large-runner-gates")
+    settings.values["journal"].update({
+        "runner_universe_min_runner_score": 40,
+        "min_liquidity_by_peak_market_cap": [
+            {"max_peak_market_cap": 500_000, "solana": 12_000},
+            {"max_peak_market_cap": 1_000_000, "solana": 20_000},
+            {"max_peak_market_cap": 10_000_000, "solana": 40_000},
+            {"max_peak_market_cap": 0, "solana": 100_000},
+        ],
+        "min_holders_by_peak_market_cap": [
+            {"max_peak_market_cap": 500_000, "value": 300},
+            {"max_peak_market_cap": 1_000_000, "value": 500},
+            {"max_peak_market_cap": 10_000_000, "value": 1_000},
+            {"max_peak_market_cap": 0, "value": 2_500},
+        ],
+    })
+    coin = _tape("LARGE", mcap=20_000_000, vol24=5_000_000, vol6=1_000_000,
+                 liq=99_999, trades6=3_000, buys6=1_600)
+    coin.peak_market_cap = 20_000_000
+    coin.scores["runner"] = 75
+    coin.safety = SafetyReport(
+        coin.token.mint,
+        mint_authority_renounced=True,
+        freeze_authority_disabled=True,
+        lp_locked_or_burned_pct=100,
+        top10_pct=15,
+        holder_count=2_499,
+        source="rugcheck",
+    )
+    coin.provider_evidence["gmgn"] = {
+        "isHoneypot": 0,
+        "washTrading": False,
+        "devTeamHoldRate": 0.01,
+    }
+    reasons = runner_universe_reasons(coin, settings)
+    assert any("$100,000" in reason for reason in reasons)
+    assert any("floor of 2,500" in reason for reason in reasons)
 
 
 def test_wash_traded_pool_is_removed(tmp_path):
