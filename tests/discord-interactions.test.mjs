@@ -6,6 +6,7 @@ import {
   applyLiveCaps,
   contractsFromEmbeds,
   dexChain,
+  editDeferredInteraction,
   fetchLiveCaps,
   fetchRunnerSnapshot,
   filterRunnerRows,
@@ -32,6 +33,31 @@ test("contract extraction deduplicates exact Fomo links", () => {
 
   assert.equal(contracts.length, 1);
   assert.deepEqual(contracts[0], { chain: "solana", mint: "MINT", url });
+});
+
+
+test("deferred Discord refreshes edit the original interaction response", async () => {
+  let requestUrl = "";
+  let requestOptions = null;
+  const fetchStub = async (url, options) => {
+    requestUrl = String(url);
+    requestOptions = options;
+    return new Response(null, { status: 204 });
+  };
+  const data = { embeds: [{ title: "Refreshed" }], components: [] };
+
+  await editDeferredInteraction(
+    { application_id: "app-123", token: "interaction-token" },
+    data,
+    fetchStub,
+  );
+
+  assert.equal(
+    requestUrl,
+    "https://discord.com/api/v10/webhooks/app-123/interaction-token/messages/@original",
+  );
+  assert.equal(requestOptions.method, "PATCH");
+  assert.deepEqual(JSON.parse(requestOptions.body), data);
 });
 
 

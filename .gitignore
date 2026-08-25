@@ -42,3 +42,4 @@ web/.playwright-mcp/
 # Run logs and the archived copy of the last email that was sent.
 /output/*.log
 /output/email-sent.*
+node_modules/

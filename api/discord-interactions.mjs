@@ -1,4 +1,5 @@
 import { createPublicKey, verify } from "node:crypto";
+import { waitUntil } from "@vercel/functions";
 import { buildMarketCapProxyUrl } from "./market-caps.mjs";
 
 const DISCORD_PUBLIC_KEY_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
@@ -705,6 +706,32 @@ function ephemeralMessage(content) {
   return json({ type: 4, data: { content, flags: 64 } });
 }
 
+function deferredUpdate() {
+  return json({ type: 6 });
+}
+
+export async function editDeferredInteraction(interaction, data, fetchImpl = fetch) {
+  const applicationId = String(interaction?.application_id || "");
+  const token = String(interaction?.token || "");
+  if (!applicationId || !token) throw new Error("missing Discord interaction callback identity");
+  const url = `https://discord.com/api/v10/webhooks/${encodeURIComponent(applicationId)}/${encodeURIComponent(token)}/messages/@original`;
+  const response = await fetchImpl(url, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error(`Discord deferred edit HTTP ${response.status}`);
+}
+
+function queueDeferredUpdate(interaction, task) {
+  waitUntil((async () => {
+    const data = await task;
+    if (data) await editDeferredInteraction(interaction, data);
+  })().catch(() => null));
+  return deferredUpdate();
+}
+
 export default {
   async fetch(request) {
     if (request.method !== "POST") return json({ error: "method not allowed" }, 405);
@@ -741,6 +768,15 @@ export default {
           return ephemeralMessage(`Live MC was just refreshed. Try again in ${remaining}s.`);
         }
         messageRefreshes.set(key, now);
+        return queueDeferredUpdate(interaction, (async () => {
+          try {
+            const data = await renderFilterResponse(request, interaction, filterAction, now);
+            return data.error ? null : data;
+          } catch (_) {
+            messageRefreshes.delete(key);
+            return null;
+          }
+        })());
       }
       try {
         const data = await renderFilterResponse(request, interaction, filterAction, now);
@@ -751,7 +787,6 @@ export default {
           ...(updatingEphemeral ? {} : { flags: 64 }),
         } });
       } catch (_) {
-        if (filterAction.refresh) messageRefreshes.delete(key);
         return ephemeralMessage("The qualified runner index is temporarily unavailable. Try again shortly.");
       }
     }
@@ -774,13 +809,14 @@ export default {
     }
 
     messageRefreshes.set(key, now);
+    return queueDeferredUpdate(interaction, (async () => {
     // These requests are independent. Running them together prevents the
     // refresh button from spending the Discord deadline on two serial waits.
     const runnerSnapshotPromise = fetchRunnerSnapshot(snapshotUrl(request)).catch(() => null);
     const prices = await pricesForMessage(key, contracts, request.url);
     if (!prices.size) {
       messageRefreshes.delete(key);
-      return ephemeralMessage("Current market caps are unavailable; the message was not changed.");
+      return null;
     }
 
     for (const embed of embeds) {
@@ -808,6 +844,7 @@ export default {
     if (Array.isArray(message.attachments) && message.attachments.length) {
       data.attachments = message.attachments.map(({ id, filename }) => ({ id, filename }));
     }
-    return json({ type: 7, data });
+    return data;
+    })());
   },
 };
