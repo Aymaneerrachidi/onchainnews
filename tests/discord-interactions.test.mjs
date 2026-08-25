@@ -134,6 +134,16 @@ test("Discord rejects confirmed danger without treating missing legacy data as a
   assert.equal(securityEligible(safeRunner({ top10Pct: null })), false);
   assert.equal(securityEligible(safeRunner({ holders: null })), false);
   assert.equal(securityEligible(safeRunner({ holders: 0 })), false);
+  assert.equal(securityEligible(safeRunner({
+    mint: "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+    chain: "bsc",
+    holders: null,
+    top10Pct: null,
+  })), true);
+  assert.equal(securityEligible(safeRunner({
+    mint: "0xb0f09ea9ae0515c3551080d4a745c8115aa30e37",
+    chain: "bsc",
+  })), false);
   assert.equal(securityEligible(safeRunner({ lpLockedPct: 0 })), false);
   assert.equal(securityEligible(safeRunner({ mintAuthorityRenounced: false })), false);
   assert.equal(securityEligible(safeRunner({

@@ -11,6 +11,13 @@ const MAX_CONTRACTS = 100;
 const PAGE_SIZE = 8;
 const DEX_TIMEOUT_MS = 1800;
 const SNAPSHOT_TIMEOUT_MS = 1800;
+const HOLDER_STRUCTURE_EXCEPTIONS = new Set([
+  "bsc:0x02fca66c1d1afb4e2a7884261eb00f63598a7436", // NVDAB
+  "bsc:0xcaae2a2f939f51d97cdfa9a86e79e3f085b799f3", // TUT
+]);
+const MANUALLY_EXCLUDED_CONTRACTS = new Set([
+  "bsc:0xb0f09ea9ae0515c3551080d4a745c8115aa30e37", // DOS
+]);
 const FOMO_TOKEN = /https:\/\/fomo\.family\/tokens\/([^/\s)>]+)\/([^\s)>]+)/g;
 
 // Warm Vercel instances retain these maps between requests. Dex results and
@@ -312,6 +319,10 @@ function gmgnEvidence(row) {
 export function securityEligible(row) {
   const gmgn = gmgnEvidence(row);
   const peak = runnerPeak(row);
+  const chain = String(row?.chain || "").toLowerCase();
+  const mint = String(row?.mint || "").toLowerCase();
+  const contractKey = `${chain}:${mint}`;
+  const holderStructureException = HOLDER_STRUCTURE_EXCEPTIONS.has(contractKey);
   const holdersKnown = row?.holders !== null && row?.holders !== undefined;
   const holders = Number(row?.holders);
   const top10Known = row?.top10Pct !== null && row?.top10Pct !== undefined;
@@ -326,7 +337,6 @@ export function securityEligible(row) {
   const devHoldKnown = gmgn?.devTeamHoldRate !== null
     && gmgn?.devTeamHoldRate !== undefined;
   const devHold = Number(gmgn?.devTeamHoldRate);
-  const chain = String(row?.chain || "").toLowerCase();
   const liquidityFloors = {
     solana: 40000,
     bsc: 30000,
@@ -336,17 +346,23 @@ export function securityEligible(row) {
   };
   return Boolean(
     row?.mint
+    && !MANUALLY_EXCLUDED_CONTRACTS.has(contractKey)
     && peak >= 250000
     && row?.rugged !== true
     && !honeypot
     && row?.mintAuthorityRenounced !== false
     && row?.freezeAuthorityDisabled !== false
-    && holdersKnown
-    && Number.isFinite(holders)
-    && holders > 0
-    && top10Known
-    && Number.isFinite(top10)
-    && top10 <= 30
+    && (
+      holderStructureException
+      || (
+        holdersKnown
+        && Number.isFinite(holders)
+        && holders > 0
+        && top10Known
+        && Number.isFinite(top10)
+      )
+    )
+    && (!top10Known || top10 <= 30)
     && (!devHoldKnown || (Number.isFinite(devHold) && devHold <= 0.15))
     && (!lpKnown || !Number.isFinite(lpLocked) || lpLocked > 0 || burned)
     && Number(row?.liquidity || 0) >= Number(liquidityFloors[chain] || 30000)
