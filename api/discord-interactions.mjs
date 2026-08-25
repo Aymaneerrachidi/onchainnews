@@ -312,13 +312,18 @@ function gmgnEvidence(row) {
 export function securityEligible(row) {
   const gmgn = gmgnEvidence(row);
   const peak = runnerPeak(row);
-  const holders = Number(row?.holders) || 0;
   const top10Known = row?.top10Pct !== null && row?.top10Pct !== undefined;
   const top10 = Number(row?.top10Pct);
   const lpKnown = row?.lpLockedPct !== null && row?.lpLockedPct !== undefined;
   const lpLocked = Number(row?.lpLockedPct);
   const burned = String(gmgn?.burnStatus || "").toLowerCase() === "yes"
     || Number(gmgn?.burnRatio || 0) >= 0.90;
+  const honeypot = gmgn?.isHoneypot === true
+    || Number(gmgn?.isHoneypot) === 1
+    || ["true", "yes"].includes(String(gmgn?.isHoneypot || "").toLowerCase());
+  const devHoldKnown = gmgn?.devTeamHoldRate !== null
+    && gmgn?.devTeamHoldRate !== undefined;
+  const devHold = Number(gmgn?.devTeamHoldRate);
   const chain = String(row?.chain || "").toLowerCase();
   const liquidityFloors = {
     solana: 40000,
@@ -331,15 +336,14 @@ export function securityEligible(row) {
     row?.mint
     && peak >= 250000
     && row?.rugged !== true
-    && row?.mintAuthorityRenounced === true
-    && row?.freezeAuthorityDisabled === true
-    && holders > 0
-    && top10Known
-    && Number.isFinite(top10)
-    && top10 <= 30
-    && ((lpKnown && Number.isFinite(lpLocked) && lpLocked >= 90) || burned)
+    && !honeypot
+    && row?.mintAuthorityRenounced !== false
+    && row?.freezeAuthorityDisabled !== false
+    && (!top10Known || (Number.isFinite(top10) && top10 <= 30))
+    && (!devHoldKnown || (Number.isFinite(devHold) && devHold <= 0.15))
+    && (!lpKnown || !Number.isFinite(lpLocked) || lpLocked > 0 || burned)
     && Number(row?.liquidity || 0) >= Number(liquidityFloors[chain] || 30000)
-    && (!Array.isArray(row?.securityFlags) || row.securityFlags.length === 0)
+    && gmgn?.washTrading !== true
   );
 }
 
@@ -400,9 +404,9 @@ function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedA
   return {
     color: 0x516AF6,
     title: `${chainLabel} · ${bandLabel} 24h peak`,
-    description: lines.join("\n\n") || "No security-cleared runners matched both filters.",
+    description: lines.join("\n\n") || "No screened runners matched both filters.",
     footer: {
-      text: `${total} qualified runner${total === 1 ? "" : "s"} · page ${page + 1}/${pages} · MC refreshed ${new Date(refreshedAt * 1000).toISOString().slice(11, 19)} UTC`,
+      text: `${total} screened runner${total === 1 ? "" : "s"} · page ${page + 1}/${pages} · MC refreshed ${new Date(refreshedAt * 1000).toISOString().slice(11, 19)} UTC`,
     },
   };
 }

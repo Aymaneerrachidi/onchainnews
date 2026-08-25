@@ -128,14 +128,22 @@ test("runner filters combine chain and verified 24h peak bands", () => {
 });
 
 
-test("Discord applies the hard security and distribution gate defensively", () => {
+test("Discord rejects confirmed danger without treating missing legacy data as a rug", () => {
   assert.equal(securityEligible(safeRunner()), true);
   assert.equal(securityEligible(safeRunner({ top10Pct: 31 })), false);
-  assert.equal(securityEligible(safeRunner({ top10Pct: null })), false);
-  assert.equal(securityEligible(safeRunner({ holders: 0 })), false);
+  assert.equal(securityEligible(safeRunner({ top10Pct: null })), true);
+  assert.equal(securityEligible(safeRunner({ holders: 0 })), true);
   assert.equal(securityEligible(safeRunner({ lpLockedPct: 0 })), false);
   assert.equal(securityEligible(safeRunner({ mintAuthorityRenounced: false })), false);
-  assert.equal(securityEligible(safeRunner({ securityFlags: ["blacklist"] })), false);
+  assert.equal(securityEligible(safeRunner({
+    providerEvidence: { gmgn: { isHoneypot: 1 } },
+  })), false);
+  assert.equal(securityEligible(safeRunner({
+    providerEvidence: { gmgn: { devTeamHoldRate: 0.16 } },
+  })), false);
+  assert.equal(securityEligible(safeRunner({
+    providerEvidence: { gmgn: { washTrading: true } },
+  })), false);
 });
 
 
