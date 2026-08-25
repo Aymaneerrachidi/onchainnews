@@ -30,6 +30,59 @@ def run_multiple(token: TokenSnapshot) -> float:
     return 1.0 + token.price_change_24h / 100.0
 
 
+def verified_window_multiple(candidate: Candidate) -> float:
+    """Best measured multiple inside the report window, never lifetime ATH.
+
+    The daily close can hide a runner that peaked and faded. Prefer the stored
+    hourly peak or GMGN's trailing-day candles when they have a usable opening
+    baseline, and retain the aggregate 24h move as the final fallback.
+    """
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    multiples = [max(1.0, run_multiple(candidate.token))]
+    kline_change = float(gmgn.get("kline24hPeakFromOpenPct") or 0)
+    if kline_change > 0:
+        multiples.append(1.0 + kline_change / 100.0)
+    start = float(candidate.start_market_cap or 0)
+    if start > 0:
+        peak = max(
+            float(candidate.peak_market_cap or 0),
+            float(candidate.observed_peak_market_cap or 0),
+            float(gmgn.get("kline24hPeakMarketCap") or 0),
+            float(candidate.token.market_cap or 0),
+        )
+        if peak > 0:
+            multiples.append(peak / start)
+    return max(multiples)
+
+
+def limit_runner_board(runners: list[Candidate], settings: Settings) -> list[Candidate]:
+    """Keep the normal edition compact and reserve overflow for real multiples.
+
+    Thirteen to fifteen names is the expected editorial size, but it is not a
+    quota. The first fifteen verified runners remain ranked normally. Slots
+    sixteen through twenty are available only to additional coins that made
+    the configured exceptional in-window multiple.
+    """
+    section = settings.section("journal")
+    maximum = int(section.get("max_runners", 0) or 0)
+    if maximum <= 0:
+        return list(runners)
+    standard = min(
+        maximum,
+        int(section.get("publication_standard_coins", 15) or 15),
+    )
+    if len(runners) <= standard:
+        return list(runners)
+    minimum_multiple = float(
+        section.get("publication_overflow_min_multiple", 5.0) or 5.0
+    )
+    overflow = [
+        candidate for candidate in runners[standard:]
+        if verified_window_multiple(candidate) >= minimum_multiple
+    ]
+    return [*runners[:standard], *overflow[: max(0, maximum - standard)]]
+
+
 def implausible_run(candidate: Candidate, settings: Settings) -> bool:
     """A move the tape does not corroborate is a data artifact, not a run.
 
@@ -259,13 +312,19 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
         required_change = (older_multiple - 1.0) * 100.0
     else:
         baseline_change = float(section.get("min_daily_change_pct", 50.0) or 50.0)
+        micro_ceiling = float(section.get("old_coin_micro_cap_ceiling", 0) or 0)
+        low_ceiling = float(section.get("old_coin_low_cap_ceiling", 0) or 0)
         small_ceiling = float(section.get("old_coin_small_cap_ceiling", 0) or 0)
         large_floor = float(section.get("old_coin_large_cap_floor", 0) or 0)
         # Choose the movement band from the market size reached today, not a
         # stale lifetime ATH. A former $100M coin trading at $3M still needs the
         # sub-$10M +75% revival, not the large-cap +30% shortcut.
         market_size = window_peak
-        if small_ceiling > 0 and market_size < small_ceiling:
+        if micro_ceiling > 0 and market_size < micro_ceiling:
+            required_change = float(section.get("old_coin_micro_min_change_pct", baseline_change) or baseline_change)
+        elif low_ceiling > 0 and market_size < low_ceiling:
+            required_change = float(section.get("old_coin_low_min_change_pct", baseline_change) or baseline_change)
+        elif small_ceiling > 0 and market_size < small_ceiling:
             required_change = float(section.get("old_coin_small_min_change_pct", baseline_change) or baseline_change)
         elif large_floor > 0 and market_size >= large_floor:
             required_change = float(section.get("old_coin_large_min_change_pct", baseline_change) or baseline_change)
@@ -456,6 +515,87 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     return reasons
 
 
+def runner_universe_reasons(candidate: Candidate, settings: Settings) -> list[str]:
+    """Confirmed-danger checks for the complete Discord runner browser.
+
+    Missing provider fields are retained as unknowns. A measured failure is
+    rejected: rug/honeypot status, live owner controls, wash trading, excessive
+    top-holder or developer control, pullable zero-lock liquidity, or a pool
+    below the configured chain floor. The concise editorial recap may apply
+    stricter quality and KOL ranking on top of this broad screened universe.
+    """
+    section = settings.section("journal")
+    report = candidate.safety
+    enrichment = candidate.enrichment
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    reasons: list[str] = []
+    holder_exceptions = {
+        str(mint).strip().lower()
+        for mint in (section.get("holder_structure_exception_mints", []) or [])
+        if str(mint).strip()
+    }
+    holder_exception = candidate.token.mint.lower() in holder_exceptions
+
+    min_runner_score = float(section.get("runner_universe_min_runner_score", 0) or 0)
+    runner_score = candidate.scores.get("runner")
+    if min_runner_score and (runner_score is None or float(runner_score) < min_runner_score):
+        rendered = "unavailable" if runner_score is None else f"{float(runner_score):.1f}"
+        reasons.append(
+            f"runner quality score {rendered}, below {min_runner_score:.0f}"
+        )
+
+    if report.rugged:
+        reasons.append("security provider marks the token as rugged/honeypot")
+    honeypot = gmgn.get("isHoneypot")
+    if (
+        honeypot is True
+        or honeypot == 1
+        or str(honeypot or "").strip().lower() in {"true", "yes"}
+    ):
+        reasons.append("GMGN marks the contract as a honeypot")
+
+    if report.mint_authority_renounced is False or enrichment.mint_authority_renounced is False:
+        reasons.append("mint authority still live")
+    if report.freeze_authority_disabled is False or enrichment.freeze_authority_disabled is False:
+        reasons.append("freeze/pause/blacklist powers still live")
+    if gmgn.get("washTrading") is True:
+        reasons.append("GMGN detected wash trading")
+
+    holder_count = enrichment.holder_count or report.holder_count
+    if not holder_exception and (holder_count is None or int(holder_count) <= 0):
+        reasons.append("holder count unavailable or zero")
+
+    top10 = report.top10_pct
+    if top10 is None and gmgn.get("top10Pct") is not None:
+        top10 = float(gmgn["top10Pct"])
+    max_top10 = float(section.get("publisher_max_top10_pct", 30) or 30)
+    if top10 is None and not holder_exception:
+        reasons.append("top-10 concentration unavailable")
+    elif float(top10) > max_top10:
+        reasons.append(f"top 10 hold {float(top10):.0f}%, above {max_top10:.0f}%")
+
+    dev_hold = gmgn.get("devTeamHoldRate")
+    max_dev = float(section.get("gmgn_max_dev_team_hold_rate", 0.15) or 0.15)
+    if dev_hold is not None and float(dev_hold) > max_dev:
+        reasons.append(f"dev team holds {float(dev_hold):.0%}, above {max_dev:.0%}")
+
+    burned = (
+        str(gmgn.get("burnStatus") or "").lower() == "yes"
+        or float(gmgn.get("burnRatio") or 0) >= 0.90
+    )
+    lp_pct = report.lp_locked_or_burned_pct
+    if lp_pct is not None and float(lp_pct) <= 0 and not burned:
+        reasons.append("liquidity is confirmed pullable")
+
+    min_liquidity = chain_min_liquidity(section, candidate.token.chain_id, 0)
+    if min_liquidity and candidate.token.liquidity_usd < min_liquidity:
+        reasons.append(
+            f"liquidity below chain floor "
+            f"(${candidate.token.liquidity_usd:,.0f} < ${min_liquidity:,.0f})"
+        )
+    return list(dict.fromkeys(reasons))
+
+
 def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: datetime) -> list[str]:
     """Creator-facing quality gate.
 
@@ -501,29 +641,60 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
     # row instead; only a measured failure removes a coin.
     strict_missing = bool(section.get("block_on_missing_safety_data", False))
 
+    if strict_missing and (not report.source or report.source == "unavailable"):
+        reasons.append("contract-security provider unavailable")
+
+    # Unknown authority state is not the same thing as safe. Public filter
+    # results fail closed because users reasonably read their presence as a
+    # completed contract check, not as an analyst watchlist.
+    mint_safe = (
+        report.mint_authority_renounced is True
+        or enrichment.mint_authority_renounced is True
+    )
+    freeze_safe = (
+        report.freeze_authority_disabled is True
+        or enrichment.freeze_authority_disabled is True
+    )
+    if strict_missing and not mint_safe:
+        reasons.append("mint authority/contract mintability not confirmed disabled")
+    if strict_missing and not freeze_safe:
+        reasons.append("freeze/pause/blacklist powers not confirmed disabled")
+
     if bool(section.get("require_holder_count", False)):
         min_holders = int(_floor(section, "min_holders", 0, fresh=fresh))
-        if report.holder_count is None:
+        holder_count = enrichment.holder_count or report.holder_count
+        if holder_count is None:
             if strict_missing:
                 reasons.append("holder count unavailable")
-        elif min_holders and report.holder_count < min_holders:
-            reasons.append(f"only {report.holder_count:,} holders, below publisher floor")
+        elif min_holders and holder_count < min_holders:
+            reasons.append(f"only {holder_count:,} holders, below publisher floor")
 
     min_lp = float(section.get("min_lp_locked_pct", 0) or 0)
     if min_lp:
-        if report.lp_locked_or_burned_pct is None:
+        gmgn_burned = (
+            str(gmgn.get("burnStatus") or "").lower() == "yes"
+            or float(gmgn.get("burnRatio") or 0) >= min_lp / 100.0
+        )
+        if report.lp_locked_or_burned_pct is None and not gmgn_burned:
             if strict_missing:
                 reasons.append("LP lock/burn status unavailable")
-        elif report.lp_locked_or_burned_pct < min_lp:
+        elif (
+            report.lp_locked_or_burned_pct is not None
+            and report.lp_locked_or_burned_pct < min_lp
+            and not gmgn_burned
+        ):
             reasons.append(f"LP only {report.lp_locked_or_burned_pct:.0f}% locked or burned")
 
     max_top10 = _floor(section, "publisher_max_top10_pct", 0, fresh=fresh)
     if max_top10:
-        if report.top10_pct is None:
+        top10_pct = report.top10_pct
+        if top10_pct is None and gmgn.get("top10Pct") is not None:
+            top10_pct = float(gmgn["top10Pct"])
+        if top10_pct is None:
             if strict_missing:
                 reasons.append("top-10 concentration unavailable")
-        elif report.top10_pct > max_top10:
-            reasons.append(f"top 10 hold {report.top10_pct:.0f}%, above publisher ceiling")
+        elif top10_pct > max_top10:
+            reasons.append(f"top 10 hold {top10_pct:.0f}%, above publisher ceiling")
 
     if bool(section.get("require_socials", False)) and not token.socials and not strong_kol_flow:
         reasons.append("no linked social context")

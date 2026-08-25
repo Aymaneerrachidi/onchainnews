@@ -73,12 +73,22 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "buyRatio6h": signal.buy_imbalance_6h,
         "trades24h": token.txns_24h.total,
         "trades6h": token.txns_6h.total,
-        "top10Pct": candidate.safety.top10_pct,
-        "holders": candidate.safety.holder_count,
+        "top10Pct": (
+            candidate.safety.top10_pct
+            if candidate.safety.top10_pct is not None
+            else (candidate.provider_evidence.get("gmgn", {}) or {}).get("top10Pct")
+        ),
+        "holders": candidate.enrichment.holder_count or candidate.safety.holder_count,
         "lpLockedPct": candidate.safety.lp_locked_or_burned_pct,
         "safetySource": candidate.safety.source,
-        "mintAuthorityRenounced": candidate.safety.mint_authority_renounced,
-        "freezeAuthorityDisabled": candidate.safety.freeze_authority_disabled,
+        "mintAuthorityRenounced": (
+            candidate.safety.mint_authority_renounced is True
+            or candidate.enrichment.mint_authority_renounced is True
+        ),
+        "freezeAuthorityDisabled": (
+            candidate.safety.freeze_authority_disabled is True
+            or candidate.enrichment.freeze_authority_disabled is True
+        ),
         "securityFlags": candidate.safety.risk_flags,
         "rugged": candidate.safety.rugged,
         "riskLabels": candidate.risk_labels,
@@ -167,18 +177,23 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
         template = str(settings.get("overlay", "trade_url_template", "") or "")
         template += str(settings.get("overlay", "trade_url_suffix", "") or "")
     runners = [_candidate(candidate, template) for candidate in brief.runners]
+    runner_universe = [
+        _candidate(candidate, template)
+        for candidate in (brief.runner_universe or brief.runners)
+    ]
     blocked = [_candidate(candidate, template) for candidate in brief.blocked_runners]
     fresh = sum(
         1 for candidate in brief.runners
         if candidate.signals.age_hours is not None and candidate.signals.age_hours <= 24
     )
     return {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "generatedAt": brief.generated_at.isoformat(),
         "windowStart": brief.window_start.isoformat() if brief.window_start else None,
         "timezone": brief.generated_at.tzname() or "local",
         "summary": {
             "runners": len(brief.runners),
+            "qualifiedRunnerUniverse": len(runner_universe),
             "observedRunners": len(brief.runners) + len(brief.blocked_runners),
             "launchedToday": fresh,
             "bigMultiples": sum(1 for c in brief.runners if c.run_multiple >= 5),
@@ -194,6 +209,9 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
         },
         "recap": brief.recap,
         "runners": runners,
+        # Full fail-closed runner set used by Discord's private chain/MC
+        # browser. ``runners`` remains the concise public overview.
+        "runnerUniverse": runner_universe,
         "blockedRunners": blocked,
         # The day's biggest markets by volume, so the site and the overlay can
         # tell the same story the email opens with.
@@ -201,7 +219,7 @@ def build_payload(brief: Brief, settings: Settings | None = None) -> dict[str, A
         # The written recap, so the site and overlay can tell the day the same
         # way the email does instead of re-deriving it.
         "narrative": brief.narrative or {},
-        "chains": sorted({c.token.chain_id for c in brief.runners}),
+        "chains": sorted({c.token.chain_id for c in (brief.runner_universe or brief.runners)}),
         "loreGroups": [
             {
                 "name": name,

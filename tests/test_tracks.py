@@ -807,6 +807,61 @@ def test_kol_flow_lane_promotes_wallet_discovered_runners(tmp_path):
     assert blocked == []
 
 
+def test_kol_flow_lane_cannot_override_missing_contract_security(tmp_path):
+    from brief.engine import _add_kol_flow_runners
+    from brief.models import SafetyReport
+    from brief.scoring import score_candidate
+
+    settings = build_settings(tmp_path / "kol-lane-security")
+    settings.values.setdefault("kol", {}).update({
+        "runner_lane_enabled": True,
+        "runner_lane_max": 10,
+        "runner_min_market_cap": 250_000.0,
+        "runner_min_volume_24h": 250_000.0,
+        "runner_max_age_hours": 24.0,
+        "runner_min_buyers": 5,
+        "runner_min_participants": 5,
+        "runner_min_realised_sol": 5.0,
+        "runner_require_positive_realised": True,
+        "runner_require_safety": True,
+        "runner_require_holder_count": True,
+    })
+    settings.values["journal"].update({
+        "block_on_missing_safety_data": True,
+        "require_holder_count": True,
+        "fresh_min_holders": 300,
+        "min_lp_locked_pct": 90.0,
+        "publisher_max_top10_pct": 30.0,
+        "fresh_publisher_max_top10_pct": 30.0,
+        "min_liquidity_by_chain": {"solana": 40_000.0},
+    })
+    c = _tape("UNVERIFIED", mcap=900_000, vol24=1_600_000, vol6=500_000, liq=95_000,
+              trades6=2_200, buys6=1_120)
+    c.token.txns_24h = c.token.txns_6h
+    c.safety = SafetyReport(
+        "m",
+        holder_count=2_800,
+        top10_pct=14.0,
+        lp_locked_or_burned_pct=100.0,
+        source="rugcheck",
+    )
+    c.kol_wallets_scanned = 120
+    c.kol_buyers = ["Wugi", "Chairman", "Pain", "Gasp", "Cupsey"]
+    c.kol_holders = ["Wugi", "Chairman"]
+    c.kol_sellers = ["Pain", "Gasp"]
+    c.kol_realised_sol = 22.0
+    score_candidate(c, settings)
+
+    runners, blocked, promoted = _add_kol_flow_runners([], [], [c], settings, NOW)
+
+    assert promoted == 0
+    assert runners == []
+    assert any(
+        "mint authority/contract mintability" in reason
+        for candidate in blocked for reason in candidate.risk_labels
+    )
+
+
 def test_kol_flow_lane_rejects_thin_old_or_losing_wallet_flow(tmp_path):
     from brief.engine import _add_kol_flow_runners
     from brief.models import SafetyReport
@@ -1399,11 +1454,15 @@ def test_production_peak_floor_and_size_adjusted_old_coin_moves(tmp_path):
     settings.values["journal"].update({
         "max_age_hours": 0,
         "fresh_window_hours": 30,
-        "peak_market_cap_floor": 1_000_000,
+        "peak_market_cap_floor": 250_000,
         "older_than_a_day_multiple": 0,
         "old_coin_age_hours": 720,
+        "old_coin_micro_cap_ceiling": 500_000,
+        "old_coin_low_cap_ceiling": 1_000_000,
         "old_coin_small_cap_ceiling": 10_000_000,
         "old_coin_large_cap_floor": 20_000_000,
+        "old_coin_micro_min_change_pct": 150,
+        "old_coin_low_min_change_pct": 100,
         "old_coin_small_min_change_pct": 75,
         "old_coin_mid_min_change_pct": 50,
         "old_coin_large_min_change_pct": 30,
@@ -1423,6 +1482,10 @@ def test_production_peak_floor_and_size_adjusted_old_coin_moves(tmp_path):
         }
         return coin
 
+    assert not belongs_in_journal(old_coin("MICROMISS", 400_000, 149.9), settings, NOW)
+    assert belongs_in_journal(old_coin("MICROPASS", 400_000, 150), settings, NOW)
+    assert not belongs_in_journal(old_coin("LOWMISS", 750_000, 99.9), settings, NOW)
+    assert belongs_in_journal(old_coin("LOWPASS", 750_000, 100), settings, NOW)
     assert not belongs_in_journal(old_coin("SMALLMISS", 9_000_000, 74.9), settings, NOW)
     assert belongs_in_journal(old_coin("SMALLPASS", 9_000_000, 75), settings, NOW)
     assert not belongs_in_journal(old_coin("MIDMISS", 15_000_000, 49.9), settings, NOW)
@@ -1430,7 +1493,7 @@ def test_production_peak_floor_and_size_adjusted_old_coin_moves(tmp_path):
     assert not belongs_in_journal(old_coin("LARGEMISS", 25_000_000, 29.9), settings, NOW)
     assert belongs_in_journal(old_coin("LARGEPASS", 25_000_000, 30), settings, NOW)
 
-    below_floor = old_coin("BELOWFLOOR", 999_999, 500)
+    below_floor = old_coin("BELOWFLOOR", 249_999, 500)
     assert not belongs_in_journal(below_floor, settings, NOW)
 
 

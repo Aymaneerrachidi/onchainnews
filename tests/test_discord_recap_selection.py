@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from conftest import build_settings
+from brief.journal import limit_runner_board
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -120,6 +121,41 @@ def test_publication_caps_other_chains_without_crowding_out_solana(tmp_path):
     assert len(selected) == 15
     assert sum(coin.token.chain_id != "solana" for coin in selected) == 4
     assert sum(coin.token.chain_id == "solana" for coin in selected) == 11
+
+
+def test_publication_keeps_normal_edition_at_fifteen_without_exceptional_overflow(tmp_path):
+    settings = _settings(tmp_path)
+    settings.values["journal"].update({
+        "publication_max_coins": 20,
+        "publication_standard_coins": 15,
+        "publication_overflow_min_multiple": 5.0,
+        "publication_max_non_solana": 4,
+    })
+    candidates = [_coin(f"RUN{i}", move=250 - i) for i in range(18)]
+
+    selected = recap._select_recap_candidates(candidates, settings)
+
+    assert len(selected) == 15
+    settings.values["journal"]["max_runners"] = 20
+    assert len(limit_runner_board(candidates, settings)) == 15
+
+
+def test_publication_can_expand_to_twenty_for_additional_five_x_runners(tmp_path):
+    settings = _settings(tmp_path)
+    settings.values["journal"].update({
+        "publication_max_coins": 20,
+        "publication_standard_coins": 15,
+        "publication_overflow_min_multiple": 5.0,
+        "publication_max_non_solana": 4,
+    })
+    candidates = [_coin(f"RUN{i}", move=900 - i) for i in range(24)]
+
+    selected = recap._select_recap_candidates(candidates, settings)
+
+    assert len(selected) == 20
+    assert all(recap.verified_window_multiple(candidate) >= 5 for candidate in selected[15:])
+    settings.values["journal"]["max_runners"] = 20
+    assert len(limit_runner_board(candidates, settings)) == 20
 
 
 def test_large_cross_chain_mover_keeps_a_slot_after_clearing_safety(tmp_path):

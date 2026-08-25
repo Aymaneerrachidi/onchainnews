@@ -52,17 +52,74 @@ TIERS = (
 )
 
 
-def interactive_market_components(refreshed_at: int = 0) -> list[dict[str, Any]]:
-    """Build the application-owned button handled by our Vercel endpoint."""
-    return [{
-        "type": 1,
-        "components": [{
+def interactive_market_components(
+    refreshed_at: int = 0,
+    report_date: str = "latest",
+) -> list[dict[str, Any]]:
+    """Build public controls for the complete qualified runner universe.
+
+    Filter clicks open a private Discord view, so one reader never changes the
+    public message or another reader's active filters. The report date in each
+    ID prevents an old recap from silently showing a newer day's runner set.
+    """
+    date_key = str(report_date or "latest").replace("-", "")[:8]
+
+    def button(label: str, custom_id: str, *, style: int = 2) -> dict[str, Any]:
+        return {
             "type": 2,
-            "style": 2,
-            "label": "Refresh live MC",
-            "custom_id": f"refresh_mc:{int(refreshed_at)}",
-        }],
-    }]
+            "style": style,
+            "label": label,
+            "custom_id": custom_id,
+        }
+
+    chain_buttons = [
+        ("All chains", "all"),
+        ("Solana", "solana"),
+        ("BNB", "bsc"),
+        ("Base", "base"),
+        ("Ethereum", "ethereum"),
+        ("Robinhood", "robinhood"),
+    ]
+    range_buttons = [
+        ("All MC", "all"),
+        ("$250K-$500K", "250k-500k"),
+        ("$500K-$1M", "500k-1m"),
+        ("$1M-$10M", "1m-10m"),
+        ("$10M+", "10m-plus"),
+    ]
+    components = [
+        {
+            "type": 1,
+            "components": [
+                button(label, f"rfilter:{value}:all:{date_key}:0:chain")
+                for label, value in chain_buttons[:5]
+            ],
+        },
+        {
+            "type": 1,
+            "components": [
+                button(label, f"rfilter:{value}:all:{date_key}:0:chain")
+                for label, value in chain_buttons[5:]
+            ],
+        },
+        {
+            "type": 1,
+            "components": [
+                button(label, f"rfilter:all:{value}:{date_key}:0:band")
+                for label, value in range_buttons
+            ],
+        },
+        {
+            "type": 1,
+            "components": [
+                button(
+                    "Refresh live MC",
+                    f"refresh_mc:{int(refreshed_at)}:{date_key}",
+                ),
+            ],
+        },
+    ]
+    return components
 
 
 def bot_token() -> str:
@@ -246,7 +303,9 @@ async def send_discord(
     token = bot_token()
     channels = bot_channel_ids()
     if token and channels:
-        payload["components"] = interactive_market_components()
+        payload["components"] = interactive_market_components(
+            report_date=brief.generated_at.strftime("%Y%m%d")
+        )
         for channel_id in channels:
             await post_bot_payload(
                 channel_id, payload, token, settings.root / "web" / LOGO,
@@ -280,7 +339,13 @@ async def post_payload(url: str, payload: dict[str, Any], logo: Path | None = No
             )
         else:
             response = await client.post(url, json=payload)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            detail = response.text.strip()
+            raise RuntimeError(
+                f"Discord webhook post failed ({response.status_code}): {detail}"
+            ) from exc
 
 
 async def post_bot_payload(
@@ -311,4 +376,10 @@ async def post_bot_payload(
             )
         else:
             response = await client.post(url, headers=headers, json=body)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            detail = response.text.strip()
+            raise RuntimeError(
+                f"Discord bot post failed ({response.status_code}): {detail}"
+            ) from exc

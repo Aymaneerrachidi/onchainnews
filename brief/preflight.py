@@ -11,7 +11,7 @@ from hashlib import sha256
 from typing import Iterable
 
 from brief.config import Settings
-from brief.journal import rug_or_bundle
+from brief.journal import rug_or_bundle, runner_universe_reasons
 from brief.models import Brief, Candidate
 
 
@@ -29,7 +29,12 @@ def delivery_candidates(brief: Brief) -> list[Candidate]:
     """Every coin a recap renderer is allowed to mention, without duplicates."""
     found: list[Candidate] = []
     seen: set[str] = set()
-    for candidate in [*brief.runners, *brief.headline_tape]:
+    # The interactive Discord browser is public output too. Audit the complete
+    # filter universe, not only the 10-15 names visible in the first message.
+    for candidate in [
+        *(brief.runner_universe or brief.runners),
+        *brief.headline_tape,
+    ]:
         if candidate.token.mint in seen:
             continue
         seen.add(candidate.token.mint)
@@ -139,4 +144,35 @@ def audit_candidates(candidates: Iterable[Candidate], settings: Settings) -> Del
 
 
 def audit_brief(brief: Brief, settings: Settings) -> DeliveryProof:
-    return audit_candidates(delivery_candidates(brief), settings)
+    # The concise public recap remains fully audited (including exact KOL and
+    # complete provider evidence). The wider interactive browser deliberately
+    # has a different promise: every measured runner is retained unless a
+    # confirmed danger signal fails the broad universe gate.
+    visible: list[Candidate] = []
+    visible_seen: set[str] = set()
+    for candidate in [*brief.runners, *brief.headline_tape]:
+        if candidate.token.mint not in visible_seen:
+            visible_seen.add(candidate.token.mint)
+            visible.append(candidate)
+    audit_candidates(visible, settings)
+
+    failures: list[str] = []
+    for candidate in brief.runner_universe or brief.runners:
+        reasons = runner_universe_reasons(candidate, settings)
+        if reasons:
+            failures.append(
+                f"${candidate.token.symbol} ({candidate.token.chain_id}:{candidate.token.mint}): "
+                + "; ".join(reasons)
+            )
+    if failures:
+        detail = "\n".join(f"- {line}" for line in failures[:20])
+        more = len(failures) - 20
+        if more > 0:
+            detail += f"\n- and {more} more token(s)"
+        raise DeliveryPreflightError(
+            f"delivery blocked: {len(failures)} filtered runner(s) failed the confirmed-danger gate\n{detail}"
+        )
+
+    delivered = delivery_candidates(brief)
+    mints = "\n".join(sorted(candidate.token.mint for candidate in delivered)).encode("utf-8")
+    return DeliveryProof(len(delivered), sha256(mints).hexdigest())

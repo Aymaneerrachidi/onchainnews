@@ -362,6 +362,10 @@ class Brief:
     movers: list[Candidate] = field(default_factory=list)
     # The day's record: every coin that ran, risk labelled rather than hidden.
     runners: list[Candidate] = field(default_factory=list)
+    # Complete security-cleared universe for interactive browsing. ``runners``
+    # is the concise editorial overview; this collection is deliberately not
+    # truncated so chain and market-cap filters can expose the rest of the day.
+    runner_universe: list[Candidate] = field(default_factory=list)
     blocked_runners: list[Candidate] = field(default_factory=list)
     # The day's biggest markets, whether or not they ran. A coin can be the
     # story of the day on a 6% move -- what makes it the story is that everyone

@@ -15,6 +15,7 @@ const HOLDER_STRUCTURE_EXCEPTIONS = new Set([
   "bsc:0x02fca66c1d1afb4e2a7884261eb00f63598a7436", // NVDAB
   "bsc:0xcaae2a2f939f51d97cdfa9a86e79e3f085b799f3", // TUT
 ]);
+const ACTIVITY_EXCEPTIONS = new Set(HOLDER_STRUCTURE_EXCEPTIONS);
 const MANUALLY_EXCLUDED_CONTRACTS = new Set([
   "bsc:0xb0f09ea9ae0515c3551080d4a745c8115aa30e37", // DOS
 ]);
@@ -316,13 +317,47 @@ function gmgnEvidence(row) {
   return row?.providerEvidence?.gmgn || {};
 }
 
+function contractKey(row) {
+  return `${String(row?.chain || "").toLowerCase()}:${String(row?.mint || "").toLowerCase()}`;
+}
+
+function runnerWindowMovePct(row) {
+  const gmgn = gmgnEvidence(row);
+  const moves = [];
+  for (const value of [row?.change24h, gmgn?.kline24hPeakFromOpenPct]) {
+    const measured = Number(value);
+    if (Number.isFinite(measured)) moves.push(measured);
+  }
+  const start = Number(row?.startMarketCap);
+  const peak = runnerPeak(row);
+  if (Number.isFinite(start) && start > 0 && peak > 0) {
+    moves.push(((peak / start) - 1) * 100);
+  }
+  return moves.length ? Math.max(...moves) : Number.NEGATIVE_INFINITY;
+}
+
+export function activityEligible(row) {
+  if (ACTIVITY_EXCEPTIONS.has(contractKey(row))) return true;
+  const runnerScore = Number(row?.scores?.runner);
+  if (!Number.isFinite(runnerScore) || runnerScore < 40) return false;
+  const age = Number(row?.ageHours);
+  if (Number.isFinite(age) && age >= 0 && age <= 24) return true;
+  const peak = runnerPeak(row);
+  let required = 150;
+  if (peak >= 20_000_000) required = 30;
+  else if (peak >= 10_000_000) required = 50;
+  else if (peak >= 1_000_000) required = 75;
+  else if (peak >= 500_000) required = 100;
+  return runnerWindowMovePct(row) >= required;
+}
+
 export function securityEligible(row) {
   const gmgn = gmgnEvidence(row);
   const peak = runnerPeak(row);
   const chain = String(row?.chain || "").toLowerCase();
   const mint = String(row?.mint || "").toLowerCase();
-  const contractKey = `${chain}:${mint}`;
-  const holderStructureException = HOLDER_STRUCTURE_EXCEPTIONS.has(contractKey);
+  const key = `${chain}:${mint}`;
+  const holderStructureException = HOLDER_STRUCTURE_EXCEPTIONS.has(key);
   const holdersKnown = row?.holders !== null && row?.holders !== undefined;
   const holders = Number(row?.holders);
   const top10Known = row?.top10Pct !== null && row?.top10Pct !== undefined;
@@ -346,7 +381,7 @@ export function securityEligible(row) {
   };
   return Boolean(
     row?.mint
-    && !MANUALLY_EXCLUDED_CONTRACTS.has(contractKey)
+    && !MANUALLY_EXCLUDED_CONTRACTS.has(key)
     && peak >= 250000
     && row?.rugged !== true
     && !honeypot
@@ -386,7 +421,7 @@ export function filterRunnerRows(snapshot, chain = "all", band = "all") {
   for (const row of source) {
     const rowChain = String(row?.chain || "").toLowerCase();
     const key = `${rowChain}:${String(row?.mint || "").toLowerCase()}`;
-    if (!securityEligible(row)) continue;
+    if (!securityEligible(row) || !activityEligible(row)) continue;
     if (chain !== "all" && rowChain !== chain) continue;
     if (!inBand(runnerPeak(row), band)) continue;
     const existing = unique.get(key);

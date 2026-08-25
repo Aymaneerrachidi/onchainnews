@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  activityEligible,
   applyLiveCaps,
   contractsFromEmbeds,
   dexChain,
@@ -99,6 +100,8 @@ function safeRunner(overrides = {}) {
     rugged: false,
     securityFlags: [],
     volume24h: 900_000,
+    ageHours: 12,
+    scores: { runner: 70, organic: 70, manipulation: 10 },
     ...overrides,
   };
 }
@@ -125,6 +128,44 @@ test("runner filters combine chain and verified 24h peak bands", () => {
     filterRunnerRows(snapshot, "base", "1m-10m").map((row) => row.symbol),
     ["BASE"],
   );
+});
+
+
+test("Discord requires a fresh launch or a size-adjusted trailing-day move", () => {
+  assert.equal(activityEligible(safeRunner({ ageHours: 12, change24h: -80 })), true);
+  assert.equal(activityEligible(safeRunner({ ageHours: 12, scores: { runner: 39 } })), false);
+  assert.equal(activityEligible(safeRunner({ ageHours: 72, change24h: 149 })), false);
+  assert.equal(activityEligible(safeRunner({ ageHours: 72, change24h: 150 })), true);
+  assert.equal(activityEligible(safeRunner({
+    ageHours: 72,
+    peakMarketCap: 750_000,
+    change24h: 99,
+  })), false);
+  assert.equal(activityEligible(safeRunner({
+    ageHours: 72,
+    peakMarketCap: 750_000,
+    change24h: 100,
+  })), true);
+  assert.equal(activityEligible(safeRunner({
+    ageHours: 72,
+    peakMarketCap: 2_000_000,
+    change24h: 74,
+  })), false);
+  assert.equal(activityEligible(safeRunner({
+    ageHours: 72,
+    peakMarketCap: 2_000_000,
+    change24h: 75,
+  })), true);
+  assert.equal(activityEligible(safeRunner({
+    ageHours: 72,
+    peakMarketCap: 12_000_000,
+    change24h: 50,
+  })), true);
+  assert.equal(activityEligible(safeRunner({
+    ageHours: 72,
+    peakMarketCap: 25_000_000,
+    change24h: 30,
+  })), true);
 });
 
 

@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from brief.models import Candidate, Enrichment, SafetyReport, Signals, TokenSnapshot
-from brief.preflight import DeliveryPreflightError, audit_candidates
+from brief.models import Brief, Candidate, Enrichment, SafetyReport, Scorecard, Signals, TokenSnapshot
+from brief.preflight import DeliveryPreflightError, audit_brief, audit_candidates, delivery_candidates
 
 
 def candidate(symbol: str = "SAFE") -> Candidate:
@@ -53,6 +53,7 @@ def candidate(symbol: str = "SAFE") -> Candidate:
             "suspicious": False,
         }],
     }
+    result.scores = {"runner": 70.0, "organic": 70.0, "manipulation": 10.0}
     return result
 
 
@@ -106,3 +107,75 @@ def test_any_security_flag_blocks_delivery(settings):
 
     with pytest.raises(DeliveryPreflightError, match="security flag"):
         audit_candidates([item], settings)
+
+
+def test_hidden_discord_filter_universe_is_part_of_delivery_preflight():
+    visible = candidate("VISIBLE")
+    filtered = candidate("FILTERED")
+    brief = Brief(
+        generated_at=datetime.now(timezone.utc),
+        scorecard=Scorecard(),
+        metas=[],
+        new_and_moving=[],
+        ctos=[],
+        follow_ups=[],
+        onchain=[],
+        excluded=[],
+        source_statuses=[],
+        runners=[visible],
+        runner_universe=[visible, filtered],
+    )
+
+    assert [item.token.symbol for item in delivery_candidates(brief)] == [
+        "VISIBLE", "FILTERED",
+    ]
+
+
+def test_filter_universe_allows_unknown_authorities_but_requires_holder_structure(settings):
+    filtered = candidate("FILTERED")
+    filtered.safety.mint_authority_renounced = None
+    filtered.safety.freeze_authority_disabled = None
+    filtered.enrichment.mint_authority_renounced = None
+    filtered.enrichment.freeze_authority_disabled = None
+    brief = Brief(
+        generated_at=datetime.now(timezone.utc),
+        scorecard=Scorecard(),
+        metas=[],
+        new_and_moving=[],
+        ctos=[],
+        follow_ups=[],
+        onchain=[],
+        excluded=[],
+        source_statuses=[],
+        runners=[],
+        runner_universe=[filtered],
+    )
+
+    assert audit_brief(brief, settings).candidate_count == 1
+
+    filtered.safety.holder_count = None
+    filtered.enrichment.holder_count = None
+    with pytest.raises(DeliveryPreflightError, match="holder count unavailable or zero"):
+        audit_brief(brief, settings)
+
+
+def test_filter_universe_rejects_low_runner_quality(settings):
+    settings.values.setdefault("journal", {})["runner_universe_min_runner_score"] = 40.0
+    filtered = candidate("LOWSCORE")
+    filtered.scores["runner"] = 39.9
+    brief = Brief(
+        generated_at=datetime.now(timezone.utc),
+        scorecard=Scorecard(),
+        metas=[],
+        new_and_moving=[],
+        ctos=[],
+        follow_ups=[],
+        onchain=[],
+        excluded=[],
+        source_statuses=[],
+        runners=[],
+        runner_universe=[filtered],
+    )
+
+    with pytest.raises(DeliveryPreflightError, match="runner quality score 39.9"):
+        audit_brief(brief, settings)

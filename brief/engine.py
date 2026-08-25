@@ -24,7 +24,9 @@ from brief.journal import (
     kol_trade_count,
     kol_traders,
     implausible_run, assign_lore, journal_rank_key, inorganic_reasons,
-    kol_touch_required, rug_or_bundle, risk_labels,
+    kol_touch_required, limit_runner_board, publisher_quality_reasons,
+    runner_universe_reasons,
+    rug_or_bundle, risk_labels,
 )
 from brief.lore import attach_lore
 from brief.newsletter import (
@@ -244,7 +246,10 @@ def _kol_flow_qualifies(candidate: Candidate, settings: Settings) -> bool:
         return False
     if bool(section.get("runner_require_safety", False)) and candidate.safety.source == "unavailable":
         return False
-    if bool(section.get("runner_require_holder_count", False)) and candidate.safety.holder_count is None:
+    if (
+        bool(section.get("runner_require_holder_count", False))
+        and not (candidate.enrichment.holder_count or candidate.safety.holder_count)
+    ):
         return False
     age = candidate.signals.age_hours
     max_age = float(section.get("runner_max_age_hours", 72) or 72)
@@ -302,7 +307,11 @@ def _kol_flow_reason(candidate: Candidate) -> str:
     return "; ".join(bits) or "tracked wallet activity"
 
 
-def _kol_hard_reasons(candidate: Candidate, settings: Settings) -> tuple[list[str], list[str]]:
+def _kol_hard_reasons(
+    candidate: Candidate,
+    settings: Settings,
+    now: datetime,
+) -> tuple[list[str], list[str]]:
     """Split irreversible/manufactured risk from normal end-of-day fading.
 
     Low recent activity is valuable recap context: it says the runner peaked
@@ -311,6 +320,24 @@ def _kol_hard_reasons(candidate: Candidate, settings: Settings) -> tuple[list[st
     exclusions.
     """
     hard = list(rug_or_bundle(candidate, settings))
+    # KOL popularity is discovery/confirmation, never a security override.
+    # Keep the promotion lane fail-closed on the evidence the normal publisher
+    # gate requires, while leaving purely editorial issues to normal ranking.
+    security_terms = (
+        "contract-security provider unavailable",
+        "mint authority/contract mintability",
+        "freeze/pause/blacklist powers",
+        "holder count unavailable",
+        "holders, below publisher floor",
+        "lp lock/burn status unavailable",
+        "lp only ",
+        "top-10 concentration unavailable",
+        "top 10 hold ",
+        "liquidity below publisher floor",
+    )
+    for reason in publisher_quality_reasons(candidate, settings, now):
+        if any(term in reason.casefold() for term in security_terms):
+            hard.append(reason)
     soft: list[str] = []
     peak = float(candidate.observed_peak_market_cap or 0.0)
     peak_floor = float(settings.get("kol", "runner_min_market_cap", 200_000) or 200_000)
@@ -411,7 +438,7 @@ def _add_kol_flow_runners(
         retained: list[Candidate] = []
         rejected_mints = {candidate.token.mint for candidate in blocked}
         for candidate in runners:
-            hard, _ = _kol_hard_reasons(candidate, settings)
+            hard, _ = _kol_hard_reasons(candidate, settings, now)
             if _kol_flow_qualifies(candidate, settings) and not hard:
                 retained.append(candidate)
                 continue
@@ -445,7 +472,7 @@ def _add_kol_flow_runners(
             break
         if candidate.token.mint in existing or not _kol_flow_qualifies(candidate, settings):
             continue
-        hard_reasons, soft_reasons = _kol_hard_reasons(candidate, settings)
+        hard_reasons, soft_reasons = _kol_hard_reasons(candidate, settings, now)
         if hard_reasons:
             if candidate.token.mint not in blocked_by_mint:
                 candidate.risk_labels = hard_reasons
@@ -1980,7 +2007,7 @@ async def build_brief(
                         candidate.enrichment = enrichments.get(mint, candidate.enrichment)
                         if not include_all_alerted and not _kol_flow_qualifies(candidate, settings):
                             continue
-                        hard_reasons, soft_reasons = _kol_hard_reasons(candidate, settings)
+                        hard_reasons, soft_reasons = _kol_hard_reasons(candidate, settings, now)
                         if hard_reasons:
                             continue
                         if blocked_now:
@@ -2043,9 +2070,18 @@ async def build_brief(
                 candidate for candidate in blocked_runners
                 if candidate.token.mint not in manually_excluded_mints
             ]
-        max_runners = int(settings.get('journal', 'max_runners', 40))
-        if max_runners > 0:
-            runners = runners[:max_runners]
+        # The first recap stays selective, while Discord's private browser keeps
+        # every measured runner that clears the smaller confirmed-danger gate.
+        # Missing metadata is shown as unknown instead of silently deleting a
+        # real move from the full-day index.
+        universe_by_mint: dict[str, Candidate] = {}
+        for candidate in [*runners, *blocked_runners]:
+            if not runner_universe_reasons(candidate, settings):
+                universe_by_mint.setdefault(candidate.token.mint, candidate)
+        runner_universe = sorted(
+            universe_by_mint.values(), key=journal_rank_key, reverse=True
+        )
+        runners = limit_runner_board(runners, settings)
         lore_groups = assign_lore(runners, settings)
         if bool(settings.get("journal", "gate_editorial_tracks", False)):
             runner_mints = {candidate.token.mint for candidate in runners}
@@ -2276,9 +2312,10 @@ async def build_brief(
         }
         recap_chains = ", ".join(chain_labels.get(chain, chain.title()) for chain in chains)
         selection_rule = (
-            f"KOL-backed recap across {recap_chains}: launches up to 30h old that crossed $250K, "
-            "plus older coins that rose at least 50% to their GMGN-verified 24h high or printed a fresh ATH. "
-            "Faded moves remain visible; contract, bundle, holder, and wash evidence is attached as context."
+            f"Security-cleared recap across {recap_chains}: fresh launches that crossed $250K inside 24h, "
+            "plus older coins that made the configured size-adjusted move inside the same trailing window. "
+            "Every published contract requires confirmed authorities, locked or burned liquidity, holder count, "
+            "top-10 concentration, clean bundle/wash checks, and exact KOL participation."
         )
         statuses.append(SourceStatus(
             "24h market-indexed launches",
@@ -2518,6 +2555,7 @@ async def build_brief(
             follow_ups=follow_ups,
             movers=movers,
             runners=runners,
+            runner_universe=runner_universe,
             blocked_runners=blocked_runners,
             headline_tape=headline_tape,
             narrative=narrative,

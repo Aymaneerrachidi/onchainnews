@@ -20,7 +20,7 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from brief.config import load_settings  # noqa: E402
-from brief.journal import kol_trade_count, rug_or_bundle  # noqa: E402
+from brief.journal import kol_trade_count, rug_or_bundle, verified_window_multiple  # noqa: E402
 from brief.links import fomo_token_url  # noqa: E402
 from brief.lore import attach_lore  # noqa: E402
 from brief.newsletter import explain_runs, research_day, write_recap  # noqa: E402
@@ -648,9 +648,16 @@ def _other_recap_rank(candidate, settings) -> tuple[float, ...]:
 
 
 def _select_recap_candidates(candidates: list, settings) -> list:
-    """Build a small Solana-led editorial board after all hard gates."""
+    """Build a Solana-led board with exceptional-multiple overflow slots."""
     section = settings.section("journal")
     max_total = int(section.get("publication_max_coins", 15) or 15)
+    standard_total = min(
+        max_total,
+        int(section.get("publication_standard_coins", 15) or 15),
+    )
+    overflow_multiple = float(
+        section.get("publication_overflow_min_multiple", 5.0) or 5.0
+    )
     max_other = int(section.get("publication_max_non_solana", 4) or 4)
     eligible = [candidate for candidate in candidates if _eligible_for_recap(candidate, settings)]
     solana = sorted(
@@ -662,12 +669,36 @@ def _select_recap_candidates(candidates: list, settings) -> list:
         (candidate for candidate in eligible if candidate.token.chain_id.lower() != "solana"),
         key=lambda candidate: _other_recap_rank(candidate, settings),
         reverse=True,
-    )[:max_other]
+    )
     # Reserve the configured non-Solana allowance before filling the remaining
-    # board with Solana.  The previous concatenate-then-truncate step could
-    # silently discard every cross-chain name after selecting 15 Solana coins.
-    solana_slots = max(0, max_total - len(others))
-    return sorted([*solana[:solana_slots], *others], key=_recap_rank, reverse=True)
+    # normal board with Solana. Slots above the normal edition size are earned
+    # only by additional verified 5x-style moves, never by quota filling.
+    base_others = others[:min(max_other, standard_total)]
+    solana_slots = max(0, standard_total - len(base_others))
+    selected = sorted(
+        [*solana[:solana_slots], *base_others], key=_recap_rank, reverse=True
+    )
+    selected_mints = {candidate.token.mint for candidate in selected}
+    other_count = sum(
+        candidate.token.chain_id.lower() != "solana" for candidate in selected
+    )
+    overflow_pool = sorted(
+        (candidate for candidate in eligible if candidate.token.mint not in selected_mints),
+        key=_recap_rank,
+        reverse=True,
+    )
+    for candidate in overflow_pool:
+        if len(selected) >= max_total:
+            break
+        is_other = candidate.token.chain_id.lower() != "solana"
+        if is_other and other_count >= max_other:
+            continue
+        if verified_window_multiple(candidate) < overflow_multiple:
+            continue
+        selected.append(candidate)
+        selected_mints.add(candidate.token.mint)
+        other_count += int(is_other)
+    return sorted(selected, key=_recap_rank, reverse=True)
 
 
 def _dedupe(rows: list[dict], excluded: set[str]) -> list:
@@ -1025,7 +1056,9 @@ async def main() -> int:
     urls = list(args.webhook_url) or ([] if token and channels else webhook_urls())
     if token and channels:
         for post in posts:
-            post["components"] = interactive_market_components()
+            post["components"] = interactive_market_components(
+                report_date=generated.strftime("%Y%m%d")
+            )
         for channel_id in channels:
             for index, payload in enumerate(posts):
                 await post_bot_payload(

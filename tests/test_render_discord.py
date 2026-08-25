@@ -101,12 +101,30 @@ def test_webhook_urls_deduplicates_destinations(monkeypatch):
 
 
 def test_live_market_button_is_an_in_discord_interaction():
-    components = interactive_market_components(1234)
+    components = interactive_market_components(1234, "20260825")
 
-    button = components[0]["components"][0]
+    assert len(components) == 4
+    assert [button["label"] for button in components[0]["components"]] == [
+        "All chains", "Solana", "BNB", "Base", "Ethereum",
+    ]
+    assert components[1]["components"][0]["label"] == "Robinhood"
+    assert [button["label"] for button in components[2]["components"]] == [
+        "All MC", "$250K-$500K", "$500K-$1M", "$1M-$10M", "$10M+",
+    ]
+    assert components[0]["components"][1]["custom_id"] == (
+        "rfilter:solana:all:20260825:0:chain"
+    )
+    custom_ids = [
+        button["custom_id"]
+        for row in components
+        for button in row["components"]
+    ]
+    assert len(custom_ids) == len(set(custom_ids))
+
+    button = components[3]["components"][0]
     assert button["style"] == 2
     assert button["label"] == "Refresh live MC"
-    assert button["custom_id"] == "refresh_mc:1234"
+    assert button["custom_id"] == "refresh_mc:1234:20260825"
     assert "url" not in button
 
 

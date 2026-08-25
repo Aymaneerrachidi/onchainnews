@@ -139,7 +139,7 @@ min_interval_seconds = 1.25
 [openintel]
 # OpenNews' free hot feed works without a token. OPENNEWS_TOKEN unlocks precise
 # per-finalist news and OpenTwitter evidence searches.
-enabled = true
+enabled = false
 finalist_limit = 30
 # "Latest" returns whoever posted most recently, which on a running coin is
 # whoever is shilling hardest; "Top" returns what people actually engaged with.
@@ -366,7 +366,7 @@ timeout_seconds = 45
 # evidence; the prompt forbids inventing news, posts, people or reasons, and
 # any coin the model names that we did not hand it is dropped before sending.
 # If this is off or the call fails, the deterministic template renders instead.
-enabled = true
+enabled = false
 # Who writes the recap. Research still runs on OpenAI: Cohere removed its
 # web-search connector in September 2025, so it can phrase the day but cannot
 # go and find out what happened.
@@ -388,8 +388,9 @@ timeout_seconds = 120
 # being guessed at.
 # Reprice the recap coins immediately before writing; a long run leaves the
 # opening numbers badly stale.
-refresh_before_write = true
-research_enabled = true
+refresh_before_write = false
+research_enabled = false
+explain_enabled = false
 research_model = "gpt-5.5"
 research_limit = 12
 research_concurrency = 2
@@ -421,7 +422,7 @@ openintel_base_url = "https://ai.6551.io"
 # evidence. Likes are not treated as observable interactions; posts, replies,
 # quotes and reposts are. Replace or extend this starter list for the client.
 [x]
-enabled = true
+enabled = false
 accounts_per_query = 20
 max_pages_per_query = 5
 requests_per_minute = 60
@@ -523,9 +524,10 @@ tokens = [
 ]
 
 [delivery]
-# No outbound email/Telegram/Discord is allowed until every named contract has
-# a clean exact-mint KOL history plus complete authority, holder,
-# concentration and LP checks. Missing provider data blocks the whole edition.
+# The concise recap requires the full exact-contract preflight. The larger
+# Discord filter universe uses the confirmed-danger gate: unknown metadata is
+# disclosed, while measured rugs, honeypots, owner controls, top-10 above 30%,
+# excessive dev ownership, wash trading and thin liquidity remain blocked.
 require_preflight = true
 preflight_min_exact_kol_trades = 1
 preflight_block_any_security_flag = true
@@ -563,7 +565,7 @@ newsletter_observed_limit = 30
 newsletter_min_observed_runner_score = 25.0
 newsletter_max_observed_manipulation = 70.0
 newsletter_min_observed_volume = 250000.0
-newsletter_min_observed_market_cap = 200000.0
+newsletter_min_observed_market_cap = 250000.0
 newsletter_excluded_risk_terms = [
   "rugcheck has already marked",
   "rugged",
@@ -587,11 +589,10 @@ newsletter_excluded_risk_terms = [
   "tracked kol wallet scan unavailable",
 ]
 
-# The daily journal: what ran today. Deliberately wider than the editorial
-# tracks. A coin enters through one of two doors -- created inside the fresh
-# window and up by min_fresh_change_pct, or any age doing old_coin_multiple.
-# Safety problems become labels on the row; only the rug/bundle conditions
-# below remove a coin from the record entirely.
+# The full daily runner index. Every entry crossed $250K inside the report
+# window and passed the hard authority, LP, holder-distribution, liquidity,
+# bundle, wash-trading and KOL checks. The first Discord message is a concise
+# overview; its private filters browse this complete qualified set.
 [journal]
 enabled = true
 # Human-confirmed bad mints never re-enter through the live screen, KOL lane,
@@ -604,8 +605,17 @@ excluded_mints = [
   "0x8226dda5f73619dedc671e09be738fa308da1944", # HEDGE
   "0x777777780838c00038ecd48f63f3c37669322bc8", # ETHCAT
   "6yjNqPzTSanBWSa6dxVEgTjePXBrZ2FoHLDQwYwEsyM6", # CHUD
+  "0xb0f09ea9ae0515c3551080d4a745c8115aa30e37", # DOS: received-token flow, no confirmed KOL buys
 ]
-max_runners = 0
+# Exact operator-reviewed exceptions for providers that do not expose holder
+# structure on the asset. They bypass missing holder/top-10 data only; every
+# other confirmed-danger and liquidity check still applies.
+holder_structure_exception_mints = [
+  "0x02fca66c1d1afb4e2a7884261eb00f63598a7436", # NVDAB
+  "0xcaae2a2f939f51d97cdfa9a86e79e3f085b799f3", # TUT
+]
+# Public overview cap only. The full qualified universe is never truncated.
+max_runners = 20
 # The day's biggest markets, chosen on volume rather than on the size of the move.
 headline_tape_size = 5
 # The tape reports what the market bought. A big coin that spent the day
@@ -624,7 +634,7 @@ include_intraday_pulse_runners = true
 # still remove it.
 pulse_recap_alerted_only = true
 include_all_alerted_pulse_runners = true
-intraday_min_peak_market_cap = 200000.0
+intraday_min_peak_market_cap = 250000.0
 intraday_min_volume_24h = 250000.0
 intraday_min_liquidity = 40000.0
 intraday_min_trades_24h = 1000
@@ -636,7 +646,7 @@ min_liquidity = 40000.0
 # Peak-led recap: an established token may belong if it made a measured move in
 # this 24h window. GMGN lifetime ATH is only trusted for <=24h-old launches.
 max_age_hours = 0
-peak_market_cap_floor = 1000000.0
+peak_market_cap_floor = 250000.0
 min_window_multiple = 1.50
 # The daily public board is launch-first: a coin is new only during its first
 # 24 hours. Anything older must prove an exceptional trailing-day move.
@@ -652,18 +662,25 @@ older_min_live_change_pct = 0.0
 min_daily_change_pct = 50.0
 # The broad journal also starts the established-coin gate after 24 hours.
 old_coin_age_hours = 24.0
+old_coin_micro_cap_ceiling = 500000.0
+old_coin_low_cap_ceiling = 1000000.0
 old_coin_small_cap_ceiling = 10000000.0
 old_coin_large_cap_floor = 20000000.0
+old_coin_micro_min_change_pct = 150.0
+old_coin_low_min_change_pct = 100.0
 old_coin_small_min_change_pct = 75.0
 old_coin_mid_min_change_pct = 50.0
 old_coin_large_min_change_pct = 30.0
 old_coin_allow_aggregate_change_with_kline = true
+runner_universe_min_runner_score = 40.0
 # Final publication is smaller and Solana-led. Other chains must make a much
 # stronger move to use one of the four non-Solana slots.
 publication_fresh_hours = 24.0
-publication_max_coins = 15
+publication_max_coins = 20
+publication_standard_coins = 15
+publication_overflow_min_multiple = 5.0
 publication_max_non_solana = 4
-publication_max_top10_pct = 50.0
+publication_max_top10_pct = 30.0
 publication_min_holders = 1000
 publication_min_solana_kols = 1
 publication_min_other_kols = 5
@@ -734,12 +751,12 @@ fresh_gate_hours = 36.0
 fresh_max_volume_liquidity = 250.0
 fresh_min_holders = 300
 fresh_min_trades_24h = 400
-fresh_publisher_max_top10_pct = 35.0
+fresh_publisher_max_top10_pct = 30.0
 # A measurement we could not take is not a failure. Reported on the row instead.
-block_on_missing_safety_data = false
+block_on_missing_safety_data = true
 # Pool depth is not comparable across chains: a BNB or Base runner works a much
 # smaller pool than a Solana one at the same market cap.
-min_liquidity_by_chain = { solana = 40000.0, bsc = 20000.0, base = 20000.0, ethereum = 30000.0, robinhood = 20000.0 }
+min_liquidity_by_chain = { solana = 40000.0, bsc = 30000.0, base = 30000.0, ethereum = 50000.0, robinhood = 30000.0 }
 max_turnover = 30.0               # 24h volume against market cap
 # Cadence was measured against a coin the client confirmed was normal: it ran
 # 219 trades a minute over the hour. Speed is a crowd. Dust is a bot, so only
@@ -753,7 +770,7 @@ min_average_trade_usd = 15.0      # dust prints are spam, not demand
 # Meteora or other Solana pools; the quality gate decides what is publishable.
 venues = {}
 min_holders = 1000                # a real distribution, not a handful of wallets
-require_holder_count = false
+require_holder_count = true
 min_trades_24h = 1000             # a real tape, not a dozen prints
 # The insta-x-then-dead shape. An even day trades a quarter of its volume in the
 # last six hours, so a few percent means the move finished hours ago.
@@ -809,8 +826,8 @@ exclude_boosted = false
 require_socials = false
 require_social_resolves = false
 exclude_recycled = false
-min_lp_locked_pct = 0.0
-publisher_max_top10_pct = 0.0
+min_lp_locked_pct = 90.0
+publisher_max_top10_pct = 30.0
 min_symbol_length = 0
 min_age_hours = 0.5
 max_negative_1h_pct = 0.0
@@ -904,8 +921,8 @@ min_participants_to_enrich = 2
 min_realised_sol_to_enrich = 5.0
 runner_lane_enabled = true
 runner_lane_max = 12
-runner_min_market_cap = 200000.0
-runner_min_volume_24h = 100000.0
+runner_min_market_cap = 250000.0
+runner_min_volume_24h = 250000.0
 runner_max_age_hours = 24.0
 runner_min_buyers = 2
 runner_min_participants = 2
@@ -918,7 +935,7 @@ runner_allow_faded_below_floor = true
 runner_max_manipulation = 75.0
 runner_max_peak_turnover = 10.0
 runner_require_safety = true
-runner_require_holder_count = false
+runner_require_holder_count = true
 runner_min_holders = 300
 ohlcv_requests_per_minute = 25
 ohlcv_request_interval_seconds = 2.5

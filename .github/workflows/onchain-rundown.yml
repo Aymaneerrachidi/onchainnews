@@ -15,8 +15,7 @@ on:
   schedule:
     # Europe/Paris morning during summer time. GitHub cron is UTC.
     - cron: "45 4 * * *"
-    # Sustained-runner pulse.
-    - cron: "11 * * * *"
+    # The hourly pulse is intentionally manual-only during production testing.
 
 permissions:
   contents: write
@@ -27,17 +26,16 @@ concurrency:
 
 env:
   GMGN_API_KEY: ${{ secrets.GMGN_API_KEY }}
-  OPENNEWS_TOKEN: ${{ secrets.OPENNEWS_TOKEN }}
   HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
   BIRDEYE_API_KEY: ${{ secrets.BIRDEYE_API_KEY }}
   DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
-  X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-  OPENAI_IMAGE_MODEL: ${{ vars.OPENAI_IMAGE_MODEL || 'gpt-image-2' }}
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
   RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+  DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+  DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+  DISCORD_CHANNEL_ID_SECONDARY: ${{ secrets.DISCORD_CHANNEL_ID_SECONDARY }}
 
 jobs:
   daily:
@@ -65,7 +63,9 @@ jobs:
           restore-keys: |
             brief-db-${{ runner.os }}-
 
-      - run: uv run solana-brief run
+      # The snapshot must be committed before Discord exposes its interactive
+      # filters; otherwise the first clicks can read yesterday's runner index.
+      - run: uv run solana-brief run --no-discord
 
       - name: Commit public report
         run: |
@@ -79,6 +79,10 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
+
+      - name: Post interactive Discord recap
+        if: env.DISCORD_BOT_TOKEN != '' && env.DISCORD_CHANNEL_ID != ''
+        run: uv run python scripts/send_live_discord_recap.py --editorial-only
 
       - uses: actions/cache/save@v4
         if: always()
@@ -94,7 +98,7 @@ jobs:
             --data-urlencode "text=ONCHAIN RUNDOWN FAILED: daily job ${GITHUB_RUN_ID}"
 
   pulse:
-    if: github.event_name == 'workflow_dispatch' && (inputs.job == 'pulse' || inputs.job == 'both') || github.event.schedule == '11 * * * *'
+    if: github.event_name == 'workflow_dispatch' && (inputs.job == 'pulse' || inputs.job == 'both')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
