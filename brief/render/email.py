@@ -15,7 +15,7 @@ from brief.config import Settings
 from brief.links import fomo_token_url
 from brief.lifecycle import tier_for_peak
 from brief.journal import kol_trade_count
-from brief.sources.openintel import (
+from brief.sources.text_quality import (
     CAUSAL_POST,
     HYPE,
     PROMO,

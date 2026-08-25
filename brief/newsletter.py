@@ -442,16 +442,23 @@ RESEARCH_URL = "https://api.openai.com/v1/responses"
 
 RESEARCH_PROMPT = """You are a research assistant for an on-chain memecoin desk.
 
-Search the web for what this specific token is and why it moved in the last two
-days. You are looking for the story a trader would tell: what the name refers
-to, a viral event behind it, an exchange listing, a well-known account that
-posted about it, a community takeover.
+Research this specific token deeply and determine what it is and why it moved
+in the last two days. Start with the exact contract address, then inspect its
+linked website and social profiles, and search the exact name/ticker together
+with the chain. Look for the original meme, person, clip or real-world event,
+as well as listings, product launches, burns, takeovers and credible posts.
 
 Rules:
 - Search before answering. Do not answer from memory.
+- Open promising results rather than summarising search-result snippets. Check
+  several independent paths when the first result is thin.
 - Be certain it is the same token: match the contract address, or the ticker
   together with the chain. Coins reuse tickers constantly, and the wrong coin's
   story is worse than no story.
+- At least one source must establish token identity. A generic article about a
+  word or meme does not prove that this contract is its token.
+- Do not treat bullishness, an entry, a price target, a call-group claim or an
+  influencer saying they bought as news. Find a checkable fact or return empty.
 - If you cannot find anything specific and verifiable, say so. An empty answer
   is correct and expected for most memecoins.
 - Do not describe price action, market cap or charts. We already have those.
@@ -549,7 +556,11 @@ async def research_day(coins: list[Candidate], settings: Settings) -> int:
         return 0
     model = str(settings.get("newsletter", "research_model", "gpt-5.5"))
     timeout = float(settings.get("newsletter", "research_timeout_seconds", 180))
-    targets = coins[:int(settings.get("newsletter", "research_limit", 12) or 12)]
+    only_without_x = bool(settings.get("newsletter", "research_only_without_x", False))
+    targets = [candidate for candidate in coins if not only_without_x or not candidate.x_interactions]
+    limit = int(settings.get("newsletter", "research_limit", 12) or 0)
+    if limit > 0:
+        targets = targets[:limit]
 
     semaphore = asyncio.Semaphore(int(settings.get("newsletter", "research_concurrency", 4) or 4))
 

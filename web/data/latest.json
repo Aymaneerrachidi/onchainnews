@@ -106968,7 +106968,7 @@
    "riskLabels": [
     "1.0% tax on every trade"
    ],
-   "lore": "",
+   "lore": "a Chinese wordplay meme around 'you've got quite the nerve,' using chubby imagery for \u80c6\u5b50\u80a5",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 166457.06,
@@ -107643,6 +107643,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "a Chinese wordplay meme around 'you've got quite the nerve,' using chubby imagery for \u80c6\u5b50\u80a5",
+     "sourceUrl": "https://calibertoken.com/token/bsc/0x03c59bbf8ba49ce79831403b86acbc40d3167777"
     }
    },
    "lifecycleEvents": [],
@@ -108255,7 +108259,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Down to Finance turns strategy baskets into onchain DETF tokens; DTF staking is designed to share protocol fees, and Ourbit listed the exact contract on August 25.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 1886718.36,
@@ -108740,6 +108744,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Down to Finance turns strategy baskets into onchain DETF tokens; DTF staking is designed to share protocol fees, and Ourbit listed the exact contract on August 25.",
+     "sourceUrl": "https://www.ourbit.com/zh-CN/support/articles/17827791513461"
     }
    },
    "lifecycleEvents": [
@@ -108818,7 +108826,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Exact-contract pages identify Citrini, but no verifiable project story or fresh outside catalyst was found.",
    "loreIsFresh": true,
    "faded": -25.49,
    "volume6h": 129401.19,
@@ -109473,6 +109481,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Exact-contract pages identify Citrini, but no verifiable project story or fresh outside catalyst was found.",
+     "sourceUrl": "https://www.solflare.com/es/precios/citrini/4HxV2vqATQEjn1hYw3eR43x9b3w1Z5ZoNoV5byTbpump/"
     }
    },
    "lifecycleEvents": [
@@ -109540,7 +109552,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Community token around original GTA/DMA Design developer Mike Dailly; the project says he received community donations and an interview was being arranged.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 132492.4,
@@ -109969,6 +109981,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Community token around original GTA/DMA Design developer Mike Dailly; the project says he received community donations and an interview was being arranged.",
+     "sourceUrl": "https://www.sotwe.com/gtacommunitysol"
     }
    },
    "lifecycleEvents": [
@@ -110043,7 +110059,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Community meme named after Fomo cofounder Se Yong Park and tied to the platform's yellow-duck mascot Remus.",
    "loreIsFresh": true,
    "faded": -25.17,
    "volume6h": 645024.99,
@@ -110580,6 +110596,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Community meme named after Fomo cofounder Se Yong Park and tied to the platform's yellow-duck mascot Remus.",
+     "sourceUrl": "https://www.instalker.org/Starcn_"
     }
    },
    "lifecycleEvents": [
@@ -110654,7 +110674,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Number-six Robinhood meme built around Vlad Tenev's reported 6% stake, roughly $6B net worth, and six as the first perfect number.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 180711.73,
@@ -111104,6 +111124,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Number-six Robinhood meme built around Vlad Tenev's reported 6% stake, roughly $6B net worth, and six as the first perfect number.",
+     "sourceUrl": "https://tlmtr.io/en/channels/1774104090-jordancalls"
     }
    },
    "lifecycleEvents": [
@@ -111168,7 +111192,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Fresh pons-launched Robinhood token named Biscotti; no verifiable public story or catalyst was found beyond the exact-contract market record.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 5570.09,
@@ -111800,6 +111824,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Fresh pons-launched Robinhood token named Biscotti; no verifiable public story or catalyst was found beyond the exact-contract market record.",
+     "sourceUrl": "https://gmgn.ai/robinhood/token/0x046520b38565664951348ef41bde45c18b93eeb3"
     }
    },
    "lifecycleEvents": [],
@@ -111857,7 +111885,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Book-of-Meow meme derived from a one-word cat book whose contents are variations of 'meow'.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 266486.54,
@@ -112561,6 +112589,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Book-of-Meow meme derived from a one-word cat book whose contents are variations of 'meow'.",
+     "sourceUrl": "https://zamantika.com/profile/laoyingkhq"
     }
    },
    "lifecycleEvents": [],
@@ -112616,7 +112648,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Revival of Solana's pre-launch Loom name, documented in an early Anatoly Yakovenko Proof-of-History paper before the project was renamed.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 64594.44,
@@ -113201,6 +113233,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Revival of Solana's pre-launch Loom name, documented in an early Anatoly Yakovenko Proof-of-History paper before the project was renamed.",
+     "sourceUrl": "https://www.loomprotocol.net/"
     }
    },
    "lifecycleEvents": [],
@@ -113261,7 +113297,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Based on Sue, a kitten rescued from a Komatsu excavator in Ohio who became the crew's hard-hat construction mascot.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 1478802.28,
@@ -113960,6 +113996,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Based on Sue, a kitten rescued from a Komatsu excavator in Ohio who became the crew's hard-hat construction mascot.",
+     "sourceUrl": "https://www.sueonbsc.com/"
     }
    },
    "lifecycleEvents": [
@@ -114039,7 +114079,7 @@
     "freeze/pause/blacklist powers not confirmed disabled",
     "LP lock/burn status unavailable"
    ],
-   "lore": "",
+   "lore": "TapeOut's Proof-of-Design mining token: users buy virtual transistors, design and tape out circuits, then run them as BEM miners.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 2603168.17,
@@ -114743,6 +114783,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "TapeOut's Proof-of-Design mining token: users buy virtual transistors, design and tape out circuits, then run them as BEM miners.",
+     "sourceUrl": "https://www.tapeout.net/"
     }
    },
    "lifecycleEvents": [
@@ -114813,7 +114857,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Revived token from a small family spice-rub business that originally launched it to build brand traction but never completed its first run.",
    "loreIsFresh": true,
    "faded": -24.89,
    "volume6h": 51931.38,
@@ -115249,6 +115293,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Revived token from a small family spice-rub business that originally launched it to build brand traction but never completed its first run.",
+     "sourceUrl": "https://w.twstalker.com/y7_y00ts"
     }
    },
    "lifecycleEvents": [],
@@ -115309,7 +115357,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Hong Kong's chip-stealing black cat went viral, was adopted by 7-Eleven, and was named Eighteen Bro before the story crossed onchain.",
    "loreIsFresh": true,
    "faded": -21.89,
    "volume6h": 2211285.17,
@@ -116006,6 +116054,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Hong Kong's chip-stealing black cat went viral, was adopted by 7-Eleven, and was named Eighteen Bro before the story crossed onchain.",
+     "sourceUrl": "https://www.okx.com/zh-hant/orbit/user/872887522681368579"
     }
    },
    "lifecycleEvents": [
@@ -116076,7 +116128,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Solana's 'cat sister of Dogecoin'; PoorGoat took over the community after the previous operator disappeared.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 2779506.39,
@@ -116807,6 +116859,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Solana's 'cat sister of Dogecoin'; PoorGoat took over the community after the previous operator disappeared.",
+     "sourceUrl": "https://catearmy.com/faq/"
     }
    },
    "lifecycleEvents": [],
@@ -116866,7 +116922,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Community derivative of Baton Corporation, pump.fun's legal name and former identity; the later token is unaffiliated and has documented coordination concerns.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 1552362.62,
@@ -117441,6 +117497,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Community derivative of Baton Corporation, pump.fun's legal name and former identity; the later token is unaffiliated and has documented coordination concerns.",
+     "sourceUrl": "https://lorescreener.com/entry/baton"
     }
    },
    "lifecycleEvents": [
@@ -117522,7 +117582,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Jimothy is a real short-spined Seattle raccoon turned community mascot; Bybit Alpha listed the exact contract.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 1477475.96,
@@ -118242,6 +118302,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Jimothy is a real short-spined Seattle raccoon turned community mascot; Bybit Alpha listed the exact contract.",
+     "sourceUrl": "https://www.jimothy.world/"
     }
    },
    "lifecycleEvents": [],
@@ -118303,7 +118367,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Meeko is a new Shiba Inu shown by Kabosu's owner, giving the token a next-generation Doge handoff story.",
    "loreIsFresh": true,
    "faded": -36.48,
    "volume6h": 267057.03,
@@ -119007,6 +119071,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Meeko is a new Shiba Inu shown by Kabosu's owner, giving the token a next-generation Doge handoff story.",
+     "sourceUrl": "https://www.instalker.org/Starcn_"
     }
    },
    "lifecycleEvents": [
@@ -119077,7 +119145,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Gucci-dressed Morty brainrot character spread through TikTok edits and cinematic remix clips with millions of views.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 528503.05,
@@ -119480,6 +119548,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Gucci-dressed Morty brainrot character spread through TikTok edits and cinematic remix clips with millions of views.",
+     "sourceUrl": "https://lorescreener.com/entry/gucci-morty"
     }
    },
    "lifecycleEvents": [],
@@ -119539,7 +119611,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Robinhood-chain Juggernaut meme presented as a favourite Vlad Tenev reference; Hibt listed the exact contract.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 381162.64,
@@ -120212,6 +120284,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Robinhood-chain Juggernaut meme presented as a favourite Vlad Tenev reference; Hibt listed the exact contract.",
+     "sourceUrl": "https://support.hibt.com/hc/en-us/articles/16790221229711-Hibt-Announcement-on-the-Upcoming-Listing-of-JUGGERNAUT-The-Juggernaut"
     }
    },
    "lifecycleEvents": [
@@ -120275,7 +120351,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Robinhood10 index token: a 5% trade tax funds equal-weight buys of the chain's ten most liquid tokens and distributes the basket each epoch.",
    "loreIsFresh": true,
    "faded": -25.26,
    "volume6h": 457744.42,
@@ -120557,6 +120633,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Robinhood10 index token: a 5% trade tax funds equal-weight buys of the chain's ten most liquid tokens and distributes the basket each epoch.",
+     "sourceUrl": "https://www.bgw.live/zh-CN/swap/robinhood/0x0D257cA40d40090BE60C2d2Ed5bB3535392838cc"
     }
    },
    "lifecycleEvents": [
@@ -120634,7 +120714,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Reference token for pons, a noncustodial Robinhood Chain launchpad where fixed-supply tokens deploy directly into locked WETH pools.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 731261.17,
@@ -121299,6 +121379,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Reference token for pons, a noncustodial Robinhood Chain launchpad where fixed-supply tokens deploy directly into locked WETH pools.",
+     "sourceUrl": "https://docs.ponsfamily.com/"
     }
    },
    "lifecycleEvents": [],
@@ -121355,7 +121439,7 @@
     "freeze/pause/blacklist powers not confirmed disabled",
     "LP only 72% locked or burned"
    ],
-   "lore": "",
+   "lore": "Tiny Humans AI presents itself as an AI personal assistant project; its exact contract links to the Tiny Humans World site.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 342509.68,
@@ -121783,6 +121867,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Tiny Humans AI presents itself as an AI personal assistant project; its exact contract links to the Tiny Humans World site.",
+     "sourceUrl": "https://tinyhumansworld.com/"
     }
    },
    "lifecycleEvents": [
@@ -121865,7 +121953,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Launched from posts on Kylie Jenner's compromised verified X account; the posts vanished and holders organized a community takeover.",
    "loreIsFresh": true,
    "faded": -28.63,
    "volume6h": 147953.03,
@@ -122491,6 +122579,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Launched from posts on Kylie Jenner's compromised verified X account; the posts vanished and holders organized a community takeover.",
+     "sourceUrl": "https://www.techtimes.com/articles/325433/20260825/kylie-jenners-x-account-was-hacked-crypto-x-never-confirmed-its-anti-scam-lock-deployed.htm"
     }
    },
    "lifecycleEvents": [
@@ -122558,7 +122650,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Robinhood Chain Mars-colonization meme launched through pons and paired against tokenized SpaceX stock.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 310547.9,
@@ -123032,6 +123124,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Robinhood Chain Mars-colonization meme launched through pons and paired against tokenized SpaceX stock.",
+     "sourceUrl": "https://x.com/martiansrh"
     }
    },
    "lifecycleEvents": [
@@ -123095,7 +123191,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Token based on Looksmax.org, the men's appearance and self-improvement forum; KCEX listed the exact contract.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 101726.02,
@@ -123640,6 +123736,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Token based on Looksmax.org, the men's appearance and self-improvement forum; KCEX listed the exact contract.",
+     "sourceUrl": "https://www.kcex.com/support/articles/43234799830942"
     }
    },
    "lifecycleEvents": [],
@@ -123700,7 +123800,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Swimming-crab meme spun from a Douyin hot-search wave about choosing \u68ad\u5b50\u87f9, with an added Chinese 'hard currency' pun.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 15222.53,
@@ -124405,6 +124505,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Swimming-crab meme spun from a Douyin hot-search wave about choosing \u68ad\u5b50\u87f9, with an added Chinese 'hard currency' pun.",
+     "sourceUrl": "https://w.twstalker.com/suozigx"
     }
    },
    "lifecycleEvents": [],
@@ -124460,7 +124564,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Dopamine-plus-meme wordplay framed as the rush of a meme cycle returning; the exact contract's public narrative is attention-driven rather than product-led.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 353011.23,
@@ -124808,6 +124912,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Dopamine-plus-meme wordplay framed as the rush of a meme cycle returning; the exact contract's public narrative is attention-driven rather than product-led.",
+     "sourceUrl": "https://alph.ai/sol/trending"
     }
    },
    "lifecycleEvents": [],
@@ -124867,7 +124975,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Fables' pre-TGE token for a dynamic-fee Uniswap v4 ve(3,3) DEX; PROLOGUE is intended to redeem into governance at a fixed ratio.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 342933.17,
@@ -125376,6 +125484,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Fables' pre-TGE token for a dynamic-fee Uniswap v4 ve(3,3) DEX; PROLOGUE is intended to redeem into governance at a fixed ratio.",
+     "sourceUrl": "https://www.coinbase.com/en-mx/price/prologue"
     }
    },
    "lifecycleEvents": [
@@ -125440,7 +125552,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Long-ticker Meow derivative built around the same one-word cat book: the book is titled Meow and nearly every word is meow.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 47396.41,
@@ -126093,6 +126205,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Long-ticker Meow derivative built around the same one-word cat book: the book is titled Meow and nearly every word is meow.",
+     "sourceUrl": "https://www.twstalker.com/WangchaiTom"
     }
    },
    "lifecycleEvents": [],
@@ -126148,7 +126264,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Meme around Grok Bot's shared persistent-cloud architecture, where multiple agents hand work to one another without a laptop staying open.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 95660.17,
@@ -126472,6 +126588,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Meme around Grok Bot's shared persistent-cloud architecture, where multiple agents hand work to one another without a laptop staying open.",
+     "sourceUrl": "https://x.com/monokern/status/2090882144658719015"
     }
    },
    "lifecycleEvents": [],
@@ -126531,7 +126651,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "The Lighter Liger is a community meme around Lighter's liger mascot; a separate community site and account appeared during the revival.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 281280.51,
@@ -127092,6 +127212,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "The Lighter Liger is a community meme around Lighter's liger mascot; a separate community site and account appeared during the revival.",
+     "sourceUrl": "https://www6.twstalker.com/0xbayou"
     }
    },
    "lifecycleEvents": [],
@@ -127147,7 +127271,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Thinking Cat is a meme for overthinkers: the sound your brain makes before doing something dumb; Hibt opened HMM/USDT on August 25.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 262240.46,
@@ -127801,6 +127925,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Thinking Cat is a meme for overthinkers: the sound your brain makes before doing something dumb; Hibt opened HMM/USDT on August 25.",
+     "sourceUrl": "https://hmmmm.fun/"
     }
    },
    "lifecycleEvents": [],
@@ -127857,7 +127985,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Community token around a turtle posted by bStocks; traders called it Donatello, but the turtle's name was not officially confirmed.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 10873.52,
@@ -128568,6 +128696,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Community token around a turtle posted by bStocks; traders called it Donatello, but the turtle's name was not officially confirmed.",
+     "sourceUrl": "https://tlmtr.io/en/channels/2144476694-papicall"
     }
    },
    "lifecycleEvents": [],
@@ -128624,7 +128756,7 @@
     "freeze/pause/blacklist powers not confirmed disabled",
     "LP lock/burn status unavailable"
    ],
-   "lore": "",
+   "lore": "Stock-dividend protocol on Robinhood Chain: a 3% trade fee funds tokenized-stock distributions to eligible INDEX holders.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 37692.08,
@@ -129291,6 +129423,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Stock-dividend protocol on Robinhood Chain: a 3% trade fee funds tokenized-stock distributions to eligible INDEX holders.",
+     "sourceUrl": "https://support.hibt.com/hc/en-us/articles/16871787800719-Hibt-Announcement-on-the-Upcoming-Listing-of-INDEX-The-Index"
     }
    },
    "lifecycleEvents": [],
@@ -129348,7 +129484,7 @@
     "freeze/pause/blacklist powers not confirmed disabled",
     "LP lock/burn status unavailable"
    ],
-   "lore": "",
+   "lore": "Base's literal blue-chip meme pairs BLUECHIP against tokenized Nvidia stock, combining Base's blue branding with the AI semiconductor cycle.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 298699.29,
@@ -129896,6 +130032,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Base's literal blue-chip meme pairs BLUECHIP against tokenized Nvidia stock, combining Base's blue branding with the AI semiconductor cycle.",
+     "sourceUrl": "https://basebluechip.com/"
     }
    },
    "lifecycleEvents": [],
@@ -129952,7 +130092,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Chinese 'My Binance Life' meme derived from the online joke 'I will definitely get rich' and Binance-life aspiration culture.",
    "loreIsFresh": true,
    "faded": -35.43,
    "volume6h": 143662.3,
@@ -130642,6 +130782,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Chinese 'My Binance Life' meme derived from the online joke 'I will definitely get rich' and Binance-life aspiration culture.",
+     "sourceUrl": "https://www.sotwe.com/sol_jingou?lang=en"
     }
    },
    "lifecycleEvents": [],
@@ -130698,7 +130842,7 @@
     "freeze/pause/blacklist powers not confirmed disabled",
     "LP lock/burn status unavailable"
    ],
-   "lore": "",
+   "lore": "Liluni is the small unicorn on Uniswap's 404 page, whose name was hidden in the illustration's alt text; the token is a community takeover.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 306653.87,
@@ -131365,6 +131509,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Liluni is the small unicorn on Uniswap's 404 page, whose name was hidden in the illustration's alt text; the token is a community takeover.",
+     "sourceUrl": "https://lilunicoin.com/"
     }
    },
    "lifecycleEvents": [
@@ -131428,7 +131576,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "GOOPY is a new character from Pen, an original Pudgy Penguins artist, giving the launch a direct link to the collection's early creative history.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 164810.63,
@@ -131692,6 +131840,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "GOOPY is a new character from Pen, an original Pudgy Penguins artist, giving the launch a direct link to the collection's early creative history.",
+     "sourceUrl": "https://x.com/PenTheArtist/status/2092110445649826014"
     }
    },
    "lifecycleEvents": [],
@@ -131751,7 +131903,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Community revival of 'The Analyst', referencing Robinhood's earlier Analyst identity shown in an old company discussion clip.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 37282.9,
@@ -132083,6 +132235,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Community revival of 'The Analyst', referencing Robinhood's earlier Analyst identity shown in an old company discussion clip.",
+     "sourceUrl": "https://tlmtr.io/en/channels/1727739570-neocallss/posts?cursor=IKAB"
     }
    },
    "lifecycleEvents": [],
@@ -132139,7 +132295,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Japanese character meme taken from a Google Japan post introducing a previously obscure dog character.",
    "loreIsFresh": true,
    "faded": -47.29,
    "volume6h": 1259239.52,
@@ -132861,6 +133017,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Japanese character meme taken from a Google Japan post introducing a previously obscure dog character.",
+     "sourceUrl": "https://www.twstalker.com/LTChives"
     }
    },
    "lifecycleEvents": [],
@@ -132916,7 +133076,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "The original Baton dog token, built around Pump.fun's former Baton name; it revived after a later same-lore token drew attention back to the older contract.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 105831.66,
@@ -133401,6 +133561,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "The original Baton dog token, built around Pump.fun's former Baton name; it revived after a later same-lore token drew attention back to the older contract.",
+     "sourceUrl": "https://batoncoin.fun/"
     }
    },
    "lifecycleEvents": [],
@@ -133461,7 +133625,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Dark Cheems / black-Shiba community coin; the fresh BNB run followed renewed Totakeke chatter and an earlier public launch-and-buy signal attributed to Flap founder Cedric.",
    "loreIsFresh": true,
    "faded": -19.7,
    "volume6h": 172866.23,
@@ -134163,6 +134327,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Dark Cheems / black-Shiba community coin; the fresh BNB run followed renewed Totakeke chatter and an earlier public launch-and-buy signal attributed to Flap founder Cedric.",
+     "sourceUrl": "https://twstalker.com/hashtag/%23totakeke"
     }
    },
    "lifecycleEvents": [],
@@ -134218,7 +134386,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Community coin built around Robinhood's registered bull-with-sunglasses icon, with the group trying to turn the unused character into a chain-native mascot.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 130182.24,
@@ -134455,6 +134623,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Community coin built around Robinhood's registered bull-with-sunglasses icon, with the group trying to turn the unused character into a chain-native mascot.",
+     "sourceUrl": "https://t.me/s/bullcoinrh"
     }
    },
    "lifecycleEvents": [],
@@ -134510,7 +134682,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Agent Heights is a working virtual office where autonomous agents occupy desks and execute assigned work; the token launched alongside its AnsemHack entry.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 56039.79,
@@ -134863,6 +135035,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Agent Heights is a working virtual office where autonomous agents occupy desks and execute assigned work; the token launched alongside its AnsemHack entry.",
+     "sourceUrl": "https://lorescreener.com/entry/agent-heights"
     }
    },
    "lifecycleEvents": [],
@@ -134921,7 +135097,7 @@
    "riskLabels": [
     "1.0% tax on every trade"
    ],
-   "lore": "",
+   "lore": "a Chinese wordplay meme around 'you've got quite the nerve,' using chubby imagery for \u80c6\u5b50\u80a5",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 166457.06,
@@ -135596,6 +135772,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "a Chinese wordplay meme around 'you've got quite the nerve,' using chubby imagery for \u80c6\u5b50\u80a5",
+     "sourceUrl": "https://calibertoken.com/token/bsc/0x03c59bbf8ba49ce79831403b86acbc40d3167777"
     }
    },
    "lifecycleEvents": [],
@@ -135655,7 +135835,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "gamer-community token linked to the Cyberleek account",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 101724.87,
@@ -135872,6 +136052,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "gamer-community token linked to the Cyberleek account",
+     "sourceUrl": "https://aitrade.mytokencap.com/zh/sol/token/5dkPngQmeqTUN57RqhxdA6xCaz7AKdzQoHLdk9xhpump"
     }
    },
    "lifecycleEvents": [],
@@ -135931,7 +136115,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Fresh Winfrey-the-Orca meme that surfaced through Solana hot-token and call feeds; no separate product or attributable outside catalyst was verified.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 1880192.6,
@@ -136263,6 +136447,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Fresh Winfrey-the-Orca meme that surfaced through Solana hot-token and call feeds; no separate product or attributable outside catalyst was verified.",
+     "sourceUrl": "https://tlmtr.io/ru/channels/2597061903-leo_bot1/posts"
     }
    },
    "lifecycleEvents": [],
@@ -136322,7 +136510,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Brodie is based on the only office dog Robinhood publicly named, in a 2016 support-account post that the community revived a decade later.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 334944.35,
@@ -136977,6 +137165,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Brodie is based on the only office dog Robinhood publicly named, in a 2016 support-account post that the community revived a decade later.",
+     "sourceUrl": "https://www.brodiehasfun.com/"
     }
    },
    "lifecycleEvents": [],
@@ -137032,7 +137224,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "community coin around Momo, the internet-famous photogenic Shiba Inu",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 98765.38,
@@ -137646,6 +137838,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "community coin around Momo, the internet-famous photogenic Shiba Inu",
+     "sourceUrl": "https://momocoin.org/"
     }
    },
    "lifecycleEvents": [
@@ -137714,7 +137910,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Chinese wordplay pairs \u725b\u5e02 (bull market) with the near-homophone \u725b\u5c4e (bullshit), extending the viral Chinese bull-film meme into a market joke.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 192294.09,
@@ -138414,6 +138610,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Chinese wordplay pairs \u725b\u5e02 (bull market) with the near-homophone \u725b\u5c4e (bullshit), extending the viral Chinese bull-film meme into a market joke.",
+     "sourceUrl": "https://niushi.gold/"
     }
    },
    "lifecycleEvents": [],
@@ -138469,7 +138669,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "older pump.fun pisscoin meme revived across 14 tracked KOL wallets",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 29648.89,
@@ -139001,6 +139201,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "older pump.fun pisscoin meme revived across 14 tracked KOL wallets",
+     "sourceUrl": "https://kolexplorer.com/token/DXXcq4tY5e4PbXybyBMnxZjHVmzv1GVrAXoW5TcC5kbu"
     }
    },
    "lifecycleEvents": [],
@@ -139062,7 +139266,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Older FOID contract returned to the tape; exact-contract pages verify the revival, but no public project story or fresh outside catalyst was found.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 10691.05,
@@ -139488,6 +139692,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Older FOID contract returned to the tape; exact-contract pages verify the revival, but no public project story or fresh outside catalyst was found.",
+     "sourceUrl": "https://www.solflare.com/prices/foid/TwA2JbytoJh4ZJikWTtyXbTV1CE6gi64GHPi31Ypump/"
     }
    },
    "lifecycleEvents": [],
@@ -139547,7 +139755,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "The Robinhood Cat is a chain-native cat-mascot meme; the exact contract resurfaced after roughly a month of trading rather than on a new public catalyst.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 32521.79,
@@ -140059,6 +140267,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "The Robinhood Cat is a chain-native cat-mascot meme; the exact contract resurfaced after roughly a month of trading rather than on a new public catalyst.",
+     "sourceUrl": "https://birdscan.io/token/0x3529E5B86e8749c8487a11ddc239C412228A40cc"
     }
    },
    "lifecycleEvents": [],
@@ -140114,7 +140326,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "GIPP backs a six-agent Grokbot workspace for research, writing, outreach, operations, finance and support; Elon Musk reposted the builder and creator fees fund development.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 15321.97,
@@ -140550,6 +140762,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "GIPP backs a six-agent Grokbot workspace for research, writing, outreach, operations, finance and support; Elon Musk reposted the builder and creator fees fund development.",
+     "sourceUrl": "https://lorescreener.com/entry/gipp"
     }
    },
    "lifecycleEvents": [],
@@ -140609,7 +140825,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Sue is the 'cat wif helmet' image meme tied to an original social post; 11 tracked KOL wallets had traded the exact Solana contract during the audit.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 209197.99,
@@ -140929,6 +141145,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Sue is the 'cat wif helmet' image meme tied to an original social post; 11 tracked KOL wallets had traded the exact Solana contract during the audit.",
+     "sourceUrl": "https://kolexplorer.com/token/2NffKvfZTcFj2tyoY1Ev84PkqxA7DZnstyv6EwELpump"
     }
    },
    "lifecycleEvents": [],
@@ -140988,7 +141208,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Rintara is a playable Robinhood Chain game whose RIN token is designed for its marketplace, crafting, guilds and infrastructure rather than replacing ordinary in-game gold.",
    "loreIsFresh": true,
    "faded": -30.86,
    "volume6h": 16139.51,
@@ -141315,6 +141535,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Rintara is a playable Robinhood Chain game whose RIN token is designed for its marketplace, crafting, guilds and infrastructure rather than replacing ordinary in-game gold.",
+     "sourceUrl": "https://twstalker.com/pijiu_hs"
     }
    },
    "lifecycleEvents": [],
@@ -141370,7 +141594,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Tokabu is the long-running 'Spirit of Gambling' mascot for casino-style crypto speculation; the exact contract previously secured XT and KCEX listings.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 180928.51,
@@ -142081,6 +142305,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Tokabu is the long-running 'Spirit of Gambling' mascot for casino-style crypto speculation; the exact contract previously secured XT and KCEX listings.",
+     "sourceUrl": "https://xtsupport.zendesk.com/hc/en-us/articles/49244211108505-XT-Announcement-on-Launching-VIBE-VIBE-CAT-and-TOKABU-The-Spirit-of-Gambling"
     }
    },
    "lifecycleEvents": [
@@ -142163,7 +142391,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "BNC combines Binance Cat initials with BNC, an early name considered for BNB, positioning itself as the BNB-chain counterpart to the CASHCAT trade.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 74008.99,
@@ -142805,6 +143033,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "BNC combines Binance Cat initials with BNC, an early name considered for BNB, positioning itself as the BNB-chain counterpart to the CASHCAT trade.",
+     "sourceUrl": "https://twstalker.com/jiadaa888"
     }
    },
    "lifecycleEvents": [],
@@ -142860,7 +143092,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "small-cat community meme with a dedicated project site",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 122116.34,
@@ -143074,6 +143306,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "small-cat community meme with a dedicated project site",
+     "sourceUrl": "https://www.the-smol-cat.fun/"
     }
    },
    "lifecycleEvents": [
@@ -143141,7 +143377,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "Caesar, the dog photo nicknamed Doge 2 because its expression resembles the original Doge",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 70105.84,
@@ -143517,6 +143753,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "Caesar, the dog photo nicknamed Doge 2 because its expression resembles the original Doge",
+     "sourceUrl": "https://knowyourmeme.com/sensitive/memes/doge-2-caesar"
     }
    },
    "lifecycleEvents": [],
@@ -143577,7 +143817,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "KAI is based on a dog repeatedly featured around Binance-community posts; fresh attention centered on International Dog Day photos and the owner acknowledging the contract.",
    "loreIsFresh": true,
    "faded": -39.13,
    "volume6h": 105428.48,
@@ -144270,6 +144510,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "KAI is based on a dog repeatedly featured around Binance-community posts; fresh attention centered on International Dog Day photos and the owner acknowledging the contract.",
+     "sourceUrl": "https://twstalker.com/BitBian"
     }
    },
    "lifecycleEvents": [],
@@ -144325,7 +144569,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "",
+   "lore": "VladOS presents an autonomous Robinhood Chain desktop with trading, wallet, chart and memory modules; fees from its Lemon.fun launchpad and agent trading are routed to stakers.",
    "loreIsFresh": true,
    "faded": -23.7,
    "volume6h": 883632.28,
@@ -144634,6 +144878,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "VladOS presents an autonomous Robinhood Chain desktop with trading, wallet, chart and memory modules; fees from its Lemon.fun launchpad and agent trading are routed to stakers.",
+     "sourceUrl": "https://vlados.ai/"
     }
    },
    "lifecycleEvents": [],

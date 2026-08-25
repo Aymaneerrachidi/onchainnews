@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timezone
 import re
 from urllib.parse import urlparse
 
 from brief.sources.http import CachedHttpClient
 from brief.models import Candidate, XInteraction, XPost
+from brief.sources.text_quality import (
+    CAUSAL_POST,
+    CASHTAG,
+    EMOJI,
+    HYPE,
+    PROMO,
+    SUBSTANCE,
+    URL,
+    WALLET_TRACKER,
+    post_substance,
+)
 
 
 TWITTER_EPOCH_MS = 1_288_834_974_657
@@ -89,6 +101,22 @@ _GENERIC_NAMES = {
     "ai", "bot", "guy", "moon", "pump", "going", "orange",
 }
 _CONFIDENCE = {"confirmed": 3, "probable": 2, "possible": 1}
+_OPINION_ONLY = re.compile(
+    r"(\bi(?:'m| am)?\s+(?:so\s+)?bullish\b|\bbullish\s+on\b|\bbearish\s+on\b"
+    r"|\bi\s+(?:just\s+)?(?:bought|aped|entered|loaded)\b|\bmy\s+(?:bag|position|entry)\b"
+    r"|\bconviction\s+(?:buy|play)\b|\bthis\s+(?:will|is going to)\s+(?:moon|send)\b)",
+    re.IGNORECASE,
+)
+_PRICE_ONLY = re.compile(
+    r"^\s*(?:[$#][\w\u4e00-\u9fff]+\s*)?(?:is\s*)?(?:up|down|at|hit|from)?\s*"
+    r"[$€£]?\d[\d,.]*[kmb]?\s*(?:%|x)?(?:\s*(?:today|now|24h|1h))?[!\s.]*$",
+    re.IGNORECASE,
+)
+_EDITORIAL_RECAP = re.compile(
+    r"(daily memecoin recap|weekly memecoin recap|market recap|more plays"
+    r"|(?:->|→)\s*(?:hit|\$?[\d,.]+[kmb]?))",
+    re.IGNORECASE,
+)
 
 
 def _excerpt(text: str, limit: int = 180) -> str:
@@ -102,7 +130,12 @@ def _engagement(post: XPost) -> int:
     return post.like_count + post.repost_count * 2 + post.reply_count + post.quote_count * 2
 
 
-def _match_post(candidate: Candidate, post: XPost) -> tuple[str, str] | None:
+def _match_post(
+    candidate: Candidate,
+    post: XPost,
+    ambiguous_symbols: set[str] | None = None,
+    ambiguous_names: set[str] | None = None,
+) -> tuple[str, str] | None:
     token = candidate.token
     haystack = " ".join([post.text, *post.expanded_urls]).casefold()
     if token.mint.casefold() in haystack:
@@ -112,35 +145,113 @@ def _match_post(candidate: Candidate, post: XPost) -> tuple[str, str] | None:
 
     symbol = token.symbol.strip().lstrip("$")
     if len(symbol) >= 2 and re.search(rf"(?<![\w$])\${re.escape(symbol)}(?!\w)", post.text, re.IGNORECASE):
-        confidence = "probable" if candidate.recycled_label_count else "confirmed"
-        return confidence, f"${symbol} cashtag"
+        # A recycled ticker is not an identity. Require a contract, exact pair
+        # URL or project-account match elsewhere instead of attaching another
+        # coin's story to this one.
+        if (
+            not candidate.recycled_label_count
+            and symbol.casefold() not in (ambiguous_symbols or set())
+        ):
+            return "confirmed", f"${symbol} cashtag"
 
     linked_handle = x_handle(token.socials)
     if linked_handle and linked_handle.casefold() == post.author_handle.casefold():
         return "probable", "linked project account"
 
     name = _SPACE.sub(" ", token.name).strip()
-    if len(name) >= 5 and name.casefold() not in _GENERIC_NAMES:
+    if (
+        len(name) >= 5
+        and name.casefold() not in _GENERIC_NAMES
+        and name.casefold() not in (ambiguous_names or set())
+        and not candidate.recycled_label_count
+    ):
         if re.search(rf"(?<!\w){re.escape(name)}(?!\w)", post.text, re.IGNORECASE):
             return "possible", "token name"
     return None
 
 
+def _informative(
+    post: XPost,
+    matched_on: str,
+    editorial_accounts: set[str] | None = None,
+) -> bool:
+    """Return true only for checkable information, never a trading chant.
+
+    The monitored list contains traders as well as newsrooms and project
+    accounts. Reach cannot distinguish research from ``I'm bullish / LFG``;
+    the post itself must contain an event, mechanism or descriptive fact.
+    """
+    text = " ".join((post.text or "").split())
+    if not text or _PRICE_ONLY.match(text):
+        return False
+    if HYPE.search(text) or PROMO.search(text) or WALLET_TRACKER.search(text):
+        return False
+    if _OPINION_ONLY.search(text):
+        return False
+    editorial_recap = (
+        post.author_handle.casefold() in (editorial_accounts or set())
+        and bool(_EDITORIAL_RECAP.search(text))
+    )
+    if len(EMOJI.findall(text)) >= 4:
+        return False
+    if len(CASHTAG.findall(text)) > 4 and not editorial_recap:
+        return False
+    if post_substance(text) < 5:
+        return False
+
+    event = bool(CAUSAL_POST.search(text))
+    fact = bool(SUBSTANCE.search(text))
+    cited = bool(post.expanded_urls or URL.search(text))
+    official_context = matched_on == "linked project account"
+    credible_context = post.author_verified or post.author_followers >= 3_000
+    # Exact identity proves which coin the post is about, but a bare CA paste
+    # still carries no story. It must also contain a substantive fact/event.
+    return editorial_recap or event or (fact and (cited or official_context or credible_context))
+
+
 def match_x_interactions(
-    candidates: list[Candidate], posts: list[XPost], *, max_per_token: int = 6
+    candidates: list[Candidate], posts: list[XPost], *, max_per_token: int = 6,
+    informative_only: bool = True,
+    editorial_accounts: list[str] | set[str] | tuple[str, ...] = (),
+    internal_only_accounts: list[str] | set[str] | tuple[str, ...] = (),
 ) -> None:
     """Attach source-linked public X activity without asserting causation."""
+    symbol_counts = Counter(
+        candidate.token.symbol.strip().lstrip("$").casefold()
+        for candidate in candidates
+        if candidate.token.symbol.strip().lstrip("$")
+    )
+    ambiguous_symbols = {symbol for symbol, count in symbol_counts.items() if count > 1}
+    name_counts = Counter(
+        _SPACE.sub(" ", candidate.token.name).strip().casefold()
+        for candidate in candidates
+        if _SPACE.sub(" ", candidate.token.name).strip()
+    )
+    ambiguous_names = {name for name, count in name_counts.items() if count > 1}
+    editorial = {
+        str(handle).strip().lstrip("@").casefold()
+        for handle in editorial_accounts
+        if str(handle).strip()
+    }
+    internal_only = {
+        str(handle).strip().lstrip("@").casefold()
+        for handle in internal_only_accounts
+        if str(handle).strip()
+    }
     for candidate in candidates:
         matches: list[tuple[XPost, str, str]] = []
         for post in posts:
-            matched = _match_post(candidate, post)
-            if matched:
+            matched = _match_post(candidate, post, ambiguous_symbols, ambiguous_names)
+            if matched and (
+                not informative_only
+                or _informative(post, matched[1], editorial)
+            ):
                 matches.append((post, *matched))
         matches.sort(
             key=lambda item: (_CONFIDENCE[item[1]], _engagement(item[0]), item[0].created_at.timestamp()),
             reverse=True,
         )
-        candidate.x_interactions = [
+        interactions = [
             XInteraction(
                 author_handle=post.author_handle,
                 author_name=post.author_name,
@@ -156,6 +267,14 @@ def match_x_interactions(
                 quote_count=post.quote_count,
             )
             for post, confidence, matched_on in matches[:max_per_token]
+        ]
+        candidate.internal_x_leads = [
+            item for item in interactions
+            if item.author_handle.casefold() in internal_only
+        ]
+        candidate.x_interactions = [
+            item for item in interactions
+            if item.author_handle.casefold() not in internal_only
         ]
         if candidate.x_interactions:
             lead = candidate.x_interactions[0]

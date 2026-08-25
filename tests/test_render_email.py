@@ -370,7 +370,7 @@ def test_email_uses_verified_news_as_coin_thesis(tmp_path):
     runner = _tape("STORY", mcap=1_200_000, vol24=2_000_000, vol6=500_000,
                    liq=120_000, trades6=1_300, buys6=700)
     runner.news_evidence = [{
-        "source": "OpenNews",
+        "source": "Market feed",
         "summary": "The project shipped a privacy payment app after its public beta went viral.",
         "url": "https://example.com/story",
     }]

@@ -26,13 +26,13 @@ Three scores remain independent:
 
 Each score includes data confidence. Missing holder or wallet coverage is `unavailable`, never converted into a false zero. Provider failures are persisted in `provider_health`, surfaced in the report, and inspected with `uv run solana-brief providers`.
 
-GMGN is integrated only through read-only market/token/tracking data commands. The project never invokes GMGN swap, order, cooking, token-launch, or private-key functionality. CLI calls are cached, serialized, and circuit-broken on the first 429 because continuing would extend the provider ban. OpenNews' free crypto feed works without credentials; exact OpenNews/OpenTwitter finalist searches require `OPENNEWS_TOKEN`.
+GMGN is integrated only through read-only market/token/tracking data commands. The project never invokes GMGN swap, order, cooking, token-launch, or private-key functionality. CLI calls are cached, serialized, and circuit-broken on the first 429 because continuing would extend the provider ban. X evidence is read through TwitterAPI.io from the bounded account list in `config.toml`.
 
 The V3 model above supersedes older threshold descriptions retained later in this document for implementation history.
 
 ### V3 setup and unattended operation
 
-Local credentials live in ignored `.env`; copy names from `.env.example`. `gmgn-cli config --apply` configures a developer machine, while GitHub Actions needs a repository secret named `GMGN_API_KEY`. The other unattended secret names are `HELIUS_API_KEY`, `BIRDEYE_API_KEY`, `DUNE_API_KEY`, `BREVO_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and optionally `OPENNEWS_TOKEN` plus `X_BEARER_TOKEN`.
+Local credentials live in ignored `.env`; copy names from `.env.example`. `gmgn-cli config --apply` configures a developer machine, while GitHub Actions needs a repository secret named `GMGN_API_KEY`. The other unattended secret names are `HELIUS_API_KEY`, `BIRDEYE_API_KEY`, `DUNE_API_KEY`, `BREVO_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and `TWITTERAPI_IO_KEY`.
 
 The workflow installs the pinned official GMGN CLI, runs the pulse every hour, and runs the full 24-hour recap at 04:45 UTC. The pulse sends only newly crossed lifecycle levels; the daily job renders the complete stored window from the same canonical recap object. Both jobs update the static web snapshot for Vercel. GitHub Actions must be enabled and the account billing state healthy before this can run with the laptop off.
 

@@ -202,6 +202,9 @@ class Candidate:
     # a confidence label so a timing association is never stated as causation.
     dex_evidence: list[str] = field(default_factory=list)
     x_interactions: list["XInteraction"] = field(default_factory=list)
+    # Discovery-only social leads. These may influence research/ranking but
+    # are never serialized into a public recap, quote, source link, or email.
+    internal_x_leads: list["XInteraction"] = field(default_factory=list)
     catalyst: str = ""
     scores: dict[str, float] = field(default_factory=dict)
     score_components: dict[str, dict[str, float | str | None]] = field(default_factory=dict)
@@ -240,6 +243,9 @@ class XPost:
     reply_count: int = 0
     quote_count: int = 0
     expanded_urls: tuple[str, ...] = ()
+    author_followers: int = 0
+    author_verified: bool = False
+    conversation_id: str = ""
 
 
 @dataclass(slots=True)

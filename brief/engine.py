@@ -71,7 +71,6 @@ from brief.sources.gmgn import GmgnDiscovery, GmgnSource, aggregate_wallet_evide
 from brief.sources.helius import HeliusSource
 from brief.sources.http import CachedHttpClient
 from brief.sources.jupiter import JupiterSource
-from brief.sources.openintel import OpenIntelSource
 from brief.sources.rugcheck import RugCheckSource
 from brief.sources.social import (
     SocialVerifier,
@@ -79,7 +78,7 @@ from brief.sources.social import (
     match_x_interactions,
     x_handle,
 )
-from brief.sources.x import XSource
+from brief.sources.x import TwitterApiIoSource, XSource, candidate_search_terms
 
 
 log = logging.getLogger("brief.engine")
@@ -2151,28 +2150,57 @@ async def build_brief(
             candidate.dex_evidence = build_dex_evidence(candidate)
 
         x_settings = settings.section("x")
-        x_source = XSource(
+        x_provider = str(x_settings.get("provider", "official") or "official").lower()
+        x_source_cls = TwitterApiIoSource if x_provider == "twitterapi_io" else XSource
+        x_endpoint = (
+            str(urls.get("twitterapi_io_search_url", "https://api.twitterapi.io/twitter/tweet/advanced_search"))
+            if x_provider == "twitterapi_io"
+            else str(urls.get("x_recent_search_url", "https://api.x.com/2/tweets/search/recent"))
+        )
+        x_key = os.getenv("TWITTERAPI_IO_KEY") if x_provider == "twitterapi_io" else os.getenv("X_BEARER_TOKEN")
+        x_source = x_source_cls(
             http,
-            str(urls.get("x_recent_search_url", "https://api.x.com/2/tweets/search/recent")),
-            os.getenv("X_BEARER_TOKEN"),
+            x_endpoint,
+            x_key,
             [str(handle) for handle in x_settings.get("accounts", [])],
             ttl=int(cache.get("x_ttl_seconds", 300)),
             requests_per_minute=int(x_settings.get("requests_per_minute", 60)),
             accounts_per_query=int(x_settings.get("accounts_per_query", 20)),
             max_pages_per_query=int(x_settings.get("max_pages_per_query", 5)),
         )
+        x_status_name = (
+            "TwitterAPI.io monitored accounts"
+            if x_provider == "twitterapi_io"
+            else "X monitored accounts"
+        )
         if bool(x_settings.get("enabled", True)) and x_source.configured:
             try:
-                x_posts = await x_source.posts(window_start)
+                if isinstance(x_source, TwitterApiIoSource):
+                    x_posts = await x_source.posts_for_terms(
+                        window_start,
+                        [candidate_search_terms(candidate) for candidate in evidence_candidates],
+                        max_pages_per_query=int(x_settings.get("max_pages_per_term_query", 1)),
+                    )
+                else:
+                    x_posts = await x_source.posts(window_start)
                 match_x_interactions(
                     evidence_candidates,
                     x_posts,
                     max_per_token=int(x_settings.get("max_matches_per_token", 6)),
+                    editorial_accounts=x_settings.get("editorial_accounts", []),
+                    internal_only_accounts=x_settings.get("internal_only_accounts", []),
                 )
-                matched_posts = len({item.url for c in evidence_candidates for item in c.x_interactions})
-                matched_tokens = sum(bool(candidate.x_interactions) for candidate in evidence_candidates)
+                matched_posts = len({
+                    item.url
+                    for candidate in evidence_candidates
+                    for item in [*candidate.x_interactions, *candidate.internal_x_leads]
+                })
+                matched_tokens = sum(
+                    bool(candidate.x_interactions or candidate.internal_x_leads)
+                    for candidate in evidence_candidates
+                )
                 statuses.append(SourceStatus(
-                    "X monitored accounts",
+                    x_status_name,
                     True,
                     f"{len(x_posts)} posts from {len(x_source.accounts)} accounts; "
                     f"{matched_posts} source posts matched {matched_tokens} highlighted tokens",
@@ -2180,54 +2208,28 @@ async def build_brief(
             except Exception as exc:
                 log.warning("x_monitoring_failed error=%s", exc)
                 match_x_interactions(evidence_candidates, [])
-                statuses.append(SourceStatus("X monitored accounts", False, str(exc)))
+                statuses.append(SourceStatus(x_status_name, False, str(exc)))
         else:
             match_x_interactions(evidence_candidates, [])
             detail = (
-                "X_BEARER_TOKEN is unset; Dexscreener and on-chain evidence remain available"
+                f"{'TWITTERAPI_IO_KEY' if x_provider == 'twitterapi_io' else 'X_BEARER_TOKEN'} is unset; "
+                "Dexscreener and on-chain evidence remain available"
                 if x_source.accounts
                 else "no monitored accounts configured"
             )
-            statuses.append(SourceStatus("X monitored accounts", False, detail))
-
-        open_intel = OpenIntelSource(
-            http,
-            str(urls.get("openintel_base_url", "https://ai.6551.io")),
-            ttl=int(cache.get("openintel_ttl_seconds", 900)),
-            product=str(settings.get("openintel", "twitter_product", "Top")),
-            min_followers=int(settings.get("openintel", "min_followers", 500) or 0),
-            min_engagement=int(settings.get("openintel", "min_engagement", 3) or 0),
-            min_quality=int(settings.get("openintel", "min_post_quality", 45) or 0),
-            min_reach=int(settings.get("openintel", "min_account_followers", 10000) or 0),
-            min_news_score=int(settings.get("openintel", "min_news_score", 40) or 0),
-            pause_seconds=float(settings.get("openintel", "pause_seconds", 2.0) or 0),
-        )
-        if bool(settings.get("openintel", "enabled", True)):
-            _, free_status = await open_intel.free_market_context()
-            statuses.append(free_status)
-            open_status = await open_intel.enrich(
-                evidence_candidates,
-                now,
-                limit=int(settings.get("openintel", "finalist_limit", 10)),
-            )
-        else:
-            open_status = SourceStatus("OpenNews/OpenTwitter token evidence", False, "disabled in [openintel]")
-        statuses.append(open_status)
-        if commit:
-            ledger.record_provider_health(
-                "opennews-opentwitter", open_status.available, now, open_status.detail
-            )
+            statuses.append(SourceStatus(x_status_name, False, detail))
 
         def rundown_rank(candidate: Candidate) -> tuple[float, ...]:
             confidence = {"confirmed": 3.0, "probable": 2.0, "possible": 1.0}
+            social_evidence = [*candidate.x_interactions, *candidate.internal_x_leads]
             social = max(
-                (confidence.get(item.confidence, 0.0) for item in candidate.x_interactions),
+                (confidence.get(item.confidence, 0.0) for item in social_evidence),
                 default=0.0,
             )
             return (
                 candidate.scores.get("runner", 0.0),
                 social,
-                float(len(candidate.x_interactions)),
+                float(len(social_evidence)),
                 float(len(candidate.kol_buyers)),
                 candidate.token.volume_24h,
                 float(candidate.token.txns_24h.total or candidate.token.txns_6h.total),
@@ -2475,11 +2477,14 @@ async def build_brief(
 
             # Free lore first: it needs no key and no credits, so it is the
             # layer that always runs. Paid web research adds to it when funded.
-            storied = await attach_lore(recap_pool, settings)
+            # The lead recap stays concise, while interactive chain/MC filters
+            # expose the complete qualified universe. Give every filtered row
+            # a free-search fallback even when monitored X has no useful match.
+            storied = await attach_lore(runners, settings)
             if storied:
                 statuses.append(SourceStatus(
                     "Coin lore", True,
-                    f"{storied} of {len(recap_pool)} coins with a sourced story from free search",
+                    f"{storied} of {len(runners)} coins with a sourced story from free search",
                 ))
             researched = await research_day(recap_pool, settings)
             if researched:
@@ -2488,45 +2493,6 @@ async def build_brief(
                     True,
                     f"{researched} coins with a searched, cited story behind the move",
                 ))
-            # Accounts the operator trusts, read directly. Matched against the
-            # coins that will actually be published: run earlier it matched
-            # against the whole candidate pool, so 56 posts landed on coins
-            # nobody was going to read about and none reached the page.
-            trusted = [
-                str(handle).strip().lstrip("@")
-                for handle in (settings.get("openintel", "trusted_accounts", []) or [])
-                if str(handle).strip()
-            ]
-            per_run = int(settings.get("openintel", "accounts_per_run", 0) or 0)
-            if per_run and len(trusted) > per_run:
-                # Deterministic slice keyed on the day, so every account is read
-                # regularly without any one run paying for the whole list.
-                offset = (now.timetuple().tm_yday * per_run) % len(trusted)
-                trusted = (trusted + trusted)[offset:offset + per_run]
-            if trusted and bool(settings.get("openintel", "enabled", True)):
-                try:
-                    hits, misses = await open_intel.trusted_timeline(
-                        recap_pool,
-                        trusted,
-                        now,
-                        max_per_account=int(settings.get("openintel", "max_posts_per_account", 30) or 30),
-                        window_hours=float(settings.get("openintel", "trusted_window_hours", 36) or 36),
-                    )
-                    statuses.append(SourceStatus(
-                        "Trusted accounts",
-                        not misses,
-                        f"{hits} posts from {len(trusted) - len(misses)}/{len(trusted)} accounts matched today's coins"
-                        + (
-                        "; unreachable: " + ", ".join(
-                            m.split(":")[0] for m in misses[:12]
-                        ) + (" and more" if len(misses) > 12 else "")
-                        if misses else ""
-                    ),
-                    ))
-                except Exception as exc:
-                    log.warning("trusted_timeline_failed error=%s", exc)
-                    statuses.append(SourceStatus("Trusted accounts", False, str(exc)[:120]))
-
             explained = await explain_runs(recap_pool, settings)
             if explained:
                 statuses.append(SourceStatus(

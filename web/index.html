@@ -379,6 +379,27 @@ function fallbackDexEvidence(r) {
   return lines;
 }
 
+function usableNarrative(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  const lowered = text.toLowerCase();
+  if (!text || lowered.includes("mellometrics")) return "";
+  if (lowered.includes("no monitored x account") || lowered.includes("no verified monitored-account match")) return "";
+  return text;
+}
+
+function publicNarrative(r) {
+  const publicX = (r.xInteractions || []).find((item) =>
+    String(item.handle || "").toLowerCase() !== "mellometrics" && usableNarrative(item.summary));
+  const news = (r.newsEvidence || []).find((item) => usableNarrative(item.summary));
+  return [
+    publicX?.summary,
+    r.providerEvidence?.why?.cause,
+    r.lore,
+    news?.summary,
+    r.catalyst,
+  ].map(usableNarrative).find(Boolean) || "No exact-contract story has been verified yet.";
+}
+
 function rowHTML(r, i) {
   const risks = r.riskLabels || [];
   const x = r.xInteractions || [];
@@ -440,8 +461,8 @@ function rowHTML(r, i) {
     <ul class="why-list">${dex.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
   </section>
   <section class="evidence">
-    <h3>What happened on X</h3>
-    <p class="x-lead">${esc(r.catalyst || "No social catalyst has been verified.")}</p>
+    <h3>${x.length ? "What happened on X" : "Web-researched context"}</h3>
+    <p class="x-lead">${esc(publicNarrative(r))}</p>
     ${xRows}
   </section>
   <section class="evidence">

@@ -42,18 +42,6 @@
       "sourceType": "github",
       "skillPath": "skills/gmgn-track/SKILL.md",
       "computedHash": "0abe9c76a6a359c4b625faeb99f1cc69dac43b8d7abe7ca602bf8167806f86d0"
-    },
-    "opennews": {
-      "source": "6551Team/opennews-mcp",
-      "sourceType": "github",
-      "skillPath": "openclaw-skill/opennews/SKILL.md",
-      "computedHash": "407aef9cf0181746cfb962e6c1730148bfd1a347572bacdc8dff1871a40d7e72"
-    },
-    "opentwitter": {
-      "source": "6551Team/opentwitter-mcp",
-      "sourceType": "github",
-      "skillPath": "openclaw-skill/opentwitter/SKILL.md",
-      "computedHash": "7a98690143f50022af2052ea5916e2bcd5de8e6aa432b0319eccd5b1a5948400"
     }
   }
 }

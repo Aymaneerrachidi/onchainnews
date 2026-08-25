@@ -15,6 +15,7 @@ import {
   renderFilterResponse,
   resetRefreshStateForTests,
   securityEligible,
+  shortCause,
 } from "../api/discord-interactions.mjs";
 
 
@@ -159,6 +160,47 @@ function safeRunner(overrides = {}) {
     ...overrides,
   };
 }
+
+
+test("filtered detail uses researched lore instead of a generic no-X status", () => {
+  const row = safeRunner({
+    catalyst: "No monitored X account produced a verifiable match in this 24-hour window.",
+    lore: "A real-world mascot became the community story after its short-form clips spread across social platforms.",
+  });
+  assert.equal(shortCause(row), row.lore);
+});
+
+
+test("internal competitor research can never become public filtered copy", () => {
+  const row = safeRunner({
+    lore: "Exact-contract web research established the token's launchpad and community origin.",
+    xInteractions: [{ handle: "mellometrics", summary: "Internal competitor recap." }],
+  });
+  assert.equal(shortCause(row), row.lore);
+  assert.doesNotMatch(shortCause(row), /mellometrics/i);
+});
+
+
+test("a verified public monitored-X explanation outranks fallback web lore", () => {
+  const row = safeRunner({
+    lore: "Fallback web lore.",
+    xInteractions: [{ handle: "PoorGoat_", summary: "The community lead announced the takeover and explained the new campaign." }],
+  });
+  assert.match(shortCause(row), /community lead announced/i);
+});
+
+
+test("filtered detail always has factual context when social and web lore are absent", () => {
+  const row = safeRunner({
+    ageHours: 8,
+    volume24h: 900_000,
+    providerEvidence: { gmgn: { kolCount: 7, smartMoneyCount: 19 } },
+  });
+  const cause = shortCause(row);
+  assert.match(cause, /8h-old launch reached \$420K/i);
+  assert.match(cause, /7 KOL wallets and 19 smart-money wallets/i);
+  assert.doesNotMatch(cause, /no monitored x account/i);
+});
 
 
 test("runner filters combine chain and verified 24h peak bands", () => {

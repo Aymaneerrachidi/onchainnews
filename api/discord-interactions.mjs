@@ -523,10 +523,72 @@ function fomoUrl(row) {
   return `https://fomo.family/tokens/${encodeURIComponent(chain)}/${encodeURIComponent(row.mint)}`;
 }
 
-function shortCause(row) {
-  const stated = String(row?.providerEvidence?.why?.cause || row?.catalyst || row?.lore || "").trim();
-  if (!stated) return "";
-  return stated.length > 105 ? `${stated.slice(0, 102).trimEnd()}…` : stated;
+function usableNarrative(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  const lowered = text.toLowerCase();
+  if (lowered.includes("mellometrics")) return "";
+  if (lowered.includes("no monitored x account")) return "";
+  if (lowered.includes("no verified monitored-account match")) return "";
+  if (lowered.includes("no social catalyst has been verified")) return "";
+  return text;
+}
+
+function factualContext(row) {
+  const gmgn = row?.providerEvidence?.gmgn || {};
+  const age = Number(row?.ageHours);
+  const volume = Number(row?.volume24h || 0);
+  const current = Number(row?.marketCap || 0);
+  const peak = runnerPeak(row);
+  const kol = Number(gmgn?.kolCount || row?.kolBuyers?.length || 0);
+  const smart = Number(gmgn?.smartMoneyCount || 0);
+  const opening = Number.isFinite(age) && age <= 30
+    ? `${Math.max(1, Math.round(age))}h-old launch reached ${money(peak)}`
+    : `The pair returned to a ${money(peak)} 24h high`;
+  const flow = [
+    kol ? `${count(kol)} KOL wallets` : "",
+    smart ? `${count(smart)} smart-money wallets` : "",
+  ].filter(Boolean).join(" and ");
+  const drawdown = peak > current && current > 0
+    ? ` and sat ${Math.round((peak - current) / peak * 100)}% below that high at the snapshot`
+    : "";
+  return `${opening} on ${money(volume)} volume${drawdown}`
+    + (flow ? `; GMGN mapped ${flow}.` : ".");
+}
+
+export function shortCause(row) {
+  const publicX = (row?.xInteractions || []).find((item) =>
+    String(item?.handle || "").toLowerCase() !== "mellometrics"
+    && usableNarrative(item?.summary));
+  const news = (row?.newsEvidence || []).find((item) => usableNarrative(item?.summary));
+  const choices = [
+    publicX?.summary,
+    row?.providerEvidence?.why?.cause,
+    row?.lore,
+    news?.summary,
+    row?.catalyst,
+  ];
+  const stated = choices.map(usableNarrative).find(Boolean) || "";
+  if (!stated) return factualContext(row);
+  // Filter pages are the detail view: allow substantially more context than
+  // the compact lead recap while keeping eight rows inside one Discord embed.
+  return stated.length > 240 ? `${stated.slice(0, 237).trimEnd()}…` : stated;
+}
+
+function narrativeSource(row) {
+  const publicX = (row?.xInteractions || []).find((item) =>
+    String(item?.handle || "").toLowerCase() !== "mellometrics"
+    && usableNarrative(item?.summary));
+  const news = (row?.newsEvidence || []).find((item) => usableNarrative(item?.summary));
+  const source = String(
+    publicX?.url
+    || row?.providerEvidence?.why?.sourceUrl
+    || news?.url
+    || "",
+  ).trim();
+  return /^https?:\/\//i.test(source) && !source.toLowerCase().includes("mellometrics")
+    ? source
+    : "";
 }
 
 function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedAt, notice = "") {
@@ -549,8 +611,10 @@ function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedA
       top10Text,
     ].join(" · ");
     const cause = shortCause(row);
+    const source = narrativeSource(row);
+    const explanation = cause + (source ? ` · [source](${source})` : "");
     return `[**$${String(row.symbol || "?").toUpperCase()}**](${fomoUrl(row)}) — ${stats}`
-      + (cause ? `\n${cause}` : "");
+      + (explanation ? `\n${explanation}` : "");
   });
   return {
     color: 0x516AF6,

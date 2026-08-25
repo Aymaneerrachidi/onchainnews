@@ -14,9 +14,7 @@ from brief.models import (
     XPost,
 )
 from brief.sources.social import build_dex_evidence, match_x_interactions, x_handle
-from brief.sources.openintel import OpenIntelSource
-from brief.sources.http import SourceError
-from brief.sources.x import XSource
+from brief.sources.x import TwitterApiIoSource, XSource
 
 
 NOW = datetime(2026, 8, 12, 6, 45, tzinfo=timezone.utc)
@@ -64,7 +62,7 @@ def test_x_match_keeps_provenance_and_labels_name_only_association():
         author_id="9",
         author_handle="cobie",
         author_name="Cobie",
-        text="what we apin boyz plumber edition https://t.co/x",
+        text="Plumber launched a public rewards portal today with fees distributed to holders https://t.co/x",
         created_at=NOW - timedelta(hours=2),
         interaction="posted",
         url="https://x.com/cobie/status/123",
@@ -88,7 +86,7 @@ def test_contract_address_is_a_confirmed_social_match():
         author_id="8",
         author_handle="desk",
         author_name="Desk",
-        text=f"Watching ${item.token.symbol} CA {MINT}",
+        text=f"${item.token.symbol} launched its public rewards portal today. CA {MINT}",
         created_at=NOW,
         interaction="quoted",
         url="https://x.com/desk/status/456",
@@ -140,67 +138,151 @@ async def test_x_source_parses_authors_metrics_interaction_and_links():
     assert post.expanded_urls == ("https://dexscreener.com/solana/PAIR",)
 
 
-class QuotaHttp:
-    def __init__(self):
-        self.calls = 0
+def test_bullish_or_bought_posts_never_become_coin_lore():
+    item = candidate()
+    posts = [
+        XPost(
+            post_id="weak-1", author_id="1", author_handle="trader", author_name="Trader",
+            text=f"I'm so bullish on $PLUMBER LFG {MINT}", created_at=NOW,
+            interaction="posted", url="https://x.com/trader/status/weak-1",
+            like_count=50_000, author_followers=500_000,
+        ),
+        XPost(
+            post_id="weak-2", author_id="1", author_handle="trader", author_name="Trader",
+            text=f"I just bought $PLUMBER, this is going to moon {MINT}", created_at=NOW,
+            interaction="posted", url="https://x.com/trader/status/weak-2",
+            like_count=50_000, author_followers=500_000,
+        ),
+    ]
+    match_x_interactions([item], posts)
+    assert item.x_interactions == []
 
-    async def post_json(self, *_args, **_kwargs):
-        self.calls += 1
-        raise SourceError("opentwitter failed after 3 attempts: HTTP 402")
 
-
-@pytest.mark.asyncio
-async def test_trusted_timeline_stops_after_permanent_provider_failure():
-    http = QuotaHttp()
-    source = OpenIntelSource(http, "https://ai.6551.test", pause_seconds=0)
-    source.token = "test-token"
-    hits, failures = await source.trusted_timeline(
-        [candidate()], ["one", "two", "three"], NOW
+def test_recycled_ticker_needs_exact_identity():
+    item = candidate()
+    item.recycled_label_count = 3
+    post = XPost(
+        post_id="ambiguous", author_id="1", author_handle="news", author_name="News",
+        text="$PLUMBER announced a public rewards program and launched its claim portal today.",
+        created_at=NOW, interaction="posted", url="https://x.com/news/status/ambiguous",
+        author_followers=100_000,
     )
-
-    assert hits == 0
-    assert http.calls == 1
-    assert [failure.split(":", 1)[0] for failure in failures] == ["one", "two", "three"]
+    match_x_interactions([item], [post])
+    assert item.x_interactions == []
 
 
-class TimelineHttp:
-    def __init__(self, text: str):
-        self.text = text
-
-    async def post_json(self, *_args, **_kwargs):
-        return {"data": [{
-            "id": "99", "text": self.text, "createdAt": NOW.isoformat(),
-            "userName": "Desk",
-        }]}
-
-
-@pytest.mark.asyncio
-async def test_trusted_timeline_does_not_guess_between_reused_tickers():
+def test_duplicate_ticker_needs_exact_identity_even_without_provider_label():
     first = candidate()
     second = candidate()
     second.token.mint = "B" * 32
-    source = OpenIntelSource(TimelineHttp("watching $PLUMBER"), "https://ai.6551.test", pause_seconds=0)
-    source.token = "test-token"
+    post = XPost(
+        post_id="duplicate", author_id="1", author_handle="desk", author_name="Desk",
+        text="$PLUMBER launched a public rewards program and claim portal today.",
+        created_at=NOW, interaction="posted", url="https://x.com/desk/status/duplicate",
+        author_followers=100_000,
+    )
 
-    hits, _ = await source.trusted_timeline([first, second], ["desk"], NOW)
+    match_x_interactions([first, second], [post])
 
-    assert hits == 0
     assert first.x_interactions == [] and second.x_interactions == []
 
 
-@pytest.mark.asyncio
-async def test_trusted_timeline_uses_exact_mint_for_reused_ticker():
-    first = candidate()
-    second = candidate()
-    second.token.mint = "B" * 32
-    source = OpenIntelSource(
-        TimelineHttp(f"watching $PLUMBER {second.token.mint}"),
-        "https://ai.6551.test",
-        pause_seconds=0,
+def test_whitelisted_editorial_recap_can_cover_multiple_tickers():
+    item = candidate()
+    post = XPost(
+        post_id="recap", author_id="1", author_handle="mellometrics",
+        author_name="Mello Metrics",
+        text=(
+            "Daily Memecoin Recap - August 24 $PLUMBER -> hit $4M, public rewards portal "
+            "$ALPHA $BETA $GAMMA $DELTA $OMEGA"
+        ),
+        created_at=NOW, interaction="posted", url="https://x.com/mellometrics/status/recap",
     )
-    source.token = "test-token"
 
-    hits, _ = await source.trusted_timeline([first, second], ["desk"], NOW)
+    match_x_interactions(
+        [item], [post], editorial_accounts=["mellometrics"]
+    )
 
-    assert hits == 1
-    assert first.x_interactions == [] and len(second.x_interactions) == 1
+    assert len(item.x_interactions) == 1
+
+
+def test_internal_editorial_account_never_enters_public_interactions():
+    item = candidate()
+    post = XPost(
+        post_id="private-recap", author_id="1", author_handle="mellometrics",
+        author_name="Mello Metrics",
+        text="Daily Memecoin Recap - August 24 $PLUMBER -> hit $4M, public rewards portal",
+        created_at=NOW, interaction="posted",
+        url="https://x.com/mellometrics/status/private-recap",
+    )
+
+    match_x_interactions(
+        [item], [post], editorial_accounts=["mellometrics"],
+        internal_only_accounts=["mellometrics"],
+    )
+
+    assert item.x_interactions == []
+    assert len(item.internal_x_leads) == 1
+
+
+class TwitterApiIoHttp:
+    def __init__(self):
+        self.kwargs = None
+
+    async def get_json(self, *_args, **kwargs):
+        self.kwargs = kwargs
+        return {
+            "tweets": [{
+                "id": "999",
+                "url": "https://x.com/desk/status/999",
+                "text": f"$PLUMBER launched a rewards portal {MINT}",
+                "createdAt": "Tue Aug 12 05:00:00 +0000 2026",
+                "retweetCount": 7,
+                "replyCount": 3,
+                "likeCount": 42,
+                "quoteCount": 2,
+                "isReply": False,
+                "conversationId": "998",
+                "author": {
+                    "id": "42", "userName": "Desk", "name": "Desk News",
+                    "followers": 12000, "isBlueVerified": True,
+                },
+                "entities": {"urls": [{"expanded_url": "https://project.test/launch"}]},
+            }],
+            "has_next_page": False,
+            "next_cursor": "",
+        }
+
+
+@pytest.mark.asyncio
+async def test_twitterapi_io_source_uses_api_key_and_parses_schema():
+    http = TwitterApiIoHttp()
+    source = TwitterApiIoSource(
+        http, "https://api.twitterapi.io/twitter/tweet/advanced_search",
+        "secret", ["Desk", "News"],
+    )
+    posts = await source.posts(NOW - timedelta(hours=24))
+    assert len(posts) == 1
+    assert posts[0].author_handle == "Desk"
+    assert posts[0].author_followers == 12000
+    assert posts[0].author_verified is True
+    assert posts[0].expanded_urls == ("https://project.test/launch",)
+    assert http.kwargs["headers"] == {"X-API-Key": "secret"}
+    assert "from:desk OR from:news" in http.kwargs["params"]["query"]
+    assert http.kwargs["params"]["queryType"] == "Latest"
+
+
+@pytest.mark.asyncio
+async def test_twitterapi_io_term_search_filters_to_monitored_accounts():
+    http = TwitterApiIoHttp()
+    source = TwitterApiIoSource(
+        http, "https://api.twitterapi.io/twitter/tweet/advanced_search",
+        "secret", ["desk"],
+    )
+    posts = await source.posts_for_terms(
+        NOW - timedelta(hours=24), [[MINT, "$PLUMBER"]]
+    )
+    assert len(posts) == 1
+    assert MINT in http.kwargs["params"]["query"]
+    assert "$PLUMBER" in http.kwargs["params"]["query"]
+    assert "from:desk" not in http.kwargs["params"]["query"]

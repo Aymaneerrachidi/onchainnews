@@ -37,7 +37,7 @@ from brief.render.discord import (  # noqa: E402
 )
 from brief.render.email import peak_cap  # noqa: E402
 from brief.render.formatting import money  # noqa: E402
-from brief.sources.openintel import HYPE, PROMO, WALLET_TRACKER  # noqa: E402
+from brief.sources.text_quality import HYPE, PROMO, WALLET_TRACKER  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -281,10 +281,92 @@ EDITORIAL: dict[str, tuple[str, str]] = {
         "an older BNB meme linked to the Gatsby Bali Corgi account; no fresh outside catalyst was verified",
         "https://www.instagram.com/balicorgi/",
     ),
+    "488SaFq6wHF2z2k6NLSD3PtoSkXDNZaPkJwxze11pump": (
+        "community coin around Momo, the internet-famous photogenic Shiba Inu",
+        "https://momocoin.org/",
+    ),
+    "DXXcq4tY5e4PbXybyBMnxZjHVmzv1GVrAXoW5TcC5kbu": (
+        "older pump.fun pisscoin meme revived across 14 tracked KOL wallets",
+        "https://kolexplorer.com/token/DXXcq4tY5e4PbXybyBMnxZjHVmzv1GVrAXoW5TcC5kbu",
+    ),
+    "5dkPngQmeqTUN57RqhxdA6xCaz7AKdzQoHLdk9xhpump": (
+        "gamer-community token linked to the Cyberleek account",
+        "https://aitrade.mytokencap.com/zh/sol/token/5dkPngQmeqTUN57RqhxdA6xCaz7AKdzQoHLdk9xhpump",
+    ),
+    "9Y3fY1kwYUTgLwBU7DZKkEwCsZYj3BrXQNP74ZNEpump": (
+        "small-cat community meme with a dedicated project site",
+        "https://www.the-smol-cat.fun/",
+    ),
 }
 
 # Intentionally written tape copy for today's sub-$1M runners. These are not
 # machine-truncated versions of the lead stories, so they always end cleanly.
+# Exact-contract context used by expanded Discord filter pages. The lead recap
+# still compacts these to one line; filter views retain the full sentence.
+FILTER_EDITORIAL: dict[str, tuple[str, str]] = {
+    "0x4c57a356de114c5e1226cbf09066423d59b67777": (
+        "Dark Cheems / black-Shiba community coin; the fresh BNB run followed renewed Totakeke chatter and an earlier public launch-and-buy signal attributed to Flap founder Cedric.",
+        "https://twstalker.com/hashtag/%23totakeke",
+    ),
+    "0x49bac47750f3dcdba49350b5d74fd399e90f97c6": (
+        "Community coin built around Robinhood's registered bull-with-sunglasses icon, with the group trying to turn the unused character into a chain-native mascot.",
+        "https://t.me/s/bullcoinrh",
+    ),
+    "CxThkADKK4DDYqB8GBPaEAgRBzwxyPyUhFcBUmiAzN6N": (
+        "Agent Heights is a working virtual office where autonomous agents occupy desks and execute assigned work; the token launched alongside its AnsemHack entry.",
+        "https://lorescreener.com/entry/agent-heights",
+    ),
+    "5RY49DU5fBHHpqgpFPkbZWk4JdNCpNGRjf8pfiD4pump": (
+        "Fresh Winfrey-the-Orca meme that surfaced through Solana hot-token and call feeds; no separate product or attributable outside catalyst was verified.",
+        "https://tlmtr.io/ru/channels/2597061903-leo_bot1/posts",
+    ),
+    "0x45f82ac5d507e988f7406935da8eefe495a360e0": (
+        "Brodie is based on the only office dog Robinhood publicly named, in a 2016 support-account post that the community revived a decade later.",
+        "https://www.brodiehasfun.com/",
+    ),
+    "0x92ef5e9e7f80c071ac871691af1d4059dd4d7777": (
+        "Chinese wordplay pairs 牛市 (bull market) with the near-homophone 牛屎 (bullshit), extending the viral Chinese bull-film meme into a market joke.",
+        "https://niushi.gold/",
+    ),
+    "TwA2JbytoJh4ZJikWTtyXbTV1CE6gi64GHPi31Ypump": (
+        "Older FOID contract returned to the tape; exact-contract pages verify the revival, but no public project story or fresh outside catalyst was found.",
+        "https://www.solflare.com/prices/foid/TwA2JbytoJh4ZJikWTtyXbTV1CE6gi64GHPi31Ypump/",
+    ),
+    "0x3529e5b86e8749c8487a11ddc239c412228a40cc": (
+        "The Robinhood Cat is a chain-native cat-mascot meme; the exact contract resurfaced after roughly a month of trading rather than on a new public catalyst.",
+        "https://birdscan.io/token/0x3529E5B86e8749c8487a11ddc239C412228A40cc",
+    ),
+    "8mBC1RTCajBMiA35TfYUxizUn5rXtuiNgiJKWNMtpump": (
+        "GIPP backs a six-agent Grokbot workspace for research, writing, outreach, operations, finance and support; Elon Musk reposted the builder and creator fees fund development.",
+        "https://lorescreener.com/entry/gipp",
+    ),
+    "2NffKvfZTcFj2tyoY1Ev84PkqxA7DZnstyv6EwELpump": (
+        "Sue is the 'cat wif helmet' image meme tied to an original social post; 11 tracked KOL wallets had traded the exact Solana contract during the audit.",
+        "https://kolexplorer.com/token/2NffKvfZTcFj2tyoY1Ev84PkqxA7DZnstyv6EwELpump",
+    ),
+    "0x834dfc6c604ed4b89fc2230bbee47660cd07d0a2": (
+        "Rintara is a playable Robinhood Chain game whose RIN token is designed for its marketplace, crafting, guilds and infrastructure rather than replacing ordinary in-game gold.",
+        "https://twstalker.com/pijiu_hs",
+    ),
+    "H8xQ6poBjB9DTPMDTKWzWPrnxu4bDEhybxiouF8Ppump": (
+        "Tokabu is the long-running 'Spirit of Gambling' mascot for casino-style crypto speculation; the exact contract previously secured XT and KCEX listings.",
+        "https://xtsupport.zendesk.com/hc/en-us/articles/49244211108505-XT-Announcement-on-Launching-VIBE-VIBE-CAT-and-TOKABU-The-Spirit-of-Gambling",
+    ),
+    "0x64e36d5cccb5bacb0b250854331f68fbd4357777": (
+        "BNC combines Binance Cat initials with BNC, an early name considered for BNB, positioning itself as the BNB-chain counterpart to the CASHCAT trade.",
+        "https://twstalker.com/jiadaa888",
+    ),
+    "0xa7368f673535fd47abcd95a1c8430f990b227777": (
+        "KAI is based on a dog repeatedly featured around Binance-community posts; fresh attention centered on International Dog Day photos and the owner acknowledging the contract.",
+        "https://twstalker.com/BitBian",
+    ),
+    "0x3ce29e3c4876e656a28d5f28bc222d314408f17d": (
+        "VladOS presents an autonomous Robinhood Chain desktop with trading, wallet, chart and memory modules; fees from its Lemon.fun launchpad and agent trading are routed to stakers.",
+        "https://vlados.ai/",
+    ),
+}
+
+
 TAIL_EDITORIAL: dict[str, str] = {
     "0x20024e485c0b22b42855589700721b28320a7777": "tokenized real-world asset marketplace",
     "0x28c74b28429df12d1f39f244f5c72fd472847a6b": "BaseStonk's bald-head meme",
@@ -718,6 +800,87 @@ def _dedupe(rows: list[dict], excluded: set[str]) -> list:
     return chosen
 
 
+def _saved_enrichment() -> dict[str, dict]:
+    """Load exact-contract browser research without internal competitor copy."""
+    path = ROOT / "output" / "enriched-current-40.json"
+    if not path.exists():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        str(row.get("mint") or "").strip().lower(): row
+        for row in payload.get("coins") or []
+        if isinstance(row, dict) and row.get("mint")
+    }
+
+
+def _apply_saved_enrichment(candidates: list) -> int:
+    """Merge exact-contract browser research without exposing internal X leads."""
+    researched = _saved_enrichment()
+    applied = 0
+    for candidate in candidates:
+        row = researched.get(candidate.token.mint.lower())
+        if not row:
+            continue
+        lore = _compact(row.get("lore"), 260)
+        if not lore or "mellometrics" in lore.casefold():
+            continue
+        web_research = row.get("webResearch") or {}
+        sources = [
+            str(url).strip() for url in web_research.get("sources") or []
+            if str(url).strip() and "mellometrics" not in str(url).casefold()
+        ]
+        candidate.lore = lore
+        candidate.provider_evidence["why"] = {
+            "cause": lore,
+            "sourceUrl": sources[0] if sources else "",
+        }
+        applied += 1
+    return applied
+
+
+def _merge_saved_enrichment_into_snapshot(snapshot: dict) -> int:
+    """Persist researched lore for the dashboard and Discord filter buttons.
+
+    The lead recap intentionally stays short. Interactive views read the raw
+    snapshot, so they need the richer exact-contract explanation stored there
+    instead of the generic no-X status generated during collection.
+    """
+    researched = _saved_enrichment()
+    if not researched:
+        return 0
+    applied: set[tuple[str, str]] = set()
+    for collection in ("runnerUniverse", "runners"):
+        for row in snapshot.get(collection) or []:
+            mint = str(row.get("mint") or "").strip()
+            saved = researched.get(mint.lower())
+            editorial = EDITORIAL.get(mint) or FILTER_EDITORIAL.get(mint)
+            if not saved and not editorial:
+                continue
+            lore = _compact((
+                (saved or {}).get("lore")
+                or ((saved or {}).get("webResearch") or {}).get("summary")
+                or (editorial[0] if editorial else "")
+            ), 420)
+            if not lore or "mellometrics" in lore.casefold():
+                continue
+            sources = [
+                str(url).strip()
+                for url in ((saved or {}).get("webResearch") or {}).get("sources") or []
+                if str(url).strip() and "mellometrics" not in str(url).casefold()
+            ]
+            if not sources and editorial and editorial[1]:
+                sources = [editorial[1]]
+            row["lore"] = lore
+            provider = dict(row.get("providerEvidence") or {})
+            provider["why"] = {
+                "cause": lore,
+                "sourceUrl": sources[0] if sources else "",
+            }
+            row["providerEvidence"] = provider
+            applied.add((collection, mint.lower()))
+    return len(applied)
+
+
 def _approved_layout(candidates: list, intro: str = "") -> dict:
     """Keep the approved recap shape stable regardless of model headings."""
     ordered = sorted(candidates, key=_verified_peak, reverse=True)
@@ -763,8 +926,12 @@ def _render_posts(candidates: list, narrative: dict, generated: datetime) -> lis
             editorial_copy = TAIL_EDITORIAL.get(mint) or (override[0] if override else "")
             line = (
                 _compact(editorial_copy, lore_limit)
-                if override
-                else (_compact(item.get("line"), lore_limit) or _fallback_line(candidate))
+                if editorial_copy
+                else (
+                    _compact(item.get("line"), lore_limit)
+                    or _compact(candidate.lore, lore_limit)
+                    or _fallback_line(candidate)
+                )
             )
             source = override[1] if override else _source(candidate)
             links = f" · [src]({source})" if source else ""
@@ -786,7 +953,7 @@ def _render_posts(candidates: list, narrative: dict, generated: datetime) -> lis
             links = f" · [src]({source})" if source else ""
             cause = TAIL_EDITORIAL.get(mint) or (override[0] if override else str(
                 (candidate.provider_evidence.get("why", {}) or {}).get("cause") or ""
-            ))
+            )) or candidate.lore
             lines.append(
                 f"[**${candidate.token.symbol}**]({fomo_token_url(candidate.token.chain_id, mint)}) "
                 f"→ **{_result(candidate)}** — "
@@ -1013,7 +1180,16 @@ async def main() -> int:
     args = parser.parse_args()
 
     settings = load_settings(str(ROOT / "config.toml"))
-    snapshot = json.loads((ROOT / "web/data/latest.json").read_text(encoding="utf-8-sig"))
+    snapshot_path = ROOT / "web/data/latest.json"
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8-sig"))
+    merged_enrichment = _merge_saved_enrichment_into_snapshot(snapshot)
+    if merged_enrichment:
+        snapshot_path.write_text(
+            # Match the exporter format so updating a few lore fields does not
+            # rewrite the entire generated snapshot or corrupt non-ASCII names.
+            json.dumps(snapshot, ensure_ascii=True, indent=1),
+            encoding="utf-8",
+        )
     excluded = {
         str(mint).strip().lower()
         for mint in settings.get("journal", "excluded_mints", []) or []
@@ -1024,6 +1200,7 @@ async def main() -> int:
     candidates = _select_recap_candidates(_dedupe(source_rows, excluded), settings)
     if not candidates:
         raise RuntimeError("latest snapshot has no publishable runners")
+    _apply_saved_enrichment(candidates)
 
     # This command is explicitly the deep editorial pass, so cover the whole
     # final board rather than the normal morning-run budget.
