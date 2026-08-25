@@ -312,6 +312,8 @@ function gmgnEvidence(row) {
 export function securityEligible(row) {
   const gmgn = gmgnEvidence(row);
   const peak = runnerPeak(row);
+  const holdersKnown = row?.holders !== null && row?.holders !== undefined;
+  const holders = Number(row?.holders);
   const top10Known = row?.top10Pct !== null && row?.top10Pct !== undefined;
   const top10 = Number(row?.top10Pct);
   const lpKnown = row?.lpLockedPct !== null && row?.lpLockedPct !== undefined;
@@ -339,7 +341,12 @@ export function securityEligible(row) {
     && !honeypot
     && row?.mintAuthorityRenounced !== false
     && row?.freezeAuthorityDisabled !== false
-    && (!top10Known || (Number.isFinite(top10) && top10 <= 30))
+    && holdersKnown
+    && Number.isFinite(holders)
+    && holders > 0
+    && top10Known
+    && Number.isFinite(top10)
+    && top10 <= 30
     && (!devHoldKnown || (Number.isFinite(devHold) && devHold <= 0.15))
     && (!lpKnown || !Number.isFinite(lpLocked) || lpLocked > 0 || burned)
     && Number(row?.liquidity || 0) >= Number(liquidityFloors[chain] || 30000)
@@ -390,12 +397,18 @@ function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedA
   const lines = rows.map((row) => {
     const key = `${String(row.chain).toLowerCase()}:${String(row.mint).toLowerCase()}`;
     const current = prices.get(key) || Number(row.marketCap) || 0;
+    const holderText = row?.holders === null || row?.holders === undefined
+      ? "holders unknown"
+      : `${count(row.holders)} holders`;
+    const top10Text = row?.top10Pct === null || row?.top10Pct === undefined
+      ? "top10 unknown"
+      : `top10 ${Number(row.top10Pct).toFixed(1)}%`;
     const stats = [
       `**now ${money(current)}**`,
       `24h high ${money(runnerPeak(row))}`,
       `liq ${money(row.liquidity)}`,
-      `${count(row.holders)} holders`,
-      `top10 ${Number(row.top10Pct).toFixed(1)}%`,
+      holderText,
+      top10Text,
     ].join(" · ");
     const cause = shortCause(row);
     return `[**$${String(row.symbol || "?").toUpperCase()}**](${fomoUrl(row)}) — ${stats}`
