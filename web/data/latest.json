@@ -116138,7 +116138,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Solana's 'cat sister of Dogecoin'; PoorGoat took over the community after the previous operator disappeared.",
+   "lore": "X: PumpfunEco reported that $CATE gained 134% during the scan window. Lore: Solana's 'cat sister of Dogecoin'; PoorGoat took over the community after the previous operator disappeared.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 2779506.39,
@@ -116240,7 +116240,17 @@
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 13%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "PumpfunEco",
+     "handle": "PumpfunEco",
+     "interaction": "audited_context",
+     "summary": "X: PumpfunEco reported that $CATE gained 134% during the scan window.",
+     "url": "https://x.com/PumpfunEco/status/2092052053392597461",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -116871,8 +116881,8 @@
      "published": false
     },
     "why": {
-     "cause": "Solana's 'cat sister of Dogecoin'; PoorGoat took over the community after the previous operator disappeared.",
-     "sourceUrl": "https://catearmy.com/faq/"
+     "cause": "X: PumpfunEco reported that $CATE gained 134% during the scan window. Lore: Solana's 'cat sister of Dogecoin'; PoorGoat took over the community after the previous operator disappeared.",
+     "sourceUrl": "https://x.com/PumpfunEco/status/2092052053392597461"
     }
    },
    "lifecycleEvents": [],
@@ -117592,7 +117602,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Jimothy is a real short-spined Seattle raccoon turned community mascot; Bybit Alpha listed the exact contract.",
+   "lore": "X: PumpfunEco reported a $170K whale buy as $JIMOTHY wicked to a $26M market cap. Lore: Jimothy is a real short-spined Seattle raccoon turned community mascot; Bybit Alpha listed the exact contract.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 1477475.96,
@@ -117694,7 +117704,17 @@
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 13%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "PumpfunEco",
+     "handle": "PumpfunEco",
+     "interaction": "audited_context",
+     "summary": "X: PumpfunEco reported a $170K whale buy as $JIMOTHY wicked to a $26M market cap.",
+     "url": "https://x.com/PumpfunEco/status/2092143302506160193",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -118314,8 +118334,8 @@
      "published": false
     },
     "why": {
-     "cause": "Jimothy is a real short-spined Seattle raccoon turned community mascot; Bybit Alpha listed the exact contract.",
-     "sourceUrl": "https://www.jimothy.world/"
+     "cause": "X: PumpfunEco reported a $170K whale buy as $JIMOTHY wicked to a $26M market cap. Lore: Jimothy is a real short-spined Seattle raccoon turned community mascot; Bybit Alpha listed the exact contract.",
+     "sourceUrl": "https://x.com/PumpfunEco/status/2092143302506160193"
     }
    },
    "lifecycleEvents": [],
@@ -118377,7 +118397,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Meeko is a new Shiba Inu shown by Kabosu's owner, giving the token a next-generation Doge handoff story.",
+   "lore": "X: GeckoTerminal ranked $MEEKO first among its five trending tokens that day. Lore: Meeko is a new Shiba Inu shown by Kabosu's owner, giving the token a next-generation Doge handoff story.",
    "loreIsFresh": true,
    "faded": -36.48,
    "volume6h": 267057.03,
@@ -118479,7 +118499,17 @@
     "Supply structure at the snapshot: nominal top 10 held 16%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "GeckoTerminal",
+     "handle": "GeckoTerminal",
+     "interaction": "audited_context",
+     "summary": "X: GeckoTerminal ranked $MEEKO first among its five trending tokens that day.",
+     "url": "https://x.com/GeckoTerminal/status/2092254773370409266",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -119083,8 +119113,8 @@
      "published": false
     },
     "why": {
-     "cause": "Meeko is a new Shiba Inu shown by Kabosu's owner, giving the token a next-generation Doge handoff story.",
-     "sourceUrl": "https://www.instalker.org/Starcn_"
+     "cause": "X: GeckoTerminal ranked $MEEKO first among its five trending tokens that day. Lore: Meeko is a new Shiba Inu shown by Kabosu's owner, giving the token a next-generation Doge handoff story.",
+     "sourceUrl": "https://x.com/GeckoTerminal/status/2092254773370409266"
     }
    },
    "lifecycleEvents": [
@@ -119155,7 +119185,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Gucci-dressed Morty brainrot character spread through TikTok edits and cinematic remix clips with millions of views.",
+   "lore": "X: PumpfunEco ranked $MORTY among the most-traded Pump.fun coins with $6.5M in 24-hour volume. Lore: Gucci-dressed Morty brainrot character spread through TikTok edits and cinematic remix clips with millions of views.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 528503.05,
@@ -119257,7 +119287,17 @@
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 16%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "PumpfunEco",
+     "handle": "PumpfunEco",
+     "interaction": "audited_context",
+     "summary": "X: PumpfunEco ranked $MORTY among the most-traded Pump.fun coins with $6.5M in 24-hour volume.",
+     "url": "https://x.com/PumpfunEco/status/2092205332667773098",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -119560,8 +119600,8 @@
      "published": false
     },
     "why": {
-     "cause": "Gucci-dressed Morty brainrot character spread through TikTok edits and cinematic remix clips with millions of views.",
-     "sourceUrl": "https://lorescreener.com/entry/gucci-morty"
+     "cause": "X: PumpfunEco ranked $MORTY among the most-traded Pump.fun coins with $6.5M in 24-hour volume. Lore: Gucci-dressed Morty brainrot character spread through TikTok edits and cinematic remix clips with millions of views.",
+     "sourceUrl": "https://x.com/PumpfunEco/status/2092205332667773098"
     }
    },
    "lifecycleEvents": [],
@@ -119621,7 +119661,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Robinhood-chain Juggernaut meme presented as a favourite Vlad Tenev reference; Hibt listed the exact contract.",
+   "lore": "X: theunipcs posted an explicitly bullish $JUGGERNAUT reply during the scan window. Lore: Robinhood-chain Juggernaut meme presented as a favourite Vlad Tenev reference; Hibt listed the exact contract.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 381162.64,
@@ -119723,7 +119763,17 @@
     "Supply structure at the snapshot: nominal top 10 held 15%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "theunipcs",
+     "handle": "theunipcs",
+     "interaction": "audited_context",
+     "summary": "X: theunipcs posted an explicitly bullish $JUGGERNAUT reply during the scan window.",
+     "url": "https://x.com/theunipcs/status/2091918413283086840",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -120296,8 +120346,8 @@
      "published": false
     },
     "why": {
-     "cause": "Robinhood-chain Juggernaut meme presented as a favourite Vlad Tenev reference; Hibt listed the exact contract.",
-     "sourceUrl": "https://support.hibt.com/hc/en-us/articles/16790221229711-Hibt-Announcement-on-the-Upcoming-Listing-of-JUGGERNAUT-The-Juggernaut"
+     "cause": "X: theunipcs posted an explicitly bullish $JUGGERNAUT reply during the scan window. Lore: Robinhood-chain Juggernaut meme presented as a favourite Vlad Tenev reference; Hibt listed the exact contract.",
+     "sourceUrl": "https://x.com/theunipcs/status/2091918413283086840"
     }
    },
    "lifecycleEvents": [
@@ -122680,7 +122730,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Robinhood Chain Mars-colonization meme launched through pons and paired against tokenized SpaceX stock.",
+   "lore": "X: XbtPika discussed $MARTIANS alongside an Elon quote/repost and a roughly $3M valuation. Lore: Robinhood Chain Mars-colonization meme launched through pons and paired against tokenized SpaceX stock.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 310547.9,
@@ -122782,7 +122832,17 @@
     "Supply structure at the snapshot: nominal top 10 held 17%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "XbtPika",
+     "handle": "XbtPika",
+     "interaction": "audited_context",
+     "summary": "X: XbtPika discussed $MARTIANS alongside an Elon quote/repost and a roughly $3M valuation.",
+     "url": "https://x.com/XbtPika/status/2092344640007549146",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -123156,8 +123216,8 @@
      "published": false
     },
     "why": {
-     "cause": "Robinhood Chain Mars-colonization meme launched through pons and paired against tokenized SpaceX stock.",
-     "sourceUrl": "https://x.com/martiansrh"
+     "cause": "X: XbtPika discussed $MARTIANS alongside an Elon quote/repost and a roughly $3M valuation. Lore: Robinhood Chain Mars-colonization meme launched through pons and paired against tokenized SpaceX stock.",
+     "sourceUrl": "https://x.com/XbtPika/status/2092344640007549146"
     }
    },
    "lifecycleEvents": [
@@ -123221,7 +123281,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Token based on Looksmax.org, the men's appearance and self-improvement forum; KCEX listed the exact contract.",
+   "lore": "X: PumpfunEco reported a trader turning a $187 $LOOKSMAX buy into a $26,260 gain, about 140x. Lore: Token based on Looksmax.org, the men's appearance and self-improvement forum; KCEX listed the exact contract.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 101726.02,
@@ -123323,7 +123383,17 @@
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 23%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "PumpfunEco",
+     "handle": "PumpfunEco",
+     "interaction": "audited_context",
+     "summary": "X: PumpfunEco reported a trader turning a $187 $LOOKSMAX buy into a $26,260 gain, about 140x.",
+     "url": "https://x.com/PumpfunEco/status/2091904755408794042",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -123768,8 +123838,8 @@
      "published": false
     },
     "why": {
-     "cause": "Token based on Looksmax.org, the men's appearance and self-improvement forum; KCEX listed the exact contract.",
-     "sourceUrl": "https://www.kcex.com/support/articles/43234799830942"
+     "cause": "X: PumpfunEco reported a trader turning a $187 $LOOKSMAX buy into a $26,260 gain, about 140x. Lore: Token based on Looksmax.org, the men's appearance and self-improvement forum; KCEX listed the exact contract.",
+     "sourceUrl": "https://x.com/PumpfunEco/status/2091904755408794042"
     }
    },
    "lifecycleEvents": [],
@@ -124594,7 +124664,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Dopamine-plus-meme wordplay framed as the rush of a meme cycle returning; the exact contract's public narrative is attention-driven rather than product-led.",
+   "lore": "X: Moonshot announced that $DOPAMEME was verified on its platform. Lore: Dopamine-plus-meme wordplay framed as the rush of a meme cycle returning; the exact contract's public narrative is attention-driven rather than product-led.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 353011.23,
@@ -124696,7 +124766,17 @@
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 21%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "moonshot",
+     "handle": "moonshot",
+     "interaction": "audited_context",
+     "summary": "X: Moonshot announced that $DOPAMEME was verified on its platform.",
+     "url": "https://x.com/moonshot/status/2092010619075494190",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -124944,8 +125024,8 @@
      "published": false
     },
     "why": {
-     "cause": "Dopamine-plus-meme wordplay framed as the rush of a meme cycle returning; the exact contract's public narrative is attention-driven rather than product-led.",
-     "sourceUrl": "https://alph.ai/sol/trending"
+     "cause": "X: Moonshot announced that $DOPAMEME was verified on its platform. Lore: Dopamine-plus-meme wordplay framed as the rush of a meme cycle returning; the exact contract's public narrative is attention-driven rather than product-led.",
+     "sourceUrl": "https://x.com/moonshot/status/2092010619075494190"
     }
    },
    "lifecycleEvents": [],
@@ -136550,7 +136630,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Brodie is based on the only office dog Robinhood publicly named, in a 2016 support-account post that the community revived a decade later.",
+   "lore": "X: theunipcs included the exact $BRODIE cashtag in a post about his FOMO leaderboard position. Lore: Brodie is based on the only office dog Robinhood publicly named, in a 2016 support-account post that the community revived a decade later.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 334944.35,
@@ -136652,7 +136732,17 @@
     "Supply structure at the snapshot: nominal top 10 held 20%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "theunipcs",
+     "handle": "theunipcs",
+     "interaction": "audited_context",
+     "summary": "X: theunipcs included the exact $BRODIE cashtag in a post about his FOMO leaderboard position.",
+     "url": "https://x.com/theunipcs/status/2091810338446455144",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -137207,8 +137297,8 @@
      "published": false
     },
     "why": {
-     "cause": "Brodie is based on the only office dog Robinhood publicly named, in a 2016 support-account post that the community revived a decade later.",
-     "sourceUrl": "https://www.brodiehasfun.com/"
+     "cause": "X: theunipcs included the exact $BRODIE cashtag in a post about his FOMO leaderboard position. Lore: Brodie is based on the only office dog Robinhood publicly named, in a 2016 support-account post that the community revived a decade later.",
+     "sourceUrl": "https://x.com/theunipcs/status/2091810338446455144"
     }
    },
    "lifecycleEvents": [],
@@ -141634,7 +141724,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Tokabu is the long-running 'Spirit of Gambling' mascot for casino-style crypto speculation; the exact contract previously secured XT and KCEX listings.",
+   "lore": "X: PumpfunEco reported that $TOKABU was up 72% over 24 hours. Lore: Tokabu is the long-running 'Spirit of Gambling' mascot for casino-style crypto speculation; the exact contract previously secured XT and KCEX listings.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 180928.51,
@@ -141736,7 +141826,17 @@
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 17%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "PumpfunEco",
+     "handle": "PumpfunEco",
+     "interaction": "audited_context",
+     "summary": "X: PumpfunEco reported that $TOKABU was up 72% over 24 hours.",
+     "url": "https://x.com/PumpfunEco/status/2092179930142364023",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -142347,8 +142447,8 @@
      "published": false
     },
     "why": {
-     "cause": "Tokabu is the long-running 'Spirit of Gambling' mascot for casino-style crypto speculation; the exact contract previously secured XT and KCEX listings.",
-     "sourceUrl": "https://xtsupport.zendesk.com/hc/en-us/articles/49244211108505-XT-Announcement-on-Launching-VIBE-VIBE-CAT-and-TOKABU-The-Spirit-of-Gambling"
+     "cause": "X: PumpfunEco reported that $TOKABU was up 72% over 24 hours. Lore: Tokabu is the long-running 'Spirit of Gambling' mascot for casino-style crypto speculation; the exact contract previously secured XT and KCEX listings.",
+     "sourceUrl": "https://x.com/PumpfunEco/status/2092179930142364023"
     }
    },
    "lifecycleEvents": [
@@ -144609,7 +144709,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "VladOS presents an autonomous Robinhood Chain desktop with trading, wallet, chart and memory modules; fees from its Lemon.fun launchpad and agent trading are routed to stakers.",
+   "lore": "X: WhaleInsider described $VLADOS as a self-operating agent launched on Robinhood Chain. Lore: VladOS presents an autonomous Robinhood Chain desktop with trading, wallet, chart and memory modules; fees from its Lemon.fun launchpad and agent trading are routed to stakers.",
    "loreIsFresh": true,
    "faded": -23.7,
    "volume6h": 883632.28,
@@ -144713,7 +144813,17 @@
     "Supply structure at the snapshot: nominal top 10 held 13%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "WhaleInsider",
+     "handle": "WhaleInsider",
+     "interaction": "audited_context",
+     "summary": "X: WhaleInsider described $VLADOS as a self-operating agent launched on Robinhood Chain.",
+     "url": "https://x.com/WhaleInsider/status/2092189474146935154",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -144920,8 +145030,8 @@
      "published": false
     },
     "why": {
-     "cause": "VladOS presents an autonomous Robinhood Chain desktop with trading, wallet, chart and memory modules; fees from its Lemon.fun launchpad and agent trading are routed to stakers.",
-     "sourceUrl": "https://vlados.ai/"
+     "cause": "X: WhaleInsider described $VLADOS as a self-operating agent launched on Robinhood Chain. Lore: VladOS presents an autonomous Robinhood Chain desktop with trading, wallet, chart and memory modules; fees from its Lemon.fun launchpad and agent trading are routed to stakers.",
+     "sourceUrl": "https://x.com/WhaleInsider/status/2092189474146935154"
     }
    },
    "lifecycleEvents": [],
