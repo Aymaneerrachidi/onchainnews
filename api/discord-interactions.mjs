@@ -9,8 +9,11 @@ const MARKET_CACHE_SECONDS = 30;
 const SNAPSHOT_CACHE_SECONDS = 30;
 const MAX_CONTRACTS = 100;
 const PAGE_SIZE = 8;
-const DEX_TIMEOUT_MS = 1800;
-const SNAPSHOT_TIMEOUT_MS = 1800;
+// Discord invalidates component interactions after roughly three seconds.
+// Keep each network leg short enough to leave room for a cold function start
+// and JSON rendering. Ordinary filters never call Dexscreener (see below).
+const DEX_TIMEOUT_MS = 1000;
+const SNAPSHOT_TIMEOUT_MS = 900;
 const HOLDER_STRUCTURE_EXCEPTIONS = new Set([
   "bsc:0x02fca66c1d1afb4e2a7884261eb00f63598a7436", // NVDAB
   "bsc:0xcaae2a2f939f51d97cdfa9a86e79e3f085b799f3", // TUT
@@ -560,7 +563,7 @@ function repositorySnapshotUrl(date) {
   return `https://raw.githubusercontent.com/Aymaneerrachidi/onchainnews/main/web/data/latest.json?report=${encodeURIComponent(date)}`;
 }
 
-async function renderFilterResponse(request, interaction, action, now) {
+export async function renderFilterResponse(request, interaction, action, now) {
   let snapshot = await fetchRunnerSnapshot(snapshotUrl(request));
   let actualDate = reportDateKey(snapshot?.generatedAt);
   // The daily job commits the new snapshot immediately before posting. Vercel
@@ -611,7 +614,12 @@ async function renderFilterResponse(request, interaction, action, now) {
     mint: String(row.mint),
     url: fomoUrl(row),
   }));
-  const prices = await pricesForMessage(messageKey(interaction), contracts);
+  // Chain, range, and pagination controls must acknowledge Discord quickly.
+  // Snapshot market caps are sufficient for navigation; only the explicit
+  // refresh control pays the latency cost of a live Dexscreener request.
+  const prices = action.refresh
+    ? await pricesForMessage(messageKey(interaction), contracts)
+    : new Map();
   return {
     embeds: [filteredEmbed(rows, prices, selectedChain, selectedBand, page, pages, allRows.length, now, notice)],
     components: filterComponents(selectedChain, selectedBand, actualDate, page, pages, now, snapshot),
@@ -699,6 +707,9 @@ export default {
     }
 
     messageRefreshes.set(key, now);
+    // These requests are independent. Running them together prevents the
+    // refresh button from spending the Discord deadline on two serial waits.
+    const runnerSnapshotPromise = fetchRunnerSnapshot(snapshotUrl(request)).catch(() => null);
     const prices = await pricesForMessage(key, contracts);
     if (!prices.size) {
       messageRefreshes.delete(key);
@@ -721,12 +732,7 @@ export default {
       };
     }
 
-    let runnerSnapshot = null;
-    try {
-      runnerSnapshot = await fetchRunnerSnapshot(snapshotUrl(request));
-    } catch (_) {
-      // Price refresh still succeeds; controls simply omit counts this time.
-    }
+    const runnerSnapshot = await runnerSnapshotPromise;
     const data = {
       embeds,
       components: publicComponents(now, reportDate, runnerSnapshot),

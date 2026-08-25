@@ -11,6 +11,7 @@ import {
   filterRunnerRows,
   filterComponents,
   publicComponents,
+  renderFilterResponse,
   resetRefreshStateForTests,
   securityEligible,
 } from "../api/discord-interactions.mjs";
@@ -251,4 +252,66 @@ test("runner snapshot is cached for a click burst", async () => {
   assert.equal(first.runnerUniverse.length, 1);
   assert.equal(second.runnerUniverse.length, 1);
   assert.equal(calls, 1);
+});
+
+
+test("every chain and market-cap filter avoids Dexscreener on ordinary clicks", async () => {
+  resetRefreshStateForTests();
+  const originalFetch = globalThis.fetch;
+  let dexCalls = 0;
+  let snapshotCalls = 0;
+  const chains = ["solana", "bsc", "base", "ethereum", "robinhood"];
+  const peaks = [300_000, 700_000, 2_000_000, 12_000_000];
+  const runnerUniverse = chains.flatMap((chain, chainIndex) => peaks.map((peak, bandIndex) =>
+    safeRunner({
+      symbol: `${chainIndex}${bandIndex}`,
+      mint: `mint-${chainIndex}-${bandIndex}`,
+      chain,
+      marketCap: peak,
+      peakMarketCap: peak,
+    })));
+
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("api.dexscreener.com")) {
+      dexCalls += 1;
+      throw new Error("ordinary filters must not request live prices");
+    }
+    snapshotCalls += 1;
+    return new Response(JSON.stringify({
+      generatedAt: "2026-08-25T00:00:00Z",
+      runnerUniverse,
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  try {
+    const request = new Request("https://app.test/api/discord-interactions");
+    const interaction = { guild_id: "g", channel_id: "c", message: { id: "m" } };
+    const actions = [
+      ...chains.map((chain) => ({ chain, band: "all", source: "chain" })),
+      ...["250k-500k", "500k-1m", "1m-10m", "10m-plus"].map((band) => ({
+        chain: "all",
+        band,
+        source: "band",
+      })),
+    ];
+
+    for (const action of actions) {
+      const result = await renderFilterResponse(request, interaction, {
+        ...action,
+        date: "latest",
+        page: 0,
+        refreshedAt: 0,
+        refresh: false,
+      }, 1_000);
+      assert.equal(result.error, undefined);
+      assert.equal(result.embeds.length, 1);
+      assert.equal(result.components.length, 4);
+    }
+
+    assert.equal(snapshotCalls, 1);
+    assert.equal(dexCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetRefreshStateForTests();
+  }
 });
