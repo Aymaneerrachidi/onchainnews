@@ -1,4 +1,5 @@
 import { createPublicKey, verify } from "node:crypto";
+import { buildMarketCapProxyUrl } from "./market-caps.mjs";
 
 const DISCORD_PUBLIC_KEY_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
 const REFRESH_PREFIX = "refresh_mc:";
@@ -588,12 +589,35 @@ function messageKey(interaction) {
   ].join(":");
 }
 
-async function pricesForMessage(key, contracts) {
+export function sharedMarketFetch(requestUrl, fetchImpl = fetch) {
+  return async (dexUrl, options = {}) => {
+    try {
+      const parsed = new URL(dexUrl);
+      const parts = parsed.pathname.split("/");
+      const chain = decodeURIComponent(parts[3] || "");
+      const mints = decodeURIComponent(parts.slice(4).join("/"))
+        .split(",").filter(Boolean);
+      const proxyUrl = buildMarketCapProxyUrl(new URL(requestUrl).origin, chain, mints);
+      if (proxyUrl) {
+        return fetchImpl(proxyUrl, {
+          ...options,
+          headers: { accept: "application/json" },
+        });
+      }
+    } catch (_) {
+      // Local development without a proxy secret keeps the direct free API.
+    }
+    return fetchImpl(dexUrl, options);
+  };
+}
+
+async function pricesForMessage(key, contracts, requestUrl) {
   const existing = messageLocks.get(key);
   if (existing) return existing;
-  const request = fetchLiveCaps(contracts).finally(() => messageLocks.delete(key));
-  messageLocks.set(key, request);
-  return request;
+  const task = fetchLiveCaps(contracts, sharedMarketFetch(requestUrl))
+    .finally(() => messageLocks.delete(key));
+  messageLocks.set(key, task);
+  return task;
 }
 
 function snapshotUrl(request) {
@@ -659,7 +683,7 @@ export async function renderFilterResponse(request, interaction, action, now) {
   // Snapshot market caps are sufficient for navigation; only the explicit
   // refresh control pays the latency cost of a live Dexscreener request.
   const prices = action.refresh
-    ? await pricesForMessage(messageKey(interaction), contracts)
+    ? await pricesForMessage(messageKey(interaction), contracts, request.url)
     : new Map();
   return {
     embeds: [filteredEmbed(rows, prices, selectedChain, selectedBand, page, pages, allRows.length, now, notice)],
@@ -753,7 +777,7 @@ export default {
     // These requests are independent. Running them together prevents the
     // refresh button from spending the Discord deadline on two serial waits.
     const runnerSnapshotPromise = fetchRunnerSnapshot(snapshotUrl(request)).catch(() => null);
-    const prices = await pricesForMessage(key, contracts);
+    const prices = await pricesForMessage(key, contracts, request.url);
     if (!prices.size) {
       messageRefreshes.delete(key);
       return ephemeralMessage("Current market caps are unavailable; the message was not changed.");
