@@ -4,6 +4,7 @@ import os
 import logging
 import pathlib
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -22,17 +23,29 @@ class EmailDeliveryError(RuntimeError):
     pass
 
 
-async def send_telegram(messages: list[str]) -> None:
+async def send_telegram(
+    messages: list[str | dict[str, Any]],
+    *,
+    transport=None,
+) -> None:
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
     if not token or not chat_id:
         raise TelegramDeliveryError("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required")
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=15, transport=transport) as client:
         for message in messages:
+            payload: dict[str, Any] = {
+                "chat_id": chat_id,
+                "disable_web_page_preview": True,
+            }
+            if isinstance(message, str):
+                payload["text"] = message
+            else:
+                payload.update(message)
             response = await client.post(
                 url,
-                json={"chat_id": chat_id, "text": message, "disable_web_page_preview": True},
+                json=payload,
             )
             if response.status_code >= 400:
                 raise TelegramDeliveryError(f"Telegram HTTP {response.status_code}: {response.text[:200]}")

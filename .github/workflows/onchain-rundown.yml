@@ -64,7 +64,9 @@ jobs:
           restore-keys: |
             brief-db-${{ runner.os }}-
 
-      - run: uv run solana-brief run --no-discord
+      # Telegram and Discord are posted from the final X-enriched snapshot
+      # below, so neither channel receives the earlier lore-only draft.
+      - run: uv run solana-brief run --no-discord --no-telegram
 
       - name: Audit every monitored X account across the complete 24-hour window
         if: env.TWITTERAPI_IO_KEY != ''
@@ -96,6 +98,10 @@ jobs:
       - name: Post interactive Discord recap
         if: env.DISCORD_BOT_TOKEN != '' && env.DISCORD_CHANNEL_ID != ''
         run: uv run python scripts/send_live_discord_recap.py --editorial-only
+
+      - name: Post interactive Telegram recap
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        run: uv run python scripts/send_live_telegram_recap.py
 
       - uses: actions/cache/save@v4
         if: always()

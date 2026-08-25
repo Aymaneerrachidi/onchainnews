@@ -385,7 +385,7 @@ export async function fetchRunnerSnapshot(url, fetchImpl = fetch, nowMs = Date.n
   return request;
 }
 
-function runnerPeak(row) {
+export function runnerPeak(row) {
   return Math.max(
     Number(row?.peakMarketCap) || 0,
     Number(row?.observedPeakMarketCap) || 0,
@@ -518,7 +518,7 @@ export function filterRunnerRows(snapshot, chain = "all", band = "all") {
     || Number(right?.volume24h || 0) - Number(left?.volume24h || 0));
 }
 
-function fomoUrl(row) {
+export function fomoUrl(row) {
   const chain = String(row.chain).toLowerCase() === "bsc" ? "bnb" : row.chain;
   return `https://fomo.family/tokens/${encodeURIComponent(chain)}/${encodeURIComponent(row.mint)}`;
 }
@@ -575,7 +575,7 @@ export function shortCause(row) {
   return stated.length > 240 ? `${stated.slice(0, 237).trimEnd()}…` : stated;
 }
 
-function narrativeSource(row) {
+export function narrativeSource(row) {
   const publicX = (row?.xInteractions || []).find((item) =>
     String(item?.handle || "").toLowerCase() !== "mellometrics"
     && usableNarrative(item?.summary));

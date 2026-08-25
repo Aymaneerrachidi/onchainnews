@@ -238,7 +238,7 @@ edits the original message, and enforces a message-wide 30-second cooldown.
 When bot credentials are absent, delivery continues through the configured
 webhooks without showing a fake external refresh button.
 
-The morning Telegram message is a digest, not the whole report: a header, the picks with one line each, up to three on-chain flags, any degraded sources, and an optional link. Set `delivery.report_url` to wherever `latest.html` is reachable and it is appended to the message. Set `delivery.telegram_digest = false` to send the full report instead. A missing credential warns and skips delivery; it never loses the report that already rendered.
+The scheduled morning Telegram recap is posted from the final X-enriched JSON snapshot. It shows eight runners per page with Fomo links, live market facts, attributable X/lore context, chain and 24-hour peak-cap filters, pagination, a market-cap refresh control, and a website button. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and a random `TELEGRAM_WEBHOOK_SECRET` in Vercel, put the same values in the local ignored `.env`, then run `uv run python scripts/set_telegram_webhook.py https://YOUR-VERCEL-DOMAIN/api/telegram-interactions` once. The ordinary CLI renderer remains available for local/failure messages.
 
 The visual interface runs locally at `http://127.0.0.1:8765`. It filters the report, shows a live clock and scheduled-run countdown, monitors refresh state, and can start a new brief. It binds only to the local machine and exposes no wallet or trading action.
 
