@@ -149,6 +149,20 @@ test("Discord controls use balanced rows and visible filter state", () => {
     "Prev", "Page 2 / 4", "Next", "Refresh prices",
   ]);
   assert.equal(filtered[3].components[1].disabled, true);
+
+  const snapshot = {
+    runnerUniverse: [
+      safeRunner(),
+      safeRunner({ symbol: "BNB", mint: "0xbnb", chain: "bsc", peakMarketCap: 2_000_000 }),
+    ],
+  };
+  const counted = filterComponents("solana", "250k-500k", "20260825", 0, 1, 1234, snapshot);
+  assert.equal(counted[0].components[0].label, "All (1)");
+  assert.equal(counted[0].components[1].label, "Solana (1)");
+  assert.equal(counted[0].components[2].label, "BNB (0)");
+  assert.equal(counted[0].components[2].disabled, true);
+  assert.equal(counted[2].components[3].label, "$1M-$10M (0)");
+  assert.equal(counted[2].components[3].disabled, true);
 });
 
 

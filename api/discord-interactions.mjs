@@ -112,23 +112,39 @@ function componentButton(label, customId, active = false, disabled = false) {
   };
 }
 
-export function publicComponents(epochSeconds = 0, reportDate = "latest") {
+export function publicComponents(epochSeconds = 0, reportDate = "latest", snapshot = null) {
   const date = reportDateKey(reportDate);
+  const hasSnapshot = Boolean(snapshot);
+  const chainButton = ([label, value]) => {
+    const total = hasSnapshot ? filterRunnerRows(snapshot, value, "all").length : null;
+    return componentButton(
+      total === null ? label : `${label} (${total})`,
+      `${FILTER_PREFIX}${value}:all:${date}:0:chain`,
+      value === "all",
+      total === 0,
+    );
+  };
+  const bandButton = ([label, value]) => {
+    const total = hasSnapshot ? filterRunnerRows(snapshot, "all", value).length : null;
+    return componentButton(
+      total === null ? label : `${label} (${total})`,
+      `${FILTER_PREFIX}all:${value}:${date}:0:band`,
+      value === "all",
+      total === 0,
+    );
+  };
   return [
     {
       type: 1,
-      components: CHAINS.slice(0, 3).map(([label, value]) =>
-        componentButton(label, `${FILTER_PREFIX}${value}:all:${date}:0:chain`, value === "all")),
+      components: CHAINS.slice(0, 3).map(chainButton),
     },
     {
       type: 1,
-      components: CHAINS.slice(3).map(([label, value]) =>
-        componentButton(label, `${FILTER_PREFIX}${value}:all:${date}:0:chain`)),
+      components: CHAINS.slice(3).map(chainButton),
     },
     {
       type: 1,
-      components: BANDS.map(([label, value]) =>
-        componentButton(label, `${FILTER_PREFIX}all:${value}:${date}:0:band`, value === "all")),
+      components: BANDS.map(bandButton),
     },
     {
       type: 1,
@@ -143,9 +159,27 @@ export function publicComponents(epochSeconds = 0, reportDate = "latest") {
   ];
 }
 
-export function filterComponents(chain, band, date, page, pages, refreshedAt) {
+export function filterComponents(chain, band, date, page, pages, refreshedAt, snapshot = null) {
   const filterId = (nextChain, nextBand, nextPage = 0, source = "nav") =>
     `${FILTER_PREFIX}${nextChain}:${nextBand}:${date}:${nextPage}:${source}`;
+  const chainButton = ([label, value]) => {
+    const total = snapshot ? filterRunnerRows(snapshot, value, band).length : null;
+    return componentButton(
+      total === null ? label : `${label} (${total})`,
+      filterId(value, band, 0, "chain"),
+      value === chain,
+      total === 0 && value !== chain,
+    );
+  };
+  const bandButton = ([label, value]) => {
+    const total = snapshot ? filterRunnerRows(snapshot, chain, value).length : null;
+    return componentButton(
+      total === null ? label : `${label} (${total})`,
+      filterId(chain, value, 0, "band"),
+      value === band,
+      total === 0 && value !== band,
+    );
+  };
   const navigation = [
     componentButton("Prev", filterId(chain, band, Math.max(0, page - 1)), false, page <= 0),
     componentButton(`Page ${page + 1} / ${pages}`, `page_info:${date}:${page}`, false, true),
@@ -158,18 +192,15 @@ export function filterComponents(chain, band, date, page, pages, refreshedAt) {
   return [
     {
       type: 1,
-      components: CHAINS.slice(0, 3).map(([label, value]) =>
-        componentButton(label, filterId(value, band, 0, "chain"), value === chain)),
+      components: CHAINS.slice(0, 3).map(chainButton),
     },
     {
       type: 1,
-      components: CHAINS.slice(3).map(([label, value]) =>
-        componentButton(label, filterId(value, band, 0, "chain"), value === chain)),
+      components: CHAINS.slice(3).map(chainButton),
     },
     {
       type: 1,
-      components: BANDS.map(([label, value]) =>
-        componentButton(label, filterId(chain, value, 0, "band"), value === band)),
+      components: BANDS.map(bandButton),
     },
     { type: 1, components: navigation },
   ];
@@ -436,7 +467,8 @@ export function filterRunnerRows(snapshot, chain = "all", band = "all") {
 }
 
 function fomoUrl(row) {
-  return `https://fomo.family/tokens/${encodeURIComponent(row.chain)}/${encodeURIComponent(row.mint)}`;
+  const chain = String(row.chain).toLowerCase() === "bsc" ? "bnb" : row.chain;
+  return `https://fomo.family/tokens/${encodeURIComponent(chain)}/${encodeURIComponent(row.mint)}`;
 }
 
 function shortCause(row) {
@@ -445,7 +477,7 @@ function shortCause(row) {
   return stated.length > 105 ? `${stated.slice(0, 102).trimEnd()}…` : stated;
 }
 
-function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedAt) {
+function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedAt, notice = "") {
   const chainLabel = CHAIN_LABELS.get(chain) || chain;
   const bandLabel = BAND_LABELS.get(band) || band;
   const lines = rows.map((row) => {
@@ -471,7 +503,8 @@ function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedA
   return {
     color: 0x516AF6,
     title: `${chainLabel} · ${bandLabel} 24h peak`,
-    description: lines.join("\n\n") || "No screened runners matched both filters.",
+    description: [notice, lines.join("\n\n")].filter(Boolean).join("\n\n")
+      || "No qualified runners matched this filter in the current 24-hour snapshot.",
     footer: {
       text: `${total} screened runner${total === 1 ? "" : "s"} · page ${page + 1}/${pages} · MC refreshed ${new Date(refreshedAt * 1000).toISOString().slice(11, 19)} UTC`,
     },
@@ -492,6 +525,7 @@ function parseFilterAction(customId) {
     date: reportDateKey(date),
     page: Math.max(0, Number.parseInt(rawPage, 10) || 0),
     refreshedAt: Math.max(0, Number.parseInt(rawRefresh, 10) || 0),
+    source: rawRefresh,
     refresh,
   };
 }
@@ -554,7 +588,21 @@ async function renderFilterResponse(request, interaction, action, now) {
       error: `This recap is from ${action.date}; the live index now contains ${actualDate}. Open the newest recap.`,
     };
   }
-  const allRows = filterRunnerRows(snapshot, action.chain, action.band);
+  let selectedChain = action.chain;
+  let selectedBand = action.band;
+  let allRows = filterRunnerRows(snapshot, selectedChain, selectedBand);
+  let notice = "";
+  if (!allRows.length && selectedChain !== "all" && selectedBand !== "all") {
+    if (action.source === "chain") {
+      selectedBand = "all";
+      allRows = filterRunnerRows(snapshot, selectedChain, selectedBand);
+      notice = `No ${CHAIN_LABELS.get(action.chain)} runners matched ${BAND_LABELS.get(action.band)}. Showing all ${CHAIN_LABELS.get(action.chain)} runners.`;
+    } else if (action.source === "band") {
+      selectedChain = "all";
+      allRows = filterRunnerRows(snapshot, selectedChain, selectedBand);
+      notice = `No ${CHAIN_LABELS.get(action.chain)} runners matched ${BAND_LABELS.get(action.band)}. Showing this cap range across all chains.`;
+    }
+  }
   const pages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
   const page = Math.min(action.page, pages - 1);
   const rows = allRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -565,8 +613,8 @@ async function renderFilterResponse(request, interaction, action, now) {
   }));
   const prices = await pricesForMessage(messageKey(interaction), contracts);
   return {
-    embeds: [filteredEmbed(rows, prices, action.chain, action.band, page, pages, allRows.length, now)],
-    components: filterComponents(action.chain, action.band, actualDate, page, pages, now),
+    embeds: [filteredEmbed(rows, prices, selectedChain, selectedBand, page, pages, allRows.length, now, notice)],
+    components: filterComponents(selectedChain, selectedBand, actualDate, page, pages, now, snapshot),
     allowed_mentions: { parse: [] },
   };
 }
@@ -673,9 +721,15 @@ export default {
       };
     }
 
+    let runnerSnapshot = null;
+    try {
+      runnerSnapshot = await fetchRunnerSnapshot(snapshotUrl(request));
+    } catch (_) {
+      // Price refresh still succeeds; controls simply omit counts this time.
+    }
     const data = {
       embeds,
-      components: publicComponents(now, reportDate),
+      components: publicComponents(now, reportDate, runnerSnapshot),
       allowed_mentions: { parse: [] },
     };
     if (Array.isArray(message.attachments) && message.attachments.length) {
