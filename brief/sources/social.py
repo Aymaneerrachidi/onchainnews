@@ -98,7 +98,7 @@ _URL = re.compile(r"https?://\S+", re.IGNORECASE)
 _SPACE = re.compile(r"\s+")
 _GENERIC_NAMES = {
     "coin", "token", "meme", "solana", "official", "cash", "money", "cat", "dog",
-    "ai", "bot", "guy", "moon", "pump", "going", "orange",
+    "ai", "bot", "guy", "moon", "pump", "going", "orange", "bull", "the bull",
 }
 _CONFIDENCE = {"confirmed": 3, "probable": 2, "possible": 1}
 _OPINION_ONLY = re.compile(
@@ -115,6 +115,12 @@ _PRICE_ONLY = re.compile(
 _EDITORIAL_RECAP = re.compile(
     r"(daily memecoin recap|weekly memecoin recap|market recap|more plays"
     r"|(?:->|→)\s*(?:hit|\$?[\d,.]+[kmb]?))",
+    re.IGNORECASE,
+)
+_CRYPTO_CONTEXT = re.compile(
+    r"(memecoin|meme coin|crypto|token|cashtag|contract|\bca\b|market cap"
+    r"|liquidity|holders?|token fees?|rewards? portal|solana|ethereum"
+    r"|\bbase\b|\bbnb\b|on[- ]?chain|dex|pump\.fun)",
     re.IGNORECASE,
 )
 
@@ -159,8 +165,11 @@ def _match_post(
         return "probable", "linked project account"
 
     name = _SPACE.sub(" ", token.name).strip()
+    name_is_specific = len(name) >= 5 or (
+        len(name) >= 2 and any(ord(character) > 127 for character in name)
+    )
     if (
-        len(name) >= 5
+        name_is_specific
         and name.casefold() not in _GENERIC_NAMES
         and name.casefold() not in (ambiguous_names or set())
         and not candidate.recycled_label_count
@@ -187,6 +196,11 @@ def _informative(
     if HYPE.search(text) or PROMO.search(text) or WALLET_TRACKER.search(text):
         return False
     if _OPINION_ONLY.search(text):
+        return False
+    # A token-name-only association is a discovery lead, not proof. Mainstream
+    # accounts use names such as Kylie, Caesar and Bull constantly; require the
+    # post itself to establish a crypto/token context before it becomes lore.
+    if matched_on == "token name" and not _CRYPTO_CONTEXT.search(text):
         return False
     editorial_recap = (
         post.author_handle.casefold() in (editorial_accounts or set())

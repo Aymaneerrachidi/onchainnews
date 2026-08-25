@@ -78,7 +78,12 @@ from brief.sources.social import (
     match_x_interactions,
     x_handle,
 )
-from brief.sources.x import TwitterApiIoSource, XSource, candidate_search_terms
+from brief.sources.x import (
+    TwitterApiIoSource,
+    XSource,
+    candidate_search_terms,
+    load_x_accounts,
+)
 
 
 log = logging.getLogger("brief.engine")
@@ -2162,7 +2167,11 @@ async def build_brief(
             http,
             x_endpoint,
             x_key,
-            [str(handle) for handle in x_settings.get("accounts", [])],
+            load_x_accounts(
+                [str(handle) for handle in x_settings.get("accounts", [])],
+                [str(path) for path in x_settings.get("account_files", [])],
+                root=settings.root,
+            ),
             ttl=int(cache.get("x_ttl_seconds", 300)),
             requests_per_minute=int(x_settings.get("requests_per_minute", 60)),
             accounts_per_query=int(x_settings.get("accounts_per_query", 20)),

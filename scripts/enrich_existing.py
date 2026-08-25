@@ -27,12 +27,12 @@ if str(ROOT) not in sys.path:
 from brief.config import Settings, load_settings
 from brief.ledger import open_ledger
 from brief.lore import attach_lore
-from brief.models import Candidate, Enrichment, SafetyReport, Signals, TokenSnapshot
+from brief.models import Candidate, Enrichment, SafetyReport, Signals, TokenSnapshot, XInteraction, integer
 from brief.newsletter import research_day
 from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
 from brief.sources.http import CachedHttpClient
 from brief.sources.social import match_x_interactions
-from brief.sources.x import TwitterApiIoSource, candidate_search_terms
+from brief.sources.x import TwitterApiIoSource, candidate_search_terms, load_x_accounts
 
 
 def _number(value: Any, default: float = 0.0) -> float:
@@ -64,6 +64,7 @@ def _candidate(row: dict[str, Any], token: TokenSnapshot | None) -> Candidate:
             price_change_6h=_number(row.get("change6h")),
             price_change_1h=_number(row.get("change1h")),
             pair_created_at=None,
+            socials=list(row.get("socials") or []),
         )
     signals = Signals(
         turnover=_number(row.get("turnover")),
@@ -101,6 +102,29 @@ def _candidate(row: dict[str, Any], token: TokenSnapshot | None) -> Candidate:
         scores=dict(row.get("scores") or {}),
         classification=str(row.get("classification") or ""),
     )
+    for item in row.get("xInteractions") or []:
+        if not isinstance(item, dict) or not item.get("url"):
+            continue
+        try:
+            created_at = datetime.fromisoformat(
+                str(item.get("createdAt") or "").replace("Z", "+00:00")
+            )
+        except ValueError:
+            created_at = datetime.now(timezone.utc)
+        candidate.x_interactions.append(XInteraction(
+            author_handle=str(item.get("handle") or ""),
+            author_name=str(item.get("author") or item.get("handle") or ""),
+            interaction=str(item.get("interaction") or "posted"),
+            summary=str(item.get("summary") or ""),
+            url=str(item.get("url") or ""),
+            created_at=created_at,
+            confidence=str(item.get("confidence") or "possible"),
+            matched_on=str(item.get("matchedOn") or "saved audit"),
+            like_count=integer(item.get("likes")),
+            repost_count=integer(item.get("reposts")),
+            reply_count=integer(item.get("replies")),
+            quote_count=integer(item.get("quotes")),
+        ))
     return candidate
 
 
@@ -194,7 +218,11 @@ async def run(
             http,
             str(urls.get("twitterapi_io_search_url", "https://api.twitterapi.io/twitter/tweet/advanced_search")),
             os.getenv("TWITTERAPI_IO_KEY"),
-            [str(handle) for handle in (x.get("accounts") or [])],
+            load_x_accounts(
+                [str(handle) for handle in (x.get("accounts") or [])],
+                [str(path) for path in (x.get("account_files") or [])],
+                root=settings.root,
+            ),
             ttl=int(cache.get("x_ttl_seconds", 300)),
             requests_per_minute=int(x.get("requests_per_minute", 60)),
             accounts_per_query=int(x.get("accounts_per_query", 20)),

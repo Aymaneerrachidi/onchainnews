@@ -14,7 +14,13 @@ from brief.models import (
     XPost,
 )
 from brief.sources.social import build_dex_evidence, match_x_interactions, x_handle
-from brief.sources.x import TwitterApiIoSource, XSource
+from brief.sources.x import (
+    TwitterApiIoSource,
+    XSource,
+    candidate_search_terms,
+    load_x_accounts,
+)
+from scripts.check_x_existing import merge_audit_into_snapshot
 
 
 NOW = datetime(2026, 8, 12, 6, 45, tzinfo=timezone.utc)
@@ -25,6 +31,48 @@ def test_x_community_link_is_not_misread_as_the_i_account():
     socials = [{"type": "twitter", "url": "https://x.com/i/communities/1861401413311443182"}]
 
     assert x_handle(socials) is None
+
+
+def test_x_account_files_merge_with_inline_accounts(tmp_path):
+    account_file = tmp_path / "accounts.txt"
+    account_file.write_text("@NewDesk\nexisting\n# comment\ninvalid handle\n", encoding="utf-8")
+
+    accounts = load_x_accounts(
+        ["Existing", "Curated"], [str(account_file)], root=tmp_path
+    )
+
+    assert accounts == ["existing", "curated", "newdesk"]
+
+
+def test_candidate_search_terms_include_specific_token_name():
+    item = candidate()
+
+    assert '"Plumber"' in candidate_search_terms(item)
+
+
+def test_daily_x_audit_replaces_stale_context_in_every_snapshot_index():
+    stale = {
+        "mint": MINT, "lore": "X: old post Lore: original lore",
+        "xInteractions": [{"url": "https://x.com/old/status/1"}],
+    }
+    snapshot = {"runnerUniverse": [dict(stale)], "runners": [dict(stale)]}
+    audit = {
+        "generatedAt": NOW.isoformat(), "windowStart": NOW.isoformat(),
+        "windowEnd": NOW.isoformat(), "coins": [{
+            "mint": MINT,
+            "informativeMatches": [{
+                "handle": "desk", "author": "Desk", "interaction": "replied",
+                "summary": "New verified token update",
+                "url": "https://x.com/desk/status/2", "confidence": "confirmed",
+            }],
+        }],
+    }
+
+    assert merge_audit_into_snapshot(snapshot, audit) == 2
+    for collection in ("runnerUniverse", "runners"):
+        row = snapshot[collection][0]
+        assert row["xInteractions"][0]["interaction"] == "replied"
+        assert row["lore"] == "X: New verified token update Lore: original lore"
 
 
 def candidate() -> Candidate:
@@ -156,6 +204,38 @@ def test_bullish_or_bought_posts_never_become_coin_lore():
     ]
     match_x_interactions([item], posts)
     assert item.x_interactions == []
+
+
+def test_generic_name_collision_without_crypto_context_is_not_lore():
+    item = candidate()
+    item.token.symbol = "DOGE2"
+    item.token.name = "Caesar"
+    post = XPost(
+        post_id="film", author_id="1", author_handle="film", author_name="Film",
+        text="New look at Caesar Flickerman in the next Hunger Games film.",
+        created_at=NOW, interaction="posted", url="https://x.com/film/status/film",
+        author_followers=500_000, author_verified=True,
+    )
+
+    match_x_interactions([item], [post])
+
+    assert item.x_interactions == []
+
+
+def test_name_match_with_explicit_memecoin_context_can_be_lore():
+    item = candidate()
+    item.token.symbol = "KYLIE"
+    item.token.name = "Kylie"
+    post = XPost(
+        post_id="hack", author_id="1", author_handle="news", author_name="News",
+        text="Kylie Jenner's account was reportedly hacked to promote a memecoin in deleted posts.",
+        created_at=NOW, interaction="posted", url="https://x.com/news/status/hack",
+        author_followers=500_000, author_verified=True,
+    )
+
+    match_x_interactions([item], [post])
+
+    assert len(item.x_interactions) == 1
 
 
 def test_recycled_ticker_needs_exact_identity():

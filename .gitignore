@@ -14,6 +14,7 @@ web/.playwright-mcp/
 # unanchored "data/" also matches web/data/, which is the snapshot the
 # deployed site renders and therefore must stay tracked.
 /data/
+/ledger.db
 /output/*.html
 !/output/.gitkeep
 /output/pulse-images/

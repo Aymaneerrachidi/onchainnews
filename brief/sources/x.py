@@ -1,10 +1,45 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
+import re
 from typing import Any
 
 from brief.models import Candidate, XPost, integer
 from brief.sources.http import CachedHttpClient
+
+
+_HANDLE_LINE = re.compile(r"^@?([A-Za-z0-9_]{1,64})$")
+
+
+def load_x_accounts(
+    accounts: list[str] | tuple[str, ...],
+    account_files: list[str] | tuple[str, ...] = (),
+    *,
+    root: str | Path = ".",
+) -> list[str]:
+    """Merge inline handles with operator-supplied account files.
+
+    Account files contain one ``@handle`` per line. They are deliberately kept
+    separate from ``config.toml`` so large tracker exports remain reviewable and
+    can be refreshed without replacing the hand-curated fallback desk.
+    """
+    merged = [str(handle).strip().lstrip("@") for handle in accounts]
+    base = Path(root)
+    for configured_path in account_files:
+        path = Path(str(configured_path))
+        if not path.is_absolute():
+            path = base / path
+        if not path.exists():
+            continue
+        for raw_line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            match = _HANDLE_LINE.fullmatch(line)
+            if match:
+                merged.append(match.group(1))
+    return list(dict.fromkeys(handle.lower() for handle in merged if handle))
 
 
 def _utc(value: datetime) -> str:
@@ -22,6 +57,14 @@ def candidate_search_terms(candidate: Candidate) -> list[str]:
     symbol = token.symbol.strip().lstrip("$")
     if len(symbol) >= 4 and not symbol.isdigit():
         terms.append(f"${symbol}")
+    name = " ".join(token.name.split()).strip()
+    name_is_specific = len(name) >= 5 or (
+        len(name) >= 2 and any(ord(character) > 127 for character in name)
+    )
+    if name_is_specific:
+        # Quoting preserves multi-word meme names and gives the timeline audit
+        # a chance to find posts that omit the cashtag and contract address.
+        terms.append(f'"{name.replace(chr(34), "")}"')
     for social in token.socials:
         kind = str(social.get("type") or "").lower()
         url = str(social.get("url") or "")
@@ -236,7 +279,14 @@ class TwitterApiIoSource:
     def configured(self) -> bool:
         return bool(self.api_key and self.accounts)
 
-    async def _search(self, query: str, start: datetime, *, max_pages: int) -> list[XPost]:
+    async def _search(
+        self,
+        query: str,
+        start: datetime,
+        *,
+        max_pages: int,
+        until: datetime | None = None,
+    ) -> list[XPost]:
         """Run one provider search and keep only the configured accounts.
 
         TwitterAPI.io's advanced search is global.  The caller may therefore
@@ -247,7 +297,7 @@ class TwitterApiIoSource:
         if not self.configured:
             return []
         start = start.astimezone(timezone.utc)
-        until = datetime.now(timezone.utc)
+        until = (until or datetime.now(timezone.utc)).astimezone(timezone.utc)
         headers = {"X-API-Key": self.api_key}
         allowed = set(self.accounts)
         collected: dict[str, XPost] = {}
@@ -316,6 +366,7 @@ class TwitterApiIoSource:
         term_groups: list[list[str]],
         *,
         max_pages_per_query: int = 1,
+        until: datetime | None = None,
     ) -> list[XPost]:
         """Search token-specific terms, then enforce the monitored-handle list.
 
@@ -329,18 +380,25 @@ class TwitterApiIoSource:
             if not clean:
                 continue
             query = " OR ".join(dict.fromkeys(clean))
-            for post in await self._search(query, start, max_pages=max_pages_per_query):
+            for post in await self._search(
+                query, start, max_pages=max_pages_per_query, until=until
+            ):
                 collected[post.post_id] = post
         return sorted(collected.values(), key=lambda post: post.created_at, reverse=True)
 
-    async def posts(self, start: datetime) -> list[XPost]:
+    async def posts(
+        self, start: datetime, *, until: datetime | None = None
+    ) -> list[XPost]:
         if not self.configured:
             return []
         collected: dict[str, XPost] = {}
         for group in _chunks(self.accounts, self.accounts_per_query):
             accounts_query = " OR ".join(f"from:{handle}" for handle in group)
             for post in await self._search(
-                accounts_query, start, max_pages=self.max_pages_per_query
+                accounts_query,
+                start,
+                max_pages=self.max_pages_per_query,
+                until=until,
             ):
                 collected[post.post_id] = post
         return sorted(collected.values(), key=lambda post: post.created_at, reverse=True)

@@ -89,6 +89,35 @@ def _settings(tmp_path):
     return settings
 
 
+def test_exhaustive_x_context_reaches_every_interactive_snapshot_collection():
+    mint = next(iter(recap.X_AUDIT_CONTEXT))
+    snapshot = {
+        "runnerUniverse": [{"mint": mint, "lore": "Normal community lore."}],
+        "runners": [{"mint": mint, "lore": "Normal community lore."}],
+    }
+
+    assert recap._merge_exhaustive_x_context_into_snapshot(snapshot) == 2
+    for collection in ("runnerUniverse", "runners"):
+        row = snapshot[collection][0]
+        assert row["lore"].startswith("X:")
+        assert "Lore: Normal community lore." in row["lore"]
+        assert row["providerEvidence"]["why"]["sourceUrl"].startswith("https://x.com/")
+        assert row["xInteractions"][0]["summary"].startswith("X:")
+        assert row["xInteractions"][0]["matchedOn"] == "exact_contract_audit"
+
+
+def test_exhaustive_x_context_merge_is_idempotent():
+    mint = next(iter(recap.X_AUDIT_CONTEXT))
+    snapshot = {"runnerUniverse": [{"mint": mint, "lore": "Normal lore."}]}
+
+    recap._merge_exhaustive_x_context_into_snapshot(snapshot)
+    recap._merge_exhaustive_x_context_into_snapshot(snapshot)
+
+    row = snapshot["runnerUniverse"][0]
+    assert len(row["xInteractions"]) == 1
+    assert row["lore"].count("Lore:") == 1
+
+
 def test_publication_blocks_explicit_honeypot_and_tut_concentration(tmp_path):
     settings = _settings(tmp_path)
     velvet = _coin("VELVET", chain="base", honeypot=1)

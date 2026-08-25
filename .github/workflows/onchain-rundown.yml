@@ -36,6 +36,7 @@ env:
   DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
   DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
   DISCORD_CHANNEL_ID_SECONDARY: ${{ secrets.DISCORD_CHANNEL_ID_SECONDARY }}
+  TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
 
 jobs:
   daily:
@@ -63,10 +64,22 @@ jobs:
           restore-keys: |
             brief-db-${{ runner.os }}-
 
-      # The snapshot must be committed before Discord exposes its interactive
-      # filters; otherwise the first clicks can read yesterday's runner index.
       - run: uv run solana-brief run --no-discord
 
+      - name: Audit every monitored X account across the complete 24-hour window
+        if: env.TWITTERAPI_IO_KEY != ''
+        run: >-
+          uv run python scripts/check_x_existing.py
+          --hours 24
+          --strategy both
+          --timeline-pages 100
+          --merge-snapshot
+
+      - name: Warn when the full X audit is unavailable
+        if: env.TWITTERAPI_IO_KEY == ''
+        run: echo "TWITTERAPI_IO_KEY is not configured; publishing the normal lore-only recap."
+
+      # Commit only after X has enriched the snapshot used by every filter.
       - name: Commit public report
         run: |
           git config user.name "github-actions[bot]"

@@ -347,7 +347,11 @@ max_matches_per_token = 6
 editorial_accounts = ["mellometrics"]
 # Discovery intelligence only. These accounts can help identify a story, but
 # their handles, wording and direct links never enter public recap payloads.
-internal_only_accounts = ["mellometrics"]
+internal_only_accounts = ["mellometrics", "newanoncoins"]
+# Large tracker exports are merged with the curated list below. Keeping the
+# export in a line-oriented file makes additions auditable and avoids replacing
+# the high-confidence fallback desk when a tracker export changes.
+account_files = ["resources/x_accounts_j7.txt"]
 accounts = [
   "0gantd",
   "0xmert_",

@@ -459,6 +459,8 @@ def _result(candidate) -> str:
 
 def _lore_limit(candidate) -> int:
     """Leads get context; the sub-$1M tail reads like a compact tape."""
+    if candidate.x_interactions:
+        return 190
     return 96 if peak_cap(candidate) >= 1_000_000 else 58
 
 
@@ -881,6 +883,132 @@ def _merge_saved_enrichment_into_snapshot(snapshot: dict) -> int:
     return len(applied)
 
 
+# Public, contract-keyed conclusions from the completed exhaustive X audit.
+# Keeping these contract keyed prevents generic tickers (notably INDEX) from
+# inheriting unrelated posts. Internal-only monitoring accounts are excluded.
+X_AUDIT_CONTEXT = {
+    "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
+        "context": "X: PumpfunEco reported that $CATE gained 134% during the scan window.",
+        "source": "https://x.com/PumpfunEco/status/2092052053392597461",
+    },
+    "Ge87EtsjwRQbHaqQmKRno69RFTwh9bfSsm99XNxTpump": {
+        "context": "X: PumpfunEco reported a $170K whale buy as $JIMOTHY wicked to a $26M market cap.",
+        "source": "https://x.com/PumpfunEco/status/2092143302506160193",
+    },
+    "0x2c43c41e8de000db5c12264e627cb6f813d37777": {
+        "context": "X: GeckoTerminal ranked $MEEKO first among its five trending tokens that day.",
+        "source": "https://x.com/GeckoTerminal/status/2092254773370409266",
+    },
+    "GUmbtfjSZkybSFgPibBcvwExEBdXwewJHR5PkTjzpump": {
+        "context": "X: PumpfunEco ranked $MORTY among the most-traded Pump.fun coins with $6.5M in 24-hour volume.",
+        "source": "https://x.com/PumpfunEco/status/2092205332667773098",
+    },
+    "0xd7321801caae694090694ff55a9323139f043b88": {
+        "context": "X: theunipcs posted an explicitly bullish $JUGGERNAUT reply during the scan window.",
+        "source": "https://x.com/theunipcs/status/2091918413283086840",
+    },
+    "4HxV2vqATQEjn1hYw3eR43x9b3w1Z5ZoNoV5byTbpump": {
+        "context": "X: Martin Shkreli and goodalexander mentioned Citrini in replies; the token connection is unconfirmed.",
+        "source": "https://x.com/goodalexander/status/2092210944340353530",
+    },
+    "0x39dbed3a2bd333467115de45665cc57f813c4571": {
+        "context": "X: Pons reported 28.5% of supply burned and treasury buys using 80% of protocol fees.",
+        "source": "https://x.com/ponsdotfamily/status/2091824449544663367",
+    },
+    "6b7KQsXqb6JR5Nmeer5zGRmo51dwDfttM5b5Nu2rpump": {
+        "context": "X: CoinDesk reported Kylie's account was hacked to promote the coin before it crashed 68%.",
+        "source": "https://x.com/CoinDesk/status/2092351344401064312",
+    },
+    "0xac77646bcff9d52e99800534192e0290933f4094": {
+        "context": "X: XbtPika discussed $MARTIANS alongside an Elon quote/repost and a roughly $3M valuation.",
+        "source": "https://x.com/XbtPika/status/2092344640007549146",
+    },
+    "GPzpoXpD74E2C4CJNayuoyBqPQJEsPtdse3nhntrpump": {
+        "context": "X: PumpfunEco reported a trader turning a $187 $LOOKSMAX buy into a $26,260 gain, about 140x.",
+        "source": "https://x.com/PumpfunEco/status/2091904755408794042",
+    },
+    "Ab1sTFNv2tV5DX1XpriwNehXgiJhdq2RQ5LtD5BXpump": {
+        "context": "X: Moonshot announced that $DOPAMEME was verified on its platform.",
+        "source": "https://x.com/moonshot/status/2092010619075494190",
+    },
+    "0x7fe995a80075df3dc8ae11a9b82c7fe4202cd87f": {
+        "context": "X: Pons Ecosystem shared a Thinking Cat PFP generator; its connection to this token is unconfirmed.",
+        "source": "https://x.com/PonsEcosystem/status/2091819686514020752",
+    },
+    "0x45f82ac5d507e988f7406935da8eefe495a360e0": {
+        "context": "X: theunipcs included the exact $BRODIE cashtag in a post about his FOMO leaderboard position.",
+        "source": "https://x.com/theunipcs/status/2091810338446455144",
+    },
+    "H8xQ6poBjB9DTPMDTKWzWPrnxu4bDEhybxiouF8Ppump": {
+        "context": "X: PumpfunEco reported that $TOKABU was up 72% over 24 hours.",
+        "source": "https://x.com/PumpfunEco/status/2092179930142364023",
+    },
+    "0x3ce29e3c4876e656a28d5f28bc222d314408f17d": {
+        "context": "X: WhaleInsider described $VLADOS as a self-operating agent launched on Robinhood Chain.",
+        "source": "https://x.com/WhaleInsider/status/2092189474146935154",
+    },
+}
+
+
+def _merge_exhaustive_x_context_into_snapshot(snapshot: dict) -> int:
+    """Expose audited X evidence to every interactive Discord category view."""
+    applied: set[tuple[str, str]] = set()
+    for collection in ("runnerUniverse", "runners"):
+        for row in snapshot.get(collection) or []:
+            mint = str(row.get("mint") or "").strip()
+            evidence = X_AUDIT_CONTEXT.get(mint)
+            if not evidence:
+                continue
+            x_context = str(evidence["context"])
+            source = str(evidence["source"])
+            normal_lore = _compact(row.get("lore"), 210)
+            if normal_lore.startswith(x_context):
+                combined = normal_lore
+            else:
+                combined = f"{x_context} Lore: {normal_lore}" if normal_lore else x_context
+
+            row["lore"] = combined
+            provider = dict(row.get("providerEvidence") or {})
+            provider["why"] = {"cause": combined, "sourceUrl": source}
+            row["providerEvidence"] = provider
+
+            handle = source.split("x.com/", 1)[-1].split("/", 1)[0].lstrip("@")
+            interactions = [
+                item for item in (row.get("xInteractions") or [])
+                if str(item.get("url") or "").strip() != source
+            ]
+            interactions.insert(0, {
+                "author": handle,
+                "handle": handle,
+                "interaction": "audited_context",
+                "summary": x_context,
+                "url": source,
+                "confidence": "verified_public_post",
+                "matchedOn": "exact_contract_audit",
+            })
+            row["xInteractions"] = interactions
+            applied.add((collection, mint.lower()))
+    return len(applied)
+
+
+def _apply_exhaustive_x_context(candidates: list) -> int:
+    """Add verified public X context while retaining each coin's normal lore."""
+    applied = 0
+    for candidate in candidates:
+        evidence = X_AUDIT_CONTEXT.get(candidate.token.mint)
+        if not evidence:
+            continue
+        lore = _compact(candidate.lore, 210)
+        x_context = str(evidence["context"])
+        candidate.lore = f"{x_context} Lore: {lore}" if lore else x_context
+        candidate.provider_evidence["why"] = {
+            "cause": candidate.lore,
+            "sourceUrl": str(evidence["source"]),
+        }
+        applied += 1
+    return applied
+
+
 def _approved_layout(candidates: list, intro: str = "") -> dict:
     """Keep the approved recap shape stable regardless of model headings."""
     ordered = sorted(candidates, key=_verified_peak, reverse=True)
@@ -923,7 +1051,9 @@ def _render_posts(candidates: list, narrative: dict, generated: datetime) -> lis
             placed.add(mint)
             override = EDITORIAL.get(mint)
             lore_limit = _lore_limit(candidate)
-            editorial_copy = TAIL_EDITORIAL.get(mint) or (override[0] if override else "")
+            editorial_copy = candidate.lore if candidate.x_interactions else (
+                TAIL_EDITORIAL.get(mint) or (override[0] if override else "")
+            )
             line = (
                 _compact(editorial_copy, lore_limit)
                 if editorial_copy
@@ -933,7 +1063,9 @@ def _render_posts(candidates: list, narrative: dict, generated: datetime) -> lis
                     or _fallback_line(candidate)
                 )
             )
-            source = override[1] if override else _source(candidate)
+            source = _source(candidate) if candidate.x_interactions else (
+                override[1] if override else _source(candidate)
+            )
             links = f" · [src]({source})" if source else ""
             lines.append(
                 f"[**${candidate.token.symbol}**]({fomo_token_url(candidate.token.chain_id, mint)}) "
@@ -949,9 +1081,11 @@ def _render_posts(candidates: list, narrative: dict, generated: datetime) -> lis
             mint = candidate.token.mint
             placed.add(mint)
             override = EDITORIAL.get(mint)
-            source = override[1] if override else _source(candidate)
+            source = _source(candidate) if candidate.x_interactions else (
+                override[1] if override else _source(candidate)
+            )
             links = f" · [src]({source})" if source else ""
-            cause = TAIL_EDITORIAL.get(mint) or (override[0] if override else str(
+            cause = (candidate.lore if candidate.x_interactions else "") or TAIL_EDITORIAL.get(mint) or (override[0] if override else str(
                 (candidate.provider_evidence.get("why", {}) or {}).get("cause") or ""
             )) or candidate.lore
             lines.append(
@@ -1201,6 +1335,7 @@ async def main() -> int:
     if not candidates:
         raise RuntimeError("latest snapshot has no publishable runners")
     _apply_saved_enrichment(candidates)
+    x_enriched = sum(bool(candidate.x_interactions) for candidate in candidates)
 
     # This command is explicitly the deep editorial pass, so cover the whole
     # final board rather than the normal morning-run budget.
@@ -1230,7 +1365,10 @@ async def main() -> int:
         out = ROOT / "output" / "discord-recap-preview.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(posts, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"dry_run=true coins={len(candidates)} posts={len(posts)} repriced={refreshed} output={out}")
+        print(
+            f"dry_run=true coins={len(candidates)} posts={len(posts)} repriced={refreshed} "
+            f"x_enriched={x_enriched} snapshot_x_enriched={merged_x_context} output={out}"
+        )
         return 0
 
     token = bot_token()
@@ -1256,7 +1394,7 @@ async def main() -> int:
     print(
         f"sent=true coins={len(candidates)} unique_contracts={len({c.token.mint for c in candidates})} "
         f"posts={len(posts)} bot_channels={len(channels)} webhooks={len(urls)} repriced={refreshed} "
-        f"lore={lore_count} researched={researched} explained={explained}"
+        f"lore={lore_count} researched={researched} explained={explained} x_enriched={x_enriched}"
     )
     return 0
 

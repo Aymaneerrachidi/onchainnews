@@ -8,7 +8,7 @@ HYPE = re.compile(
     r"(to the moon|to billions|to a billion|\blfg\b|speak it (in)?to existence"
     r"|never sell|hold the line|we are so back|wagmi|gm fam|\bfamily\b"
     r"|send it|\bape (in|into)\b|next \d+x|\d+x from here|easy \d+x"
-    r"|last chance|dont fade|don't fade|do not fade|still early"
+    r"|last chance|dont fade|don't fade|do not fade|\bfading\b|still early"
     r"|get in early|early gem|hidden gem|100x|1000x"
     r"|buy now|entry|target|\btp\d?\b|\bsl\b|call channel|join (my|our|the)"
     r"|t\.me/|discord\.gg|telegram\.me|link in bio|pinned)",
