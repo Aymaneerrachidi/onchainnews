@@ -183,10 +183,16 @@ export function filterComponents(chain, band, date, page, pages, refreshedAt, sn
       total === 0 && value !== band,
     );
   };
+  const previousId = page <= 0
+    ? `page_prev_info:${date}:${chain}:${band}:${page}`
+    : filterId(chain, band, page - 1);
+  const nextId = page >= pages - 1
+    ? `page_next_info:${date}:${chain}:${band}:${page}`
+    : filterId(chain, band, page + 1);
   const navigation = [
-    componentButton("Prev", filterId(chain, band, Math.max(0, page - 1)), false, page <= 0),
+    componentButton("Prev", previousId, false, page <= 0),
     componentButton(`Page ${page + 1} / ${pages}`, `page_info:${date}:${page}`, false, true),
-    componentButton("Next", filterId(chain, band, Math.min(pages - 1, page + 1)), false, page >= pages - 1),
+    componentButton("Next", nextId, false, page >= pages - 1),
     componentButton(
     "Refresh prices",
     `${FILTER_REFRESH_PREFIX}${chain}:${band}:${date}:${page}:${refreshedAt}`,

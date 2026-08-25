@@ -151,6 +151,13 @@ test("Discord controls use balanced rows and visible filter state", () => {
   ]);
   assert.equal(filtered[3].components[1].disabled, true);
 
+  const onePage = filterComponents("bsc", "all", "20260825", 0, 1, 1234);
+  const onePageIds = onePage.flatMap((row) => row.components.map((button) => button.custom_id));
+  assert.equal(onePageIds.length, new Set(onePageIds).size);
+  assert.equal(onePage[3].components[0].disabled, true);
+  assert.equal(onePage[3].components[2].disabled, true);
+  assert.notEqual(onePage[3].components[0].custom_id, onePage[3].components[2].custom_id);
+
   const snapshot = {
     runnerUniverse: [
       safeRunner(),
