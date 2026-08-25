@@ -142,17 +142,18 @@ section{border-bottom:1px solid var(--line);scroll-margin-top:1rem}
   font-size:.8rem;background:var(--paper-2);margin:0}
 
 /* ---------- editorial coin rundown ---------- */
-#rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line)}
-.coin-card{background:var(--paper-2);border:0;border-bottom:0;display:flex;flex-direction:column;min-width:0}
+#rows{display:grid;grid-template-columns:minmax(0,1fr);gap:1px;background:var(--line)}
+.coin-card{background:var(--paper-2);border:0;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .coin-card[hidden]{display:none}
 .coin-top{display:grid;grid-template-columns:2.5rem minmax(0,1fr) auto;gap:.75rem;align-items:start;
   padding:1rem 1.1rem .85rem;border-bottom:1px solid var(--line)}
 .coin-rank{font-family:var(--display);font-size:1.35rem;color:var(--red);line-height:1}
-.coin-name b{display:block;font-size:1.15rem;letter-spacing:-.02em}
+.coin-name{min-width:0;overflow:hidden}.coin-name b{display:block;max-width:100%;font-size:1.15rem;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.coin-name a{color:inherit;text-decoration:none}.coin-name a:hover{text-decoration:underline;text-decoration-thickness:2px}
 .coin-name span{display:block;color:var(--muted);font-size:.65rem;margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .coin-move{text-align:right}.coin-move b{display:block;font-family:var(--display);font-size:1.3rem;color:var(--green);line-height:1}
 .coin-move span{display:block;color:var(--muted);font-size:.62rem;margin-top:.25rem}
-.coin-tags{display:flex;gap:.3rem;flex-wrap:wrap;padding:.55rem 1.1rem 0}
+.coin-tags{display:flex;gap:.35rem;flex-wrap:wrap;padding:.65rem 1.1rem 0;align-items:center}
 .coin-tag{border:1px solid var(--line);font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;padding:.18rem .35rem}
 .coin-tag.x{background:var(--red);border-color:var(--red);color:#fff}
 .coin-tag.wallet{background:var(--ink);border-color:var(--ink);color:var(--paper)}
@@ -163,11 +164,11 @@ section{border-bottom:1px solid var(--line);scroll-margin-top:1rem}
 .ca code{font:600 .67rem var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .copy{border:1px solid var(--line);background:var(--ink);color:var(--paper);font:700 .58rem var(--mono);padding:.3rem .45rem;cursor:pointer;text-transform:uppercase}
 .copy:active{transform:translateY(1px)}
-.evidence{padding:.9rem 1.1rem;border-bottom:1px solid rgba(36,35,31,.28)}
+.evidence{padding:.9rem 1.1rem;border-bottom:1px solid rgba(36,35,31,.28);min-width:0}
 .evidence h3{margin:0 0 .5rem;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .why-list{margin:0;padding-left:1rem;font-size:.75rem;line-height:1.48}
 .why-list li{margin-bottom:.35rem}.why-list li:last-child{margin-bottom:0}
-.x-lead{margin:0 0 .55rem;font-size:.72rem;font-weight:700}
+.x-lead{margin:0 0 .2rem;font-size:.82rem;line-height:1.55;font-weight:600;overflow-wrap:anywhere}
 .x-list{list-style:none;margin:0;padding:0}.x-item{padding:.55rem 0;border-top:1px solid rgba(36,35,31,.2)}
 .x-meta{display:flex;justify-content:space-between;gap:.5rem;align-items:baseline;font-size:.64rem}
 .x-meta b{font-size:.74rem}.x-meta span{color:var(--muted)}
@@ -179,7 +180,7 @@ section{border-bottom:1px solid var(--line);scroll-margin-top:1rem}
 .coin-bottom>div{padding:.75rem 1.1rem}.coin-bottom>div:first-child{border-right:1px solid var(--line)}
 .mini-title{display:block;margin-bottom:.4rem;color:var(--muted);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase}
 .wallet-names,.risk-copy{margin:0;font-size:.68rem;line-height:1.45}.risk-copy{color:var(--red)}
-.sources-row{display:flex;gap:.8rem;flex-wrap:wrap;padding:.65rem 1.1rem;background:var(--ink);color:var(--paper);font-size:.6rem;text-transform:uppercase;letter-spacing:.07em}
+.sources-row{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:flex-end;padding:.65rem 1.1rem;background:var(--ink);color:var(--paper);font-size:.6rem;text-transform:uppercase;letter-spacing:.07em}
 .sources-row a{font-weight:700}.sources-row a:hover{color:#FF9C88}
 
 /* ---------- lists ---------- */
@@ -205,6 +206,16 @@ section{border-bottom:1px solid var(--line);scroll-margin-top:1rem}
 .method>div:last-child{border-right:0}
 .method h4{margin:0 0 .5rem;font-family:var(--display);font-size:.8rem;text-transform:uppercase}
 .method p{margin:0;font-size:.74rem;color:var(--muted)}
+.pipeline{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--line);background:var(--paper)}
+.pipe-step{position:relative;padding:1rem 1.05rem;border-right:1px solid var(--line);min-height:5.7rem}
+.pipe-step:last-child{border-right:0}.pipe-step:after{content:"→";position:absolute;right:-.48rem;top:1.05rem;z-index:2;background:var(--paper);font-weight:800}
+.pipe-step:last-child:after{display:none}.pipe-step small{display:block;color:var(--muted);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em}
+.pipe-step b{display:block;margin:.25rem 0;font-family:var(--display);font-size:1.35rem}.pipe-step span{font-size:.68rem;color:var(--muted);line-height:1.35}
+.viewbar{display:flex;gap:.45rem;flex-wrap:wrap;padding:.8rem 1.3rem;border-bottom:1px solid var(--line);background:var(--cream)}
+.viewbar .chip b{margin-left:.35rem}.coverage{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
+.coverage>div{padding:.75rem 1.3rem;border-right:1px solid var(--line)}.coverage>div:last-child{border-right:0}
+.coverage b{display:block;font-family:var(--display);font-size:1rem}.coverage span{font-size:.68rem;color:var(--muted)}
+.method-note{padding:1rem 1.3rem;color:var(--muted);font-size:.76rem;line-height:1.55;border-bottom:1px solid var(--line)}
 .sources{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:1px;background:var(--line)}
 .src{background:var(--paper-2);padding:.6rem .9rem;font-size:.68rem;display:flex;gap:.5rem;align-items:baseline}
 .src b{width:.5rem;height:.5rem;border-radius:50%;flex:none;background:var(--green);transform:translateY(-1px)}
@@ -220,6 +231,8 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
 @media(max-width:960px){
   .stats{grid-template-columns:repeat(3,1fr)}
   .detail,.method{grid-template-columns:1fr}
+  .pipeline{grid-template-columns:repeat(3,1fr)}.pipe-step:nth-child(3){border-right:0}.pipe-step:nth-child(3):after{display:none}
+  .coverage{grid-template-columns:repeat(2,1fr)}.coverage>div:nth-child(2){border-right:0}
   .detail>div{border-right:0;border-bottom:1px solid var(--line)}
   .method>div{border-right:0;border-bottom:1px solid var(--line)}
   .two{grid-template-columns:1fr}
@@ -234,6 +247,8 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
 @media(max-width:560px){
   .stats{grid-template-columns:repeat(2,1fr)}
   .lore-item{grid-template-columns:1fr}
+  .pipeline{grid-template-columns:1fr}.pipe-step{border-right:0;border-bottom:1px solid var(--line);min-height:0}.pipe-step:after{display:none}
+  .coverage{grid-template-columns:1fr}.coverage>div{border-right:0;border-bottom:1px solid var(--line)}
   .who{columns:1}
   .wrap{width:100%;max-width:100vw}.note{overflow-wrap:anywhere}
   .masthead{padding-left:1rem;padding-right:1rem}.wordmark{font-size:2.25rem;letter-spacing:-.045em}
@@ -257,12 +272,12 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
 
   <header class="masthead">
     <div class="dateline">
-      <span id="dateline">Loading editionâ€¦</span>
-      <span>Multi-chain Â· On-chain Â· X signals Â· Daily</span>
+      <span id="dateline">Loading edition…</span>
+      <span>Multi-chain · On-chain · X signals · Daily</span>
     </div>
     <h1 class="wordmark">Onchain <em>News</em></h1>
     <div class="subhead">
-      <p>Coins that ran and why. Every call includes its contract, the Dexscreener tape, monitored X activity, tracked-wallet flow and visible risks.</p>
+      <p>The complete set of coins that passed the daily screen, with market context and a researched story for every runner.</p>
       <span class="stamp-live" id="freshness">Live snapshot</span>
     </div>
   </header>
@@ -272,45 +287,17 @@ footer{background:var(--ink);color:var(--paper);padding:1.1rem 1.3rem;
   <div class="stats" id="stats"></div>
 
   <section id="runners">
-    <div class="head"><h2>Highlight coins</h2><span class="count" id="runner-count">n/a</span></div>
-    <p class="note" id="rule">Every highlighted coin states why it cleared the tape, what monitored accounts did on X, and which facts remain unverified.</p>
+    <div class="head"><h2>Validated runners</h2><span class="count" id="runner-count">n/a</span></div>
+    <p class="note" id="rule">Every runner that passed the 24-hour market screen, with its researched story and exact Fomo link.</p>
     <div class="controls" id="chain-bar" role="group" aria-label="Filter by chain"></div>
     <div class="controls">
-      <input id="q" type="search" placeholder="Filter by ticker, name, flag or loreâ€¦" autocomplete="off" aria-label="Filter runners">
+      <input id="q" type="search" placeholder="Filter by ticker, name, flag or lore…" autocomplete="off" aria-label="Filter runners">
       <button class="chip" id="f-new" aria-pressed="false">Launched today</button>
-      <button class="chip" id="f-kol" aria-pressed="false">X matched</button>
+      <button class="chip" id="f-kol" aria-pressed="false">Enriched</button>
       <button class="chip" id="f-clean" aria-pressed="false">No flags</button>
       <button class="chip" id="f-sort">Sort: editorial</button>
     </div>
     <div id="rows"></div>
-  </section>
-
-  <section id="wallets">
-    <div class="head"><h2>Tracked wallets</h2><span class="count" id="wallet-count">n/a</span></div>
-    <div class="two">
-      <div>
-        <p class="sub">Conviction: bought by several wallets</p>
-        <ul class="list" id="conviction"></ul>
-      </div>
-      <div>
-        <p class="sub">Where they made money: realised this window</p>
-        <ul class="list" id="profit"></ul>
-      </div>
-    </div>
-  </section>
-
-  <section id="lore">
-    <div class="head"><h2>Shared lore</h2><span class="count" id="lore-count">n/a</span></div>
-    <div id="lore-list"></div>
-  </section>
-  <section id="method">
-    <div class="head"><h2>How a coin gets in</h2></div>
-    <div class="method">
-      <div><h4>Organic first</h4><p>Discovery starts from high-volume/high-trade tokens, then ranks by real volume, trade count and holder count before percent move.</p></div>
-      <div><h4>Promotion is evidence</h4><p>Paid boosts never create a runner by themselves. They remain visible as promotion evidence and lower confidence when organic participation is weak.</p></div>
-      <div><h4>Three separate reads</h4><p>Run strength, organic quality and manipulation risk are scored independently. A huge suspicious run stays visible, but is labelled questionable.</p></div>
-    </div>
-    <div class="sources" id="sources"></div>
   </section>
 
   <footer>
@@ -335,19 +322,23 @@ const age = (h) => h === null || h === undefined ? "n/a" : h < 48 ? Math.round(h
 const displayCap = (r) => Math.max(Number(r.marketCap) || 0, Number(r.peakMarketCap) || 0, Number(r.observedPeakMarketCap) || 0);
 const capLabel = (r) => displayCap(r) > Number(r.marketCap) ? "peak" : "mcap";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const shortSymbol = (value, max = 16) => {
+  const symbol = String(value || "UNKNOWN").trim();
+  return symbol.length > max ? symbol.slice(0, max - 1) + "…" : symbol;
+};
 
-let DATA = null, SORT = "editorial", FILTERS = { new: false, kol: false, clean: false };
+let DATA = null, SORT = "editorial", VIEW = "validated", FILTERS = { new: false, kol: false, clean: false };
 let CHAIN = "all";
 const CHAIN_NAMES = { solana: "Solana", ethereum: "Ethereum", bsc: "BNB Chain",
   base: "Base", robinhood: "Robinhood" };
-const chainName = (c) => CHAIN_NAMES[String(c || "").toLowerCase()] || (c || "â€”");
+const chainName = (c) => CHAIN_NAMES[String(c || "").toLowerCase()] || (c || "—");
 
 
 function stamp(r) {
   if (r.roundTrip) return "Round trip";
   if (r.recapCategory === "questionable") return "Questionable";
   if (r.drawdownFromPeakPct >= 20) return "Fading";
-  if (r.kolBuyers.length >= 3) return "KOL crowd";
+  if ((r.kolBuyers?.length || 0) >= 3) return "KOL crowd";
   if (r.ageHours !== null && r.ageHours <= 6) return "Fresh";
   return "";
 }
@@ -400,85 +391,54 @@ function publicNarrative(r) {
   ].map(usableNarrative).find(Boolean) || "No exact-contract story has been verified yet.";
 }
 
+function provenance(r) {
+  const x = (r.xInteractions || []).filter((item) => usableNarrative(item.summary));
+  const web = (r.newsEvidence || []).filter((item) => usableNarrative(item.summary));
+  if (x.length && web.length) return { key: "x-web", label: "X + web verified" };
+  if (x.length) return { key: "x", label: "X enriched" };
+  if (web.length) return { key: "web", label: "Web researched" };
+  if (usableNarrative(r.lore)) return { key: "lore", label: "Lore fallback" };
+  return { key: "open", label: "Unresolved" };
+}
+
 function rowHTML(r, i) {
   const risks = r.riskLabels || [];
   const x = r.xInteractions || [];
   const news = r.newsEvidence || [];
-  const dex = r.dexEvidence?.length ? r.dexEvidence : fallbackDexEvidence(r);
-  const sources = r.sources?.length ? r.sources : [
-    { label: "Dexscreener", url: r.url },
-    { label: "Bubblemaps", url: `https://app.bubblemaps.io/sol/token/${r.mint}` },
-  ];
-  const xRows = x.length ? `<ul class="x-list">${x.map((item) => {
-    const engagement = [
-      item.likes ? `${item.likes.toLocaleString()} likes` : "",
-      item.reposts ? `${item.reposts.toLocaleString()} reposts` : "",
-      item.replies ? `${item.replies.toLocaleString()} replies` : "",
-    ].filter(Boolean).join(" Â· ");
-    const posted = new Date(item.createdAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-    return `<li class="x-item">
-      <div class="x-meta"><a href="${esc(item.url)}" target="_blank" rel="noreferrer"><b>@${esc(item.handle)}</b> ${esc(item.interaction)}</a>
-        <span>${esc(posted)} Â· <i class="confidence ${esc(item.confidence)}">${esc(item.confidence)}</i></span></div>
-      <p class="x-copy">${esc(item.summary)}</p>
-      <small class="x-engagement">Matched on ${esc(item.matchedOn)}${engagement ? " Â· " + esc(engagement) : ""}</small>
-    </li>`;
-  }).join("")}</ul>` : `<p class="no-x">No verified monitored-account match was found in this 24-hour window.</p>`;
-  const newsRows = news.length ? `<ul class="why-list">${news.slice(0, 4).map((item) =>
-    `<li>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(item.source || "News")}</a>: ` : ""}${esc(item.summary || "Coverage matched this token.")}</li>`
-  ).join("")}</ul>` : `<p class="no-x">No contract/ticker-specific news match was verified.</p>`;
-  const wallets = r.kolBuyers?.length
-    ? `${r.kolBuyers.map((name) => `${esc(name)}${r.kolHolders.includes(name) ? " â—†" : ""}`).join(", ")}<br><span class="${r.kolRealisedSol >= 0 ? "up" : "dn"}">Realised ${r.kolRealisedSol >= 0 ? "+" : ""}${r.kolRealisedSol.toFixed(1)} SOL</span>`
-    : "No tracked on-chain wallet bought this token.";
-  const walletFlow = r.providerEvidence?.gmgn?.walletFlow || {};
-  const walletCount = Math.max(r.kolBuyers?.length || 0, Number(walletFlow.kolCount) || 0);
+  const sourceType = provenance(r);
   const search = [r.symbol, r.name, r.mint, r.lore, r.runnerTier, r.recapCategory, ...risks, ...x.map((item) => `${item.handle} ${item.summary}`), ...news.map((item) => item.summary || "")].join(" ").toLowerCase();
+  const fomoUrl = r.tradeUrl || `https://fomo.family/tokens/${encodeURIComponent(String(r.chain || "solana").toLowerCase())}/${encodeURIComponent(r.mint)}`;
   return `
 <article class="coin-card row rv" style="animation-delay:${Math.min(i * 45, 600)}ms"
   data-q="${esc(search)}" data-chain="${esc(String(r.chain || "").toLowerCase())}"
   data-new="${r.ageHours !== null && r.ageHours <= 24}"
-  data-kol="${x.length > 0 || walletCount > 0}" data-clean="${r.recapCategory !== "questionable"}">
+  data-kol="${sourceType.key !== "open"}" data-clean="${r.recapCategory !== "questionable"}">
   <header class="coin-top">
     <span class="coin-rank">${String(i + 1).padStart(2, "0")}</span>
-    <div class="coin-name"><b>$${esc(r.symbol)}</b><span>${esc(r.name)} Â· ${age(r.ageHours)} old Â· ${esc(r.dex)}</span></div>
+    <div class="coin-name"><b><a href="${esc(fomoUrl)}" target="_blank" rel="noreferrer" title="$${esc(r.symbol)}">$${esc(shortSymbol(r.symbol))}</a></b><span>${esc(r.name)} · ${chainName(r.chain)} · ${age(r.ageHours)} old</span></div>
     <div class="coin-move"><b>${sized(r.peakMultiple || r.runMultiple, r.change24h)}</b><span>${money(displayCap(r))} ${capLabel(r)}</span></div>
   </header>
   <div class="coin-tags">
     ${r.runnerTier ? `<span class="coin-tag tier">${esc(({S: "$1M+", A: "$500K-$1M", B: "$250K-$500K"})[r.runnerTier] || r.runnerTier)}</span>` : ""}
-    ${r.recapCategory === "questionable" ? `<span class="coin-tag questionable">Ran, but questionable</span>` : ""}
     ${r.roundTrip ? `<span class="coin-tag questionable">Round trip</span>` : ""}
-    <span class="coin-tag">Start ${money(r.startMarketCap)}</span>
     <span class="coin-tag">Now ${money(r.marketCap)}</span>
-    ${Number(r.drawdownFromPeakPct) >= 5 ? `<span class="coin-tag">${Math.round(r.drawdownFromPeakPct)}% off peak</span>` : ""}
+    <span class="coin-tag">24h high ${money(displayCap(r))}</span>
+    <span class="coin-tag">Liq ${money(r.liquidity)}</span>
+    ${r.holders ? `<span class="coin-tag">${Number(r.holders).toLocaleString()} holders</span>` : ""}
+    ${r.top10Pct !== null && r.top10Pct !== undefined ? `<span class="coin-tag">Top 10 ${Number(r.top10Pct).toFixed(1)}%</span>` : ""}
     <span class="coin-tag">${money(r.volume24h)} volume</span>
-    <span class="coin-tag">${Number(r.turnover || 0).toFixed(1)}x turnover</span>
-    ${x.length ? `<span class="coin-tag x">${x.length} X match${x.length === 1 ? "" : "es"}</span>` : ""}
-    ${walletCount ? `<span class="coin-tag wallet">${walletCount} KOL wallets</span>` : ""}
-    ${r.lore ? `<span class="coin-tag">${esc(r.lore)}</span>` : ""}
+    <span class="coin-tag ${sourceType.key === "x" || sourceType.key === "x-web" ? "x" : ""}">${esc(sourceType.label)}</span>
   </div>
-  <div class="ca"><b>CA</b><code title="${esc(r.mint)}">${esc(r.mint)}</code><button class="copy" type="button" data-ca="${esc(r.mint)}">Copy</button></div>
   <section class="evidence">
-    <h3>Why it made the rundown</h3>
-    <ul class="why-list">${dex.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
-  </section>
-  <section class="evidence">
-    <h3>${x.length ? "What happened on X" : "Web-researched context"}</h3>
+    <h3>Story</h3>
     <p class="x-lead">${esc(publicNarrative(r))}</p>
-    ${xRows}
   </section>
-  <section class="evidence">
-    <h3>News and narrative evidence</h3>
-    ${newsRows}
-  </section>
-  <div class="coin-bottom">
-    <div><span class="mini-title">Tracked wallets Â· â—† still holding</span><p class="wallet-names">${wallets}</p></div>
-    <div><span class="mini-title">Risks and caveats</span><p class="risk-copy">${risks.length ? risks.map(esc).join(" Â· ") : "No automated flags raised."}</p></div>
-  </div>
-  <nav class="sources-row" aria-label="Sources for ${esc(r.symbol)}">${sources.map((source) => `<a href="${esc(source.url)}" target="_blank" rel="noreferrer">${esc(source.label)} â†—</a>`).join("")}</nav>
+  <nav class="sources-row" aria-label="Open ${esc(r.symbol)}"><a href="${esc(fomoUrl)}" target="_blank" rel="noreferrer">Open on Fomo ↗</a></nav>
 </article>`;
 }
 
 function paint() {
-  const rows = [...(DATA.displayRows || DATA.runners)];
+  const rows = [...(DATA.collections?.[VIEW] || [])];
   if (SORT === "x") rows.sort((a, b) => (b.xInteractions?.length || 0) - (a.xInteractions?.length || 0) || (b.peakMultiple || b.runMultiple) - (a.peakMultiple || a.runMultiple));
   else if (SORT === "fresh") rows.sort((a, b) => (a.ageHours ?? 1e9) - (b.ageHours ?? 1e9));
   $("#rows").innerHTML = rows.length ? rows.map(rowHTML).join("")
@@ -491,12 +451,12 @@ function buildChainBar() {
   const bar = document.querySelector("#chain-bar");
   if (!bar || !DATA) return;
   const counts = {};
-  for (const r of DATA.displayRows || DATA.runners || []) {
+  for (const r of DATA.collections?.[VIEW] || []) {
     const c = String(r.chain || "").toLowerCase();
     counts[c] = (counts[c] || 0) + 1;
   }
   const chains = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-  const total = (DATA.displayRows || DATA.runners || []).length;
+  const total = (DATA.collections?.[VIEW] || []).length;
   bar.innerHTML =
     `<button class="chip" data-chain="all" aria-pressed="${CHAIN === "all"}">All chains ${total}</button>` +
     chains.map((c) =>
@@ -530,13 +490,16 @@ function applyFilters() {
 
 function render(d) {
   DATA = d;
-  const catalog = new Map([...(d.runners || []), ...(d.blockedRunners || [])].map((row) => [row.mint, row]));
-  DATA.displayRows = d.recap?.all?.length
-    ? d.recap.all.map((recap) => Object.assign(catalog.get(recap.mint) || {}, { recapCategory: recap.category })).filter((row) => row.mint)
-    : (d.runners || []);
+  const catalog = new Map([...(d.runnerUniverse || []), ...(d.runners || []), ...(d.blockedRunners || [])].map((row) => [row.mint, row]));
+  const hydrate = (recap) => ({ ...(catalog.get(recap.mint) || {}), ...recap, recapCategory: recap.category || recap.recapCategory });
+  DATA.collections = {
+    published: d.recap?.all?.length ? d.recap.all.map(hydrate).filter((row) => row.mint) : (d.runners || []),
+    validated: (d.runnerUniverse?.length ? d.runnerUniverse : d.runners || []).map((row) => ({ ...row, recapCategory: row.recapCategory || "validated" })),
+    questionable: (d.recap?.questionable || []).map(hydrate).filter((row) => row.mint),
+  };
   const when = new Date(d.generatedAt);
   const fmt = when.toLocaleString([], { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
-  $("#dateline").textContent = `${fmt} Â· ${d.timezone}`;
+  $("#dateline").textContent = `${fmt} · ${d.timezone}`;
   $("#stamp").textContent = `Generated ${fmt}`;
   const hours = (Date.now() - when.getTime()) / 36e5;
   $("#freshness").textContent = hours < 1 ? "Updated just now" : hours < 24 ? `Updated ${Math.round(hours)}h ago` : `Snapshot ${Math.round(hours / 24)}d old`;
@@ -544,41 +507,21 @@ function render(d) {
 
   const s = d.summary;
   $("#stats").innerHTML = [
-    ["$1M+", s.tierS ?? 0, true],
+    ["Validated runners", DATA.collections.validated.length, true],
+    ["$1M+ peaks", s.tierS ?? 0, false],
     ["$500K–$1M", s.tierA ?? 0, false],
     ["$250K–$500K", s.tierB ?? 0, false],
-    ["Questionable", s.questionable ?? 0, false],
-    ["Round trips", s.roundTrips ?? 0, false],
-    ["Wallets tracked", s.walletsTracked ?? 0, false],
+    ["X enriched", DATA.collections.validated.filter((r) => (r.xInteractions || []).length).length, false],
+    ["Chains", new Set(DATA.collections.validated.map((r) => r.chain).filter(Boolean)).size, false],
   ].map(([l, v, hot], i) => `<div class="stat ${hot ? "hot" : ""} rv" style="animation-delay:${i * 50}ms"><span>${l}</span><b>${v}</b></div>`).join("");
 
-  const t = DATA.displayRows.slice(0, 14).map((r) =>
-    `<span><b>$${esc(r.symbol)}</b> <em class="${r.change24h >= 0 ? "up" : "dn"}">${sized(r.peakMultiple || r.runMultiple, r.change24h)}</em> ${money(displayCap(r))} ${capLabel(r)}</span>`).join("");
+  const validated = DATA.collections.validated;
+  const t = validated.slice(0, 14).map((r) =>
+    `<span title="$${esc(r.symbol)}"><b>$${esc(shortSymbol(r.symbol, 12))}</b> <em class="${r.change24h >= 0 ? "up" : "dn"}">${sized(r.peakMultiple || r.runMultiple, r.change24h)}</em> ${money(displayCap(r))} ${capLabel(r)}</span>`).join("");
   $("#ticker").innerHTML = t ? t + t : "<span>No runners in this window</span>";
 
   paint();
 
-  $("#wallet-count").textContent = String(s.walletsTracked).padStart(2, "0");
-  $("#conviction").innerHTML = d.kolConviction.length ? d.kolConviction.map((c) => `
-    <li><b>$${esc(c.symbol)}</b><span class="val">${c.buyers.length} buyers</span>
-      <span>${esc(c.buyers.slice(0, 8).join(", "))}${c.buyers.length > 8 ? "â€¦" : ""}</span>
-      <small>${c.holders.length ? "Still holding: " + esc(c.holders.join(", ")) : "All positions closed"}</small></li>`).join("")
-    : `<li class="empty">No coin was bought by enough tracked wallets today.</li>`;
-  $("#profit").innerHTML = d.kolProfit.length ? d.kolProfit.map((p) => `
-    <li><b>$${esc(p.symbol)}</b>
-      <span class="val ${p.realisedSol >= 0 ? "up" : "dn"}">${p.realisedSol >= 0 ? "+" : ""}${p.realisedSol.toFixed(1)} SOL</span>
-      <span>${p.traders} wallet${p.traders === 1 ? "" : "s"} traded it</span></li>`).join("")
-    : `<li class="empty">No realised profit measured in this window.</li>`;
-
-  $("#lore-count").textContent = String(d.loreGroups.length).padStart(2, "0");
-  $("#lore-list").innerHTML = d.loreGroups.length ? d.loreGroups.map((g) => `
-    <div class="lore-item"><b>${esc(g.name)}</b>
-      <p>${g.members.map((m) => "$" + esc(m)).join(" Â· ")} <span style="color:var(--muted)">(${g.members.length})</span></p></div>`).join("")
-    : `<p class="empty">No two runners shared a narrative today.</p>`;
-
-
-  $("#sources").innerHTML = d.sources.map((x) =>
-    `<div class="src ${x.ok ? "" : "down"}"><b></b><div>${esc(x.name)}<br><span>${esc(x.detail)}</span></div></div>`).join("");
 }
 
 $("#q").addEventListener("input", applyFilters);
