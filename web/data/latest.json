@@ -108826,7 +108826,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Exact-contract pages identify Citrini, but no verifiable project story or fresh outside catalyst was found.",
+   "lore": "X: Martin Shkreli and goodalexander mentioned Citrini in replies; the token connection is unconfirmed. Lore: Exact-contract pages identify Citrini, but no verifiable project story or fresh outside catalyst was found.",
    "loreIsFresh": true,
    "faded": -25.49,
    "volume6h": 129401.19,
@@ -108928,7 +108928,17 @@
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 24%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "goodalexander",
+     "handle": "goodalexander",
+     "interaction": "audited_context",
+     "summary": "X: Martin Shkreli and goodalexander mentioned Citrini in replies; the token connection is unconfirmed.",
+     "url": "https://x.com/goodalexander/status/2092210944340353530",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -109483,8 +109493,8 @@
      "published": false
     },
     "why": {
-     "cause": "Exact-contract pages identify Citrini, but no verifiable project story or fresh outside catalyst was found.",
-     "sourceUrl": "https://www.solflare.com/es/precios/citrini/4HxV2vqATQEjn1hYw3eR43x9b3w1Z5ZoNoV5byTbpump/"
+     "cause": "X: Martin Shkreli and goodalexander mentioned Citrini in replies; the token connection is unconfirmed. Lore: Exact-contract pages identify Citrini, but no verifiable project story or fresh outside catalyst was found.",
+     "sourceUrl": "https://x.com/goodalexander/status/2092210944340353530"
     }
    },
    "lifecycleEvents": [
@@ -120714,7 +120724,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Reference token for pons, a noncustodial Robinhood Chain launchpad where fixed-supply tokens deploy directly into locked WETH pools.",
+   "lore": "X: Pons reported 28.5% of supply burned and treasury buys using 80% of protocol fees. Lore: Reference token for pons, a noncustodial Robinhood Chain launchpad where fixed-supply tokens deploy directly into locked WETH pools.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 731261.17,
@@ -120816,7 +120826,17 @@
     "Supply structure at the snapshot: nominal top 10 held 9%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "ponsdotfamily",
+     "handle": "ponsdotfamily",
+     "interaction": "audited_context",
+     "summary": "X: Pons reported 28.5% of supply burned and treasury buys using 80% of protocol fees.",
+     "url": "https://x.com/ponsdotfamily/status/2091824449544663367",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -121381,8 +121401,8 @@
      "published": false
     },
     "why": {
-     "cause": "Reference token for pons, a noncustodial Robinhood Chain launchpad where fixed-supply tokens deploy directly into locked WETH pools.",
-     "sourceUrl": "https://docs.ponsfamily.com/"
+     "cause": "X: Pons reported 28.5% of supply burned and treasury buys using 80% of protocol fees. Lore: Reference token for pons, a noncustodial Robinhood Chain launchpad where fixed-supply tokens deploy directly into locked WETH pools.",
+     "sourceUrl": "https://x.com/ponsdotfamily/status/2091824449544663367"
     }
    },
    "lifecycleEvents": [],
@@ -121953,7 +121973,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Launched from posts on Kylie Jenner's compromised verified X account; the posts vanished and holders organized a community takeover.",
+   "lore": "X: CoinDesk reported Kylie's account was hacked to promote the coin before it crashed 68%. Lore: Launched from posts on Kylie Jenner's compromised verified X account; the posts vanished and holders organized a community takeover.",
    "loreIsFresh": true,
    "faded": -28.63,
    "volume6h": 147953.03,
@@ -122055,7 +122075,17 @@
     "Supply structure at the snapshot: LP 100% locked or burned; nominal top 10 held 16%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "CoinDesk",
+     "handle": "CoinDesk",
+     "interaction": "audited_context",
+     "summary": "X: CoinDesk reported Kylie's account was hacked to promote the coin before it crashed 68%.",
+     "url": "https://x.com/CoinDesk/status/2092351344401064312",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -122581,8 +122611,8 @@
      "published": false
     },
     "why": {
-     "cause": "Launched from posts on Kylie Jenner's compromised verified X account; the posts vanished and holders organized a community takeover.",
-     "sourceUrl": "https://www.techtimes.com/articles/325433/20260825/kylie-jenners-x-account-was-hacked-crypto-x-never-confirmed-its-anti-scam-lock-deployed.htm"
+     "cause": "X: CoinDesk reported Kylie's account was hacked to promote the coin before it crashed 68%. Lore: Launched from posts on Kylie Jenner's compromised verified X account; the posts vanished and holders organized a community takeover.",
+     "sourceUrl": "https://x.com/CoinDesk/status/2092351344401064312"
     }
    },
    "lifecycleEvents": [
@@ -127271,7 +127301,7 @@
     "mint authority/contract mintability not confirmed disabled",
     "freeze/pause/blacklist powers not confirmed disabled"
    ],
-   "lore": "Thinking Cat is a meme for overthinkers: the sound your brain makes before doing something dumb; Hibt opened HMM/USDT on August 25.",
+   "lore": "X: Pons Ecosystem shared a Thinking Cat PFP generator; its connection to this token is unconfirmed. Lore: Thinking Cat is a meme for overthinkers: the sound your brain makes before doing something dumb; Hibt opened HMM/USDT on August 25.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 262240.46,
@@ -127373,7 +127403,17 @@
     "Supply structure at the snapshot: nominal top 10 held 20%."
    ],
    "catalyst": "No monitored X account produced a verifiable match in this 24-hour window.",
-   "xInteractions": [],
+   "xInteractions": [
+    {
+     "author": "PonsEcosystem",
+     "handle": "PonsEcosystem",
+     "interaction": "audited_context",
+     "summary": "X: Pons Ecosystem shared a Thinking Cat PFP generator; its connection to this token is unconfirmed.",
+     "url": "https://x.com/PonsEcosystem/status/2091819686514020752",
+     "confidence": "verified_public_post",
+     "matchedOn": "exact_contract_audit"
+    }
+   ],
    "newsEvidence": [],
    "providerEvidence": {
     "gmgn": {
@@ -127927,8 +127967,8 @@
      "published": false
     },
     "why": {
-     "cause": "Thinking Cat is a meme for overthinkers: the sound your brain makes before doing something dumb; Hibt opened HMM/USDT on August 25.",
-     "sourceUrl": "https://hmmmm.fun/"
+     "cause": "X: Pons Ecosystem shared a Thinking Cat PFP generator; its connection to this token is unconfirmed. Lore: Thinking Cat is a meme for overthinkers: the sound your brain makes before doing something dumb; Hibt opened HMM/USDT on August 25.",
+     "sourceUrl": "https://x.com/PonsEcosystem/status/2091819686514020752"
     }
    },
    "lifecycleEvents": [],
