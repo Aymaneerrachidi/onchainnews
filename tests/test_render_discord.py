@@ -105,11 +105,13 @@ def test_live_market_button_is_an_in_discord_interaction():
 
     assert len(components) == 4
     assert [button["label"] for button in components[0]["components"]] == [
-        "All chains", "Solana", "BNB", "Base", "Ethereum",
+        "All", "Solana", "BNB",
     ]
-    assert components[1]["components"][0]["label"] == "Robinhood"
+    assert [button["label"] for button in components[1]["components"]] == [
+        "Base", "Ethereum", "Robinhood",
+    ]
     assert [button["label"] for button in components[2]["components"]] == [
-        "All MC", "$250K-$500K", "$500K-$1M", "$1M-$10M", "$10M+",
+        "All caps", "$250K-$500K", "$500K-$1M", "$1M-$10M", "$10M+",
     ]
     assert components[0]["components"][1]["custom_id"] == (
         "rfilter:solana:all:20260825:0:chain"
@@ -123,8 +125,11 @@ def test_live_market_button_is_an_in_discord_interaction():
 
     button = components[3]["components"][0]
     assert button["style"] == 2
-    assert button["label"] == "Refresh live MC"
+    assert button["label"] == "Refresh prices"
     assert button["custom_id"] == "refresh_mc:1234:20260825"
+    assert components[0]["components"][0]["style"] == 1
+    assert components[2]["components"][0]["style"] == 1
+    assert components[3]["components"][1]["disabled"] is True
     assert "url" not in button
 
 

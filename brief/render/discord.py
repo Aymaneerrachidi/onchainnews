@@ -64,16 +64,25 @@ def interactive_market_components(
     """
     date_key = str(report_date or "latest").replace("-", "")[:8]
 
-    def button(label: str, custom_id: str, *, style: int = 2) -> dict[str, Any]:
-        return {
+    def button(
+        label: str,
+        custom_id: str,
+        *,
+        style: int = 2,
+        disabled: bool = False,
+    ) -> dict[str, Any]:
+        result = {
             "type": 2,
             "style": style,
             "label": label,
             "custom_id": custom_id,
         }
+        if disabled:
+            result["disabled"] = True
+        return result
 
     chain_buttons = [
-        ("All chains", "all"),
+        ("All", "all"),
         ("Solana", "solana"),
         ("BNB", "bsc"),
         ("Base", "base"),
@@ -81,7 +90,7 @@ def interactive_market_components(
         ("Robinhood", "robinhood"),
     ]
     range_buttons = [
-        ("All MC", "all"),
+        ("All caps", "all"),
         ("$250K-$500K", "250k-500k"),
         ("$500K-$1M", "500k-1m"),
         ("$1M-$10M", "1m-10m"),
@@ -92,20 +101,29 @@ def interactive_market_components(
             "type": 1,
             "components": [
                 button(label, f"rfilter:{value}:all:{date_key}:0:chain")
-                for label, value in chain_buttons[:5]
+                if value != "all" else button(
+                    label,
+                    f"rfilter:{value}:all:{date_key}:0:chain",
+                    style=1,
+                )
+                for label, value in chain_buttons[:3]
             ],
         },
         {
             "type": 1,
             "components": [
                 button(label, f"rfilter:{value}:all:{date_key}:0:chain")
-                for label, value in chain_buttons[5:]
+                for label, value in chain_buttons[3:]
             ],
         },
         {
             "type": 1,
             "components": [
-                button(label, f"rfilter:all:{value}:{date_key}:0:band")
+                button(
+                    label,
+                    f"rfilter:all:{value}:{date_key}:0:band",
+                    style=1 if value == "all" else 2,
+                )
                 for label, value in range_buttons
             ],
         },
@@ -113,8 +131,13 @@ def interactive_market_components(
             "type": 1,
             "components": [
                 button(
-                    "Refresh live MC",
+                    "Refresh prices",
                     f"refresh_mc:{int(refreshed_at)}:{date_key}",
+                ),
+                button(
+                    "30s cooldown",
+                    f"cooldown_info:{date_key}",
+                    disabled=True,
                 ),
             ],
         },

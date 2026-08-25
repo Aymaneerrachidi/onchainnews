@@ -9,6 +9,8 @@ import {
   fetchLiveCaps,
   fetchRunnerSnapshot,
   filterRunnerRows,
+  filterComponents,
+  publicComponents,
   resetRefreshStateForTests,
   securityEligible,
 } from "../api/discord-interactions.mjs";
@@ -128,6 +130,25 @@ test("runner filters combine chain and verified 24h peak bands", () => {
     filterRunnerRows(snapshot, "base", "1m-10m").map((row) => row.symbol),
     ["BASE"],
   );
+});
+
+
+test("Discord controls use balanced rows and visible filter state", () => {
+  const initial = publicComponents(1234, "20260825");
+  assert.deepEqual(initial.slice(0, 2).map((row) => row.components.length), [3, 3]);
+  assert.deepEqual(initial[0].components.map((button) => button.label), ["All", "Solana", "BNB"]);
+  assert.deepEqual(initial[1].components.map((button) => button.label), ["Base", "Ethereum", "Robinhood"]);
+  assert.equal(initial[0].components[0].style, 1);
+  assert.equal(initial[2].components[0].style, 1);
+  assert.equal(initial[3].components[1].disabled, true);
+
+  const filtered = filterComponents("solana", "1m-10m", "20260825", 1, 4, 1234);
+  assert.equal(filtered[0].components[1].style, 1);
+  assert.equal(filtered[2].components[3].style, 1);
+  assert.deepEqual(filtered[3].components.map((button) => button.label), [
+    "Prev", "Page 2 / 4", "Next", "Refresh prices",
+  ]);
+  assert.equal(filtered[3].components[1].disabled, true);
 });
 
 

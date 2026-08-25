@@ -36,7 +36,7 @@ const DEX_CHAIN_ALIASES = new Map([
 ]);
 
 const CHAINS = [
-  ["All chains", "all"],
+  ["All", "all"],
   ["Solana", "solana"],
   ["BNB", "bsc"],
   ["Base", "base"],
@@ -45,7 +45,7 @@ const CHAINS = [
 ];
 
 const BANDS = [
-  ["All MC", "all"],
+  ["All caps", "all"],
   ["$250K-$500K", "250k-500k"],
   ["$500K-$1M", "500k-1m"],
   ["$1M-$10M", "1m-10m"],
@@ -112,55 +112,58 @@ function componentButton(label, customId, active = false, disabled = false) {
   };
 }
 
-function publicComponents(epochSeconds = 0, reportDate = "latest") {
+export function publicComponents(epochSeconds = 0, reportDate = "latest") {
   const date = reportDateKey(reportDate);
   return [
     {
       type: 1,
-      components: CHAINS.slice(0, 5).map(([label, value]) =>
-        componentButton(label, `${FILTER_PREFIX}${value}:all:${date}:0:chain`)),
+      components: CHAINS.slice(0, 3).map(([label, value]) =>
+        componentButton(label, `${FILTER_PREFIX}${value}:all:${date}:0:chain`, value === "all")),
     },
     {
       type: 1,
-      components: CHAINS.slice(5).map(([label, value]) =>
+      components: CHAINS.slice(3).map(([label, value]) =>
         componentButton(label, `${FILTER_PREFIX}${value}:all:${date}:0:chain`)),
     },
     {
       type: 1,
       components: BANDS.map(([label, value]) =>
-        componentButton(label, `${FILTER_PREFIX}all:${value}:${date}:0:band`)),
+        componentButton(label, `${FILTER_PREFIX}all:${value}:${date}:0:band`, value === "all")),
     },
     {
       type: 1,
-      components: [componentButton(
-        "Refresh live MC",
-        `${REFRESH_PREFIX}${Math.max(0, Number(epochSeconds) || 0)}:${date}`,
-      )],
+      components: [
+        componentButton(
+          "Refresh prices",
+          `${REFRESH_PREFIX}${Math.max(0, Number(epochSeconds) || 0)}:${date}`,
+        ),
+        componentButton("30s cooldown", `cooldown_info:${date}`, false, true),
+      ],
     },
   ];
 }
 
-function filterComponents(chain, band, date, page, pages, refreshedAt) {
+export function filterComponents(chain, band, date, page, pages, refreshedAt) {
   const filterId = (nextChain, nextBand, nextPage = 0, source = "nav") =>
     `${FILTER_PREFIX}${nextChain}:${nextBand}:${date}:${nextPage}:${source}`;
-  const navigation = [];
-  if (pages > 1) {
-    navigation.push(componentButton("Previous", filterId(chain, band, Math.max(0, page - 1)), false, page <= 0));
-    navigation.push(componentButton("Next", filterId(chain, band, Math.min(pages - 1, page + 1)), false, page >= pages - 1));
-  }
-  navigation.push(componentButton(
-    "Refresh live MC",
+  const navigation = [
+    componentButton("Prev", filterId(chain, band, Math.max(0, page - 1)), false, page <= 0),
+    componentButton(`Page ${page + 1} / ${pages}`, `page_info:${date}:${page}`, false, true),
+    componentButton("Next", filterId(chain, band, Math.min(pages - 1, page + 1)), false, page >= pages - 1),
+    componentButton(
+    "Refresh prices",
     `${FILTER_REFRESH_PREFIX}${chain}:${band}:${date}:${page}:${refreshedAt}`,
-  ));
+    ),
+  ];
   return [
     {
       type: 1,
-      components: CHAINS.slice(0, 5).map(([label, value]) =>
+      components: CHAINS.slice(0, 3).map(([label, value]) =>
         componentButton(label, filterId(value, band, 0, "chain"), value === chain)),
     },
     {
       type: 1,
-      components: CHAINS.slice(5).map(([label, value]) =>
+      components: CHAINS.slice(3).map(([label, value]) =>
         componentButton(label, filterId(value, band, 0, "chain"), value === chain)),
     },
     {
