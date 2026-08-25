@@ -29,11 +29,13 @@ test("market-cap proxy rejects unsigned and invalid token requests", async () =>
     new Request(`https://app.test/api/market-caps?chain=bsc&mints=${MINT_A}`),
     fetch,
     SECRET,
+    null,
   );
   const invalid = await handleMarketCaps(
     new Request("https://app.test/api/market-caps?chain=bsc&mints=not-a-contract&sig=x"),
     fetch,
     SECRET,
+    null,
   );
 
   assert.equal(unsigned.status, 401);
@@ -53,7 +55,7 @@ test("market-cap proxy returns exact pairs with shared CDN cache headers", async
     ]), { status: 200, headers: { "content-type": "application/json" } });
   };
 
-  const response = await handleMarketCaps(new Request(url), fetchStub, SECRET);
+  const response = await handleMarketCaps(new Request(url), fetchStub, SECRET, null);
   const pairs = await response.json();
 
   assert.equal(response.status, 200);
@@ -62,6 +64,55 @@ test("market-cap proxy returns exact pairs with shared CDN cache headers", async
   assert.equal(pairs[0].baseToken.address, MINT_A);
   assert.match(response.headers.get("vercel-cdn-cache-control"), /s-maxage=30/);
   assert.match(response.headers.get("vercel-cdn-cache-control"), /stale-while-revalidate=300/);
+});
+
+test("distributed cold refreshes elect one global Dexscreener caller", async () => {
+  const url = buildMarketCapProxyUrl("https://app.test", "bsc", [MINT_A], SECRET);
+  const values = new Map();
+  const distributed = { url: "https://redis.test", token: "redis-test-token" };
+  const redisFetch = async (_url, options) => {
+    const command = JSON.parse(options.body);
+    const [name, key, value, ...modifiers] = command;
+    let result = null;
+    if (name === "GET") result = values.get(key) ?? null;
+    if (name === "SET") {
+      const nx = modifiers.includes("NX");
+      if (!nx || !values.has(key)) {
+        values.set(key, value);
+        result = "OK";
+      }
+    }
+    return new Response(JSON.stringify({ result }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+  let dexCalls = 0;
+  const dexFetch = async () => {
+    dexCalls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    return new Response(JSON.stringify([
+      { baseToken: { address: MINT_A }, marketCap: 2_000_000, liquidity: { usd: 100_000 } },
+    ]), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  const burst = await Promise.all(Array.from({ length: 100 }, () =>
+    handleMarketCaps(new Request(url), dexFetch, SECRET, distributed, redisFetch)));
+  const statuses = burst.reduce((counts, response) => {
+    counts.set(response.status, (counts.get(response.status) || 0) + 1);
+    return counts;
+  }, new Map());
+
+  assert.equal(dexCalls, 1);
+  assert.equal(statuses.get(200), 1);
+  assert.equal(statuses.get(409), 99);
+
+  const warm = await handleMarketCaps(
+    new Request(url), dexFetch, SECRET, distributed, redisFetch,
+  );
+  assert.equal(warm.status, 200);
+  assert.equal(warm.headers.get("x-market-source"), "redis-fresh");
+  assert.equal(dexCalls, 1);
 });
 
 test("Discord rewrites Dexscreener refreshes through the signed project proxy", async () => {
