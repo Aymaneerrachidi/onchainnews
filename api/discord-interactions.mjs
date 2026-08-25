@@ -28,9 +28,11 @@ const FOMO_TOKEN = /https:\/\/fomo\.family\/tokens\/([^/\s)>]+)\/([^\s)>]+)/g;
 // the runner snapshot are shared by all readers for 30 seconds, while refresh
 // locks stop one Discord message from creating a click burst.
 const marketCache = new Map();
+const marketLocks = new Map();
 const messageRefreshes = new Map();
 const messageLocks = new Map();
-let snapshotCache = null;
+const snapshotCache = new Map();
+const snapshotLocks = new Map();
 
 const DEX_CHAIN_ALIASES = new Map([
   ["bnb", "bsc"],
@@ -284,6 +286,7 @@ function cacheKey(contract) {
 export async function fetchLiveCaps(contracts, fetchImpl = fetch, nowMs = Date.now()) {
   const grouped = new Map();
   const prices = new Map();
+  const waiting = [];
   for (const contract of contracts) {
     const key = cacheKey(contract);
     const cached = marketCache.get(key);
@@ -291,17 +294,22 @@ export async function fetchLiveCaps(contracts, fetchImpl = fetch, nowMs = Date.n
       prices.set(key, cached.marketCap);
       continue;
     }
+    const existing = marketLocks.get(key);
+    if (existing) {
+      waiting.push(existing);
+      continue;
+    }
     const chain = dexChain(contract.chain);
     if (!chain) continue;
     if (!grouped.has(chain)) grouped.set(chain, []);
     grouped.get(chain).push(contract);
   }
-  await Promise.all([...grouped.entries()].flatMap(([chain, rows]) => {
+  const jobs = [...grouped.entries()].flatMap(([chain, rows]) => {
     const jobs = [];
     for (let start = 0; start < rows.length; start += 30) {
       const batch = rows.slice(start, start + 30);
       const addresses = batch.map((row) => encodeURIComponent(row.mint)).join(",");
-      jobs.push(fetchImpl(`https://api.dexscreener.com/tokens/v1/${encodeURIComponent(chain)}/${addresses}`, {
+      const request = fetchImpl(`https://api.dexscreener.com/tokens/v1/${encodeURIComponent(chain)}/${addresses}`, {
         headers: { accept: "application/json" },
         signal: AbortSignal.timeout(DEX_TIMEOUT_MS),
       }).then((response) => response.ok ? response.json() : [])
@@ -321,31 +329,58 @@ export async function fetchLiveCaps(contracts, fetchImpl = fetch, nowMs = Date.n
               });
             }
           }
-        }).catch(() => null));
+        }).catch(() => null);
+      let lockedRequest;
+      lockedRequest = request.finally(() => {
+        for (const contract of batch) {
+          const key = cacheKey(contract);
+          if (marketLocks.get(key) === lockedRequest) marketLocks.delete(key);
+        }
+      });
+      for (const contract of batch) marketLocks.set(cacheKey(contract), lockedRequest);
+      jobs.push(lockedRequest);
     }
     return jobs;
-  }));
+  });
+  await Promise.all([...new Set([...waiting, ...jobs])]);
+  // Requests already in flight for another Discord message populate the
+  // shared cache rather than this call's local result map.
+  for (const contract of contracts) {
+    const key = cacheKey(contract);
+    if (prices.has(key)) continue;
+    const cached = marketCache.get(key);
+    if (cached && cached.expiresAt > nowMs) prices.set(key, cached.marketCap);
+  }
   return prices;
 }
 
 export async function fetchRunnerSnapshot(url, fetchImpl = fetch, nowMs = Date.now()) {
-  if (snapshotCache && snapshotCache.url === url && snapshotCache.expiresAt > nowMs) {
-    return snapshotCache.payload;
-  }
-  const response = await fetchImpl(url, {
-    headers: { accept: "application/json" },
-    cache: "no-store",
-    signal: AbortSignal.timeout(SNAPSHOT_TIMEOUT_MS),
-  });
-  if (!response.ok) throw new Error(`runner snapshot HTTP ${response.status}`);
-  const payload = await response.json();
-  if (!payload || typeof payload !== "object") throw new Error("invalid runner snapshot");
-  snapshotCache = {
-    url,
-    payload,
-    expiresAt: nowMs + SNAPSHOT_CACHE_SECONDS * 1000,
-  };
-  return payload;
+  const cached = snapshotCache.get(url);
+  if (cached && cached.expiresAt > nowMs) return cached.payload;
+  if (cached) snapshotCache.delete(url);
+
+  // A cold click burst must share one snapshot download. Without this lock,
+  // every interaction parses the same large JSON file at once and can exhaust
+  // the function before Discord's three-second acknowledgement deadline.
+  const existing = snapshotLocks.get(url);
+  if (existing) return existing;
+  const request = (async () => {
+    const response = await fetchImpl(url, {
+      headers: { accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(SNAPSHOT_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new Error(`runner snapshot HTTP ${response.status}`);
+    const payload = await response.json();
+    if (!payload || typeof payload !== "object") throw new Error("invalid runner snapshot");
+    snapshotCache.set(url, {
+      payload,
+      expiresAt: nowMs + SNAPSHOT_CACHE_SECONDS * 1000,
+    });
+    return payload;
+  })().finally(() => snapshotLocks.delete(url));
+  snapshotLocks.set(url, request);
+  return request;
 }
 
 function runnerPeak(row) {
@@ -635,9 +670,11 @@ export async function renderFilterResponse(request, interaction, action, now) {
 
 export function resetRefreshStateForTests() {
   marketCache.clear();
+  marketLocks.clear();
   messageRefreshes.clear();
   messageLocks.clear();
-  snapshotCache = null;
+  snapshotCache.clear();
+  snapshotLocks.clear();
 }
 
 function ephemeralMessage(content) {

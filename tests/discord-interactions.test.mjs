@@ -62,6 +62,31 @@ test("BNB refresh uses BSC and caches the deepest exact market", async () => {
 });
 
 
+test("concurrent refreshes share one Dexscreener request across messages", async () => {
+  resetRefreshStateForTests();
+  let calls = 0;
+  const contract = {
+    chain: "bnb",
+    mint: "0xAbC",
+    url: "https://fomo.family/tokens/bnb/0xAbC",
+  };
+  const fetchStub = async () => {
+    calls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    return new Response(JSON.stringify([
+      { baseToken: { address: "0xAbC" }, marketCap: 1_250_000, liquidity: { usd: 100_000 } },
+    ]), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  const results = await Promise.all(Array.from({ length: 100 }, () =>
+    fetchLiveCaps([contract], fetchStub, 1_000)));
+
+  assert.equal(results.length, 100);
+  assert.equal(results.every((prices) => prices.get("bnb:0xabc") === 1_250_000), true);
+  assert.equal(calls, 1);
+});
+
+
 test("live cap replaces both current and legacy separators", () => {
   const contract = {
     chain: "solana",
@@ -258,6 +283,27 @@ test("runner snapshot is cached for a click burst", async () => {
 
   assert.equal(first.runnerUniverse.length, 1);
   assert.equal(second.runnerUniverse.length, 1);
+  assert.equal(calls, 1);
+});
+
+
+test("a cold concurrent click burst shares one snapshot request", async () => {
+  resetRefreshStateForTests();
+  let calls = 0;
+  const fetchStub = async () => {
+    calls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    return new Response(JSON.stringify({ runnerUniverse: [safeRunner()] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+
+  const results = await Promise.all(Array.from({ length: 100 }, () =>
+    fetchRunnerSnapshot("https://app.test/data/latest.json", fetchStub, 1_000)));
+
+  assert.equal(results.length, 100);
+  assert.equal(results.every((snapshot) => snapshot.runnerUniverse.length === 1), true);
   assert.equal(calls, 1);
 });
 
