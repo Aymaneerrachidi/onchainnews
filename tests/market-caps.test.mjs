@@ -104,8 +104,8 @@ test("distributed cold refreshes elect one global Dexscreener caller", async () 
   }, new Map());
 
   assert.equal(dexCalls, 1);
-  assert.equal(statuses.get(200), 1);
-  assert.equal(statuses.get(409), 99);
+  assert.equal(statuses.get(200), 100);
+  assert.equal(statuses.get(409) || 0, 0);
 
   const warm = await handleMarketCaps(
     new Request(url), dexFetch, SECRET, distributed, redisFetch,

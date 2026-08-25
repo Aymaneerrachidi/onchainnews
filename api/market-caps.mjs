@@ -71,6 +71,18 @@ async function storeDistributedCaps(config, key, pairs, fetchedAt, fetchImpl) {
   }
 }
 
+async function waitForDistributedCaps(config, key, fetchImpl) {
+  // Cold followers wait briefly for the elected leader. Two bounded reads are
+  // cheaper than allowing every Vercel instance to call Dexscreener, while
+  // remaining comfortably inside Discord's three-second deadline.
+  for (const delay of [120, 240]) {
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    const cached = await readDistributedCaps(config, key, fetchImpl);
+    if (cached) return cached;
+  }
+  return null;
+}
+
 function normalizeChain(value) {
   const chain = String(value || "").toLowerCase();
   if (chain === "bnb") return "bsc";
@@ -171,6 +183,10 @@ export async function handleMarketCaps(
       return responseJson(cached.pairs, 200, true, { "x-market-source": "redis-stale" });
     }
     if (!ownsLock) {
+      const filled = await waitForDistributedCaps(distributed, keys.cache, redisFetchImpl);
+      if (filled) {
+        return responseJson(filled.pairs, 200, true, { "x-market-source": "redis-follower" });
+      }
       return responseJson(
         { error: "global refresh already in progress" },
         409,
