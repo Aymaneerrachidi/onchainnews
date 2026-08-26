@@ -19,6 +19,7 @@ __pycache__/
 *.db-shm
 *.log
 *.png
+!/web/assets/access-help/*.png
 /uv.lock
 /pyproject.toml
 /config.toml
