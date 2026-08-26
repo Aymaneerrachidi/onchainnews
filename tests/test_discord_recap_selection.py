@@ -99,10 +99,12 @@ def test_exhaustive_x_context_reaches_every_interactive_snapshot_collection():
     assert recap._merge_exhaustive_x_context_into_snapshot(snapshot) == 2
     for collection in ("runnerUniverse", "runners"):
         row = snapshot[collection][0]
-        assert row["lore"].startswith("X:")
-        assert "Lore: Normal community lore." in row["lore"]
+        assert not row["lore"].startswith("X:")
+        assert "PumpfunEco reported" in row["lore"]
+        assert "Normal community lore." in row["lore"]
+        assert "Lore:" not in row["lore"]
         assert row["providerEvidence"]["why"]["sourceUrl"].startswith("https://x.com/")
-        assert row["xInteractions"][0]["summary"].startswith("X:")
+        assert row["xInteractions"][0]["summary"].startswith("PumpfunEco reported")
         assert row["xInteractions"][0]["matchedOn"] == "exact_contract_audit"
 
 
@@ -115,7 +117,8 @@ def test_exhaustive_x_context_merge_is_idempotent():
 
     row = snapshot["runnerUniverse"][0]
     assert len(row["xInteractions"]) == 1
-    assert row["lore"].count("Lore:") == 1
+    assert "Lore:" not in row["lore"]
+    assert row["lore"].count("Normal lore.") == 1
 
 
 def test_publication_blocks_explicit_honeypot_and_tut_concentration(tmp_path):
@@ -358,7 +361,7 @@ def test_approved_fifteen_name_layout_stays_in_one_discord_message():
     assert rendered.count("**More Solana Runners**") == 1
     assert rendered.count("**Cross-Chain Moves**") == 1
     assert "Continued" not in rendered
-    assert "15 runners · 11 Solana · 4 cross-chain" in posts[0]["embeds"][-1]["footer"]["text"]
+    assert "15 featured · 15 total runners · page 1/1 · 11 Solana · 4 cross-chain" in posts[0]["embeds"][-1]["footer"]["text"]
 
 
 def test_approved_layout_keeps_leaders_solana_and_cross_chain_sections():

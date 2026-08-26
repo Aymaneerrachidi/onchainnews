@@ -299,9 +299,9 @@ timeout_seconds = 120
 # Reprice the recap coins immediately before writing; a long run leaves the
 # opening numbers badly stale.
 refresh_before_write = false
-research_enabled = true
-explain_enabled = true
-research_model = "gpt-5.5"
+research_enabled = false
+explain_enabled = false
+research_model = "gpt-5.4-nano"
 # Zero researches every publishable coin that did not get a legitimate,
 # identity-safe match from the monitored X desk.
 research_limit = 0
@@ -328,7 +328,6 @@ jupiter_quote_url = "https://lite-api.jup.ag/swap/v1/quote"
 jupiter_price_url = "https://lite-api.jup.ag/price/v3"
 geckoterminal_base_url = "https://api.geckoterminal.com/api/v2"
 x_public_metadata_url = "https://cdn.syndication.twimg.com/widgets/followbutton/info.json"
-x_recent_search_url = "https://api.x.com/2/tweets/search/recent"
 twitterapi_io_search_url = "https://api.twitterapi.io/twitter/tweet/advanced_search"
 
 # Public X posts from this bounded desk list become source-linked catalyst
@@ -336,7 +335,6 @@ twitterapi_io_search_url = "https://api.twitterapi.io/twitter/tweet/advanced_sea
 # quotes and reposts are. Replace or extend this starter list for the client.
 [x]
 enabled = true
-provider = "twitterapi_io"
 accounts_per_query = 20
 max_pages_per_query = 5
 max_pages_per_term_query = 1

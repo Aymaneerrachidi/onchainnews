@@ -12,7 +12,7 @@ import importlib.util
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -23,7 +23,8 @@ from brief.config import load_settings  # noqa: E402
 from brief.journal import kol_trade_count, rug_or_bundle, verified_window_multiple  # noqa: E402
 from brief.links import fomo_token_url  # noqa: E402
 from brief.lore import attach_lore  # noqa: E402
-from brief.newsletter import explain_runs, research_day, write_recap  # noqa: E402
+from brief.lore_style import humanize_lore  # noqa: E402
+from brief.newsletter import write_recap  # noqa: E402
 from brief.render.discord import (  # noqa: E402
     BRAND,
     LOGO,
@@ -53,6 +54,39 @@ _candidate = _resend._candidate
 MAX_DESCRIPTION = 3800
 MAX_MESSAGE_EMBED_CHARS = 5800
 MAX_MESSAGE_EMBEDS = 10
+
+
+async def _delete_existing_daily_recaps(channel_id: str, token: str) -> int:
+    """Remove this bot's prior recap pages before publishing a replacement."""
+    headers = {"Authorization": f"Bot {token}"}
+    base = f"https://discord.com/api/v10/channels/{channel_id}/messages"
+    removed = 0
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.get(base, headers=headers, params={"limit": 20})
+        response.raise_for_status()
+        for message in response.json():
+            if not bool((message.get("author") or {}).get("bot")):
+                continue
+            embeds = message.get("embeds") or []
+            searchable = "\n".join(
+                f"{embed.get('title') or ''}\n{embed.get('description') or ''}\n"
+                f"{(embed.get('footer') or {}).get('text') or ''}"
+                for embed in embeds
+            )
+            if not any(marker in searchable for marker in (
+                "Daily Memecoin Recap",
+                "More Solana Runners",
+                "Cross-Chain Moves",
+                "total runners",
+                "Rolling 24h window",
+            )):
+                continue
+            deleted = await client.delete(
+                f"{base}/{message['id']}", headers=headers,
+            )
+            deleted.raise_for_status()
+            removed += 1
+    return removed
 SPACE = re.compile(r"\s+")
 
 # The five stories with enough attributable context to deserve more than a
@@ -804,8 +838,12 @@ def _dedupe(rows: list[dict], excluded: set[str]) -> list:
 
 def _saved_enrichment() -> dict[str, dict]:
     """Load exact-contract browser research without internal competitor copy."""
-    path = ROOT / "output" / "enriched-current-40.json"
-    if not path.exists():
+    paths = (
+        ROOT / "output" / "enriched-current-72.json",
+        ROOT / "output" / "enriched-current-40.json",
+    )
+    path = next((candidate for candidate in paths if candidate.exists()), None)
+    if path is None:
         return {}
     payload = json.loads(path.read_text(encoding="utf-8"))
     return {
@@ -823,7 +861,7 @@ def _apply_saved_enrichment(candidates: list) -> int:
         row = researched.get(candidate.token.mint.lower())
         if not row:
             continue
-        lore = _compact(row.get("lore"), 260)
+        lore = _compact(humanize_lore(row.get("lore")), 260)
         if not lore or "mellometrics" in lore.casefold():
             continue
         web_research = row.get("webResearch") or {}
@@ -836,6 +874,25 @@ def _apply_saved_enrichment(candidates: list) -> int:
             "cause": lore,
             "sourceUrl": sources[0] if sources else "",
         }
+        saved_news = [item for item in row.get("newsEvidence") or [] if isinstance(item, dict)]
+        candidate.news_evidence = saved_news or candidate.news_evidence
+        saved_x = [item for item in row.get("xInteractions") or [] if isinstance(item, dict)]
+        if not saved_x:
+            saved_x = [
+                {
+                    "author": str(item.get("source") or "X"),
+                    "handle": str(item.get("source") or "X"),
+                    "interaction": "exact_contract_evidence",
+                    "summary": str(item.get("summary") or ""),
+                    "url": str(item.get("url") or ""),
+                    "confidence": str(item.get("confidence") or "confirmed"),
+                    "matchedOn": str(item.get("matchedOn") or "exact contract"),
+                }
+                for item in saved_news
+                if "x.com/" in str(item.get("url") or "")
+            ]
+        if saved_x:
+            candidate.x_interactions = saved_x
         applied += 1
     return applied
 
@@ -858,7 +915,7 @@ def _merge_saved_enrichment_into_snapshot(snapshot: dict) -> int:
             editorial = EDITORIAL.get(mint) or FILTER_EDITORIAL.get(mint)
             if not saved and not editorial:
                 continue
-            lore = _compact((
+            lore = _compact(humanize_lore(
                 (saved or {}).get("lore")
                 or ((saved or {}).get("webResearch") or {}).get("summary")
                 or (editorial[0] if editorial else "")
@@ -959,13 +1016,13 @@ def _merge_exhaustive_x_context_into_snapshot(snapshot: dict) -> int:
             evidence = X_AUDIT_CONTEXT.get(mint)
             if not evidence:
                 continue
-            x_context = str(evidence["context"])
+            x_context = humanize_lore(evidence["context"])
             source = str(evidence["source"])
             normal_lore = _compact(row.get("lore"), 210)
             if normal_lore.startswith(x_context):
                 combined = normal_lore
             else:
-                combined = f"{x_context} Lore: {normal_lore}" if normal_lore else x_context
+                combined = f"{x_context} {normal_lore}" if normal_lore else x_context
 
             row["lore"] = combined
             provider = dict(row.get("providerEvidence") or {})
@@ -999,8 +1056,8 @@ def _apply_exhaustive_x_context(candidates: list) -> int:
         if not evidence:
             continue
         lore = _compact(candidate.lore, 210)
-        x_context = str(evidence["context"])
-        candidate.lore = f"{x_context} Lore: {lore}" if lore else x_context
+        x_context = humanize_lore(evidence["context"])
+        candidate.lore = humanize_lore(f"{x_context} {lore}" if lore else x_context)
         candidate.provider_evidence["why"] = {
             "cause": candidate.lore,
             "sourceUrl": str(evidence["source"]),
@@ -1035,7 +1092,12 @@ def _approved_layout(candidates: list, intro: str = "") -> dict:
     }
 
 
-def _render_posts(candidates: list, narrative: dict, generated: datetime) -> list[dict]:
+def _render_posts(
+    candidates: list,
+    narrative: dict,
+    generated: datetime,
+    total_available: int | None = None,
+) -> list[dict]:
     by_mint = {candidate.token.mint: candidate for candidate in candidates}
     placed: set[str] = set()
     sections: list[tuple[str, list[str]]] = []
@@ -1173,12 +1235,16 @@ def _render_posts(candidates: list, narrative: dict, generated: datetime) -> lis
         candidate.token.chain_id.lower() == "solana" for candidate in candidates
     )
     cross_chain_count = len(candidates) - solana_count
-    footer = (
-        f"{len(candidates)} runners · {solana_count} Solana · "
-        f"{cross_chain_count} cross-chain · Rolling 24h window · verified at publication time"
-    )
-    if posts:
-        posts[-1]["embeds"][-1]["footer"] = {"text": footer}
+    page_count = len(posts)
+    total_available = max(len(candidates), int(total_available or 0))
+    for page_index, post in enumerate(posts, start=1):
+        footer = (
+            f"{len(candidates)} featured · {total_available} total runners · "
+            f"page {page_index}/{page_count} · "
+            f"{solana_count} Solana · {cross_chain_count} cross-chain · "
+            "Rolling 24h window · verified at publication time"
+        )
+        post["embeds"][-1]["footer"] = {"text": footer}
 
     # Validate the delivered representation, not only the intermediate set.
     # A previous section-splitting bug passed the pre-layout identity check and
@@ -1317,7 +1383,8 @@ async def main() -> int:
     snapshot_path = ROOT / "web/data/latest.json"
     snapshot = json.loads(snapshot_path.read_text(encoding="utf-8-sig"))
     merged_enrichment = _merge_saved_enrichment_into_snapshot(snapshot)
-    if merged_enrichment:
+    merged_x_context = _merge_exhaustive_x_context_into_snapshot(snapshot)
+    if merged_enrichment or merged_x_context:
         snapshot_path.write_text(
             # Match the exporter format so updating a few lore fields does not
             # rewrite the entire generated snapshot or corrupt non-ASCII names.
@@ -1334,7 +1401,31 @@ async def main() -> int:
     candidates = _select_recap_candidates(_dedupe(source_rows, excluded), settings)
     if not candidates:
         raise RuntimeError("latest snapshot has no publishable runners")
+
+    # Preserve the full research universe while recording the exact shortlist
+    # that Discord published. Button views use this field and therefore cannot
+    # expose rejected rows that were absent from the recap itself.
+    source_by_key = {
+        (str(row.get("chain") or "").lower(), str(row.get("mint") or "").lower()): row
+        for row in source_rows
+    }
+    published_rows = []
+    for candidate in candidates:
+        key = (candidate.token.chain_id.lower(), candidate.token.mint.lower())
+        row = source_by_key.get(key)
+        if row is not None:
+            published_rows.append(row)
+    if len(published_rows) != len(candidates):
+        raise RuntimeError("refusing Discord delivery: could not persist the exact published shortlist")
+    snapshot["discordPublishedRunners"] = published_rows
+    snapshot["discordPublishedCount"] = len(published_rows)
+    snapshot["discordPublishedAt"] = datetime.now(timezone.utc).isoformat()
+    snapshot_path.write_text(
+        json.dumps(snapshot, ensure_ascii=True, indent=1),
+        encoding="utf-8",
+    )
     _apply_saved_enrichment(candidates)
+    _apply_exhaustive_x_context(candidates)
     x_enriched = sum(bool(candidate.x_interactions) for candidate in candidates)
 
     # This command is explicitly the deep editorial pass, so cover the whole
@@ -1352,14 +1443,18 @@ async def main() -> int:
         }
     else:
         lore_count = await attach_lore(candidates, settings)
-        researched = await research_day(candidates, settings)
-        explained = await explain_runs(candidates, settings)
+        researched = 0
+        explained = 0
         narrative = await write_recap(candidates, generated, settings) or {
             "intro": "Short version: what ran and why.", "sections": []
         }
     narrative = _approved_layout(candidates, str(narrative.get("intro") or ""))
     refreshed = await _refresh_current_market_caps(candidates)
-    posts = _render_posts(candidates, narrative, generated)
+    total_available = len({
+        (str(row.get("chain") or "").lower(), str(row.get("mint") or "").lower())
+        for row in source_rows
+    })
+    posts = _render_posts(candidates, narrative, generated, total_available)
 
     if args.dry_run:
         out = ROOT / "output" / "discord-recap-preview.json"
@@ -1375,11 +1470,16 @@ async def main() -> int:
     channels = bot_channel_ids() if not args.webhook_url else []
     urls = list(args.webhook_url) or ([] if token and channels else webhook_urls())
     if token and channels:
-        for post in posts:
-            post["components"] = interactive_market_components(
-                report_date=generated.strftime("%Y%m%d")
-            )
+        # One control surface for the whole recap. Repeating four rows of
+        # buttons under every continuation page makes a two-page recap look
+        # like multiple independent reports.
+        posts[-1]["components"] = interactive_market_components(
+            report_date=generated.strftime("%Y%m%d"),
+            runner_count=total_available,
+        )
+        removed = 0
         for channel_id in channels:
+            removed += await _delete_existing_daily_recaps(channel_id, token)
             for index, payload in enumerate(posts):
                 await post_bot_payload(
                     channel_id, payload, token,
@@ -1393,7 +1493,8 @@ async def main() -> int:
         raise RuntimeError("no Discord bot channel or webhook configured")
     print(
         f"sent=true coins={len(candidates)} unique_contracts={len({c.token.mint for c in candidates})} "
-        f"posts={len(posts)} bot_channels={len(channels)} webhooks={len(urls)} repriced={refreshed} "
+        f"posts={len(posts)} replaced={removed if token and channels else 0} "
+        f"bot_channels={len(channels)} webhooks={len(urls)} repriced={refreshed} "
         f"lore={lore_count} researched={researched} explained={explained} x_enriched={x_enriched}"
     )
     return 0

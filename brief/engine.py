@@ -30,10 +30,8 @@ from brief.journal import (
 )
 from brief.lore import attach_lore
 from brief.newsletter import (
-    explain_runs,
     newsletter_coin_limit,
     recap_coins,
-    research_day,
     write_recap,
 )
 from brief.lifecycle import attach_lifecycles, build_structured_recap, persist_market_tape
@@ -71,6 +69,7 @@ from brief.sources.gmgn import GmgnDiscovery, GmgnSource, aggregate_wallet_evide
 from brief.sources.helius import HeliusSource
 from brief.sources.http import CachedHttpClient
 from brief.sources.jupiter import JupiterSource
+from brief.sources.linked_socials import attach_linked_x_posts
 from brief.sources.rugcheck import RugCheckSource
 from brief.sources.social import (
     SocialVerifier,
@@ -80,7 +79,6 @@ from brief.sources.social import (
 )
 from brief.sources.x import (
     TwitterApiIoSource,
-    XSource,
     candidate_search_terms,
     load_x_accounts,
 )
@@ -2155,18 +2153,10 @@ async def build_brief(
             candidate.dex_evidence = build_dex_evidence(candidate)
 
         x_settings = settings.section("x")
-        x_provider = str(x_settings.get("provider", "official") or "official").lower()
-        x_source_cls = TwitterApiIoSource if x_provider == "twitterapi_io" else XSource
-        x_endpoint = (
-            str(urls.get("twitterapi_io_search_url", "https://api.twitterapi.io/twitter/tweet/advanced_search"))
-            if x_provider == "twitterapi_io"
-            else str(urls.get("x_recent_search_url", "https://api.x.com/2/tweets/search/recent"))
-        )
-        x_key = os.getenv("TWITTERAPI_IO_KEY") if x_provider == "twitterapi_io" else os.getenv("X_BEARER_TOKEN")
-        x_source = x_source_cls(
+        x_source = TwitterApiIoSource(
             http,
-            x_endpoint,
-            x_key,
+            str(urls.get("twitterapi_io_search_url", "https://api.twitterapi.io/twitter/tweet/advanced_search")),
+            os.getenv("TWITTERAPI_IO_KEY"),
             load_x_accounts(
                 [str(handle) for handle in x_settings.get("accounts", [])],
                 [str(path) for path in x_settings.get("account_files", [])],
@@ -2177,27 +2167,24 @@ async def build_brief(
             accounts_per_query=int(x_settings.get("accounts_per_query", 20)),
             max_pages_per_query=int(x_settings.get("max_pages_per_query", 5)),
         )
-        x_status_name = (
-            "TwitterAPI.io monitored accounts"
-            if x_provider == "twitterapi_io"
-            else "X monitored accounts"
-        )
+        x_status_name = "TwitterAPI.io monitored accounts"
         if bool(x_settings.get("enabled", True)) and x_source.configured:
             try:
-                if isinstance(x_source, TwitterApiIoSource):
-                    x_posts = await x_source.posts_for_terms(
-                        window_start,
-                        [candidate_search_terms(candidate) for candidate in evidence_candidates],
-                        max_pages_per_query=int(x_settings.get("max_pages_per_term_query", 1)),
-                    )
-                else:
-                    x_posts = await x_source.posts(window_start)
+                x_posts = await x_source.posts_for_terms(
+                    window_start,
+                    [candidate_search_terms(candidate) for candidate in evidence_candidates],
+                    max_pages_per_query=int(x_settings.get("max_pages_per_term_query", 1)),
+                )
                 match_x_interactions(
                     evidence_candidates,
                     x_posts,
                     max_per_token=int(x_settings.get("max_matches_per_token", 6)),
                     editorial_accounts=x_settings.get("editorial_accounts", []),
                     internal_only_accounts=x_settings.get("internal_only_accounts", []),
+                )
+                await attach_linked_x_posts(
+                    evidence_candidates,
+                    api_key=os.getenv("TWITTERAPI_IO_KEY"),
                 )
                 matched_posts = len({
                     item.url
@@ -2221,7 +2208,7 @@ async def build_brief(
         else:
             match_x_interactions(evidence_candidates, [])
             detail = (
-                f"{'TWITTERAPI_IO_KEY' if x_provider == 'twitterapi_io' else 'X_BEARER_TOKEN'} is unset; "
+                "TWITTERAPI_IO_KEY is unset; "
                 "Dexscreener and on-chain evidence remain available"
                 if x_source.accounts
                 else "no monitored accounts configured"
@@ -2495,19 +2482,8 @@ async def build_brief(
                     "Coin lore", True,
                     f"{storied} of {len(runners)} coins with a sourced story from free search",
                 ))
-            researched = await research_day(recap_pool, settings)
-            if researched:
-                statuses.append(SourceStatus(
-                    "Coin research",
-                    True,
-                    f"{researched} coins with a searched, cited story behind the move",
-                ))
-            explained = await explain_runs(recap_pool, settings)
-            if explained:
-                statuses.append(SourceStatus(
-                    "Cause of the run", True,
-                    f"{explained} of {len(recap_pool)} coins with a stated cause from their own evidence",
-                ))
+            # Deep web findings are curated through Codex; the unattended
+            # runtime intentionally makes no paid LLM API research calls.
             written = await write_recap(recap_pool, now, settings)
             if written:
                 narrative = written

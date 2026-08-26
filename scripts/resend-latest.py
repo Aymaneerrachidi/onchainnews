@@ -37,7 +37,6 @@ from brief.models import (  # noqa: E402
 from brief.newsletter import (  # noqa: E402
     newsletter_coin_limit,
     recap_coins,
-    research_day,
     write_recap,
 )
 from brief.preflight import audit_brief  # noqa: E402
@@ -202,7 +201,7 @@ async def main() -> int:
                 f"{len(narrative.get('sections', []))} preserved sections"
             )
         else:
-            found = await research_day(pool, settings)
+            found = 0
             narrative = await write_recap(pool, generated, settings) or {}
             print(f"rebuilt from snapshot: {len(runners)} runners, {found} researched, "
                   f"{len(narrative.get('sections', []))} written sections")

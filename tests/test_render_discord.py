@@ -103,15 +103,15 @@ def test_webhook_urls_deduplicates_destinations(monkeypatch):
 def test_live_market_button_is_an_in_discord_interaction():
     components = interactive_market_components(1234, "20260825")
 
-    assert len(components) == 4
+    assert len(components) == 3
     assert [button["label"] for button in components[0]["components"]] == [
-        "All", "Solana", "BNB",
+        "View all runners", "Solana", "BNB", "Base",
     ]
     assert [button["label"] for button in components[1]["components"]] == [
-        "Base", "Ethereum", "Robinhood",
+        "Ethereum", "Robinhood", "All caps", "$250K-$500K",
     ]
     assert [button["label"] for button in components[2]["components"]] == [
-        "All caps", "$250K-$500K", "$500K-$1M", "$1M-$10M", "$10M+",
+        "$500K-$1M", "$1M-$10M", "$10M+", "Refresh",
     ]
     assert components[0]["components"][1]["custom_id"] == (
         "rfilter:solana:all:20260825:0:chain"
@@ -123,13 +123,12 @@ def test_live_market_button_is_an_in_discord_interaction():
     ]
     assert len(custom_ids) == len(set(custom_ids))
 
-    button = components[3]["components"][0]
+    button = components[2]["components"][3]
     assert button["style"] == 2
-    assert button["label"] == "Refresh prices"
+    assert button["label"] == "Refresh"
     assert button["custom_id"] == "refresh_mc:1234:20260825"
     assert components[0]["components"][0]["style"] == 1
-    assert components[2]["components"][0]["style"] == 1
-    assert components[3]["components"][1]["disabled"] is True
+    assert components[1]["components"][2]["style"] == 1
     assert "url" not in button
 
 

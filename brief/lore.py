@@ -287,9 +287,49 @@ class LoreResearcher:
             log.info("lore_search_failed query=%s error=%s", query[:60], type(exc).__name__)
             return []
 
+    async def linked_pages(self, client: httpx.AsyncClient, candidate: Candidate) -> list[Finding]:
+        """Read project-owned websites and public Telegram pages before search.
+
+        Exact X posts are resolved earlier by ``attach_linked_x_posts``.  This
+        is the second evidence lane: URLs supplied by Dexscreener/GMGN itself,
+        including ``info.websites`` retained in the raw pair payload.
+        """
+        raw_info = (candidate.token.raw or {}).get("info") or {}
+        links: list[str] = []
+        for item in list(candidate.token.socials or []) + list(raw_info.get("websites") or []):
+            url = str((item or {}).get("url") if isinstance(item, dict) else item or "").strip()
+            if not url or re.search(r"(?:x|twitter)\.com/", url, re.I) or url in links:
+                continue
+            links.append(url)
+        findings: list[Finding] = []
+        for url in links[:3]:
+            try:
+                response = await client.get(READER + url, headers=UA, timeout=self.timeout)
+            except httpx.HTTPError:
+                continue
+            if response.status_code != 200:
+                continue
+            lines = [_clean(line.lstrip("#>*- ")) for line in response.text.splitlines()]
+            prose = [line for line in lines if len(line.split()) >= 6 and not looks_like_page_furniture(line)]
+            snippet = " ".join(prose[:3])[:700]
+            if not snippet or not STORY_WORDS.search(snippet):
+                continue
+            finding = Finding(title=candidate.token.name, url=url, snippet=snippet)
+            finding.score = 7
+            finding.story = 5 if CAUSAL.search(snippet) else 3
+            finding.matched = "Dexscreener/GMGN linked website or Telegram"
+            findings.append(finding)
+        return findings
+
     async def research(self, client: httpx.AsyncClient, candidate: Candidate) -> CoinLore:
         lore = CoinLore()
         seen: set[str] = set()
+        # Priority 2, after exact linked X: project-linked web and Telegram.
+        lore.findings.extend(await self.linked_pages(client, candidate))
+        if any(f.score >= 5 and f.story >= 5 for f in lore.findings):
+            return lore
+        seen.update(f.url for f in lore.findings)
+        # Priority 3: broader exact-contract/name search.
         for query in query_ladder(candidate)[: self.per_coin_queries]:
             results = await self.search(client, query)
             lore.queries_run += 1
@@ -344,7 +384,9 @@ async def attach_lore(coins: list[Candidate], settings: Settings) -> int:
     researcher = LoreResearcher(settings)
     if not researcher.enabled or not coins:
         return 0
-    targets = coins[: researcher.limit]
+    # Priority 1 is exact linked X. Coins that already have that stronger
+    # evidence do not get overwritten by weaker website/search snippets.
+    targets = [coin for coin in coins if not coin.x_interactions][: researcher.limit]
     semaphore = asyncio.Semaphore(researcher.concurrency)
     found = 0
 

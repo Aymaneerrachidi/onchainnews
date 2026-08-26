@@ -1695,6 +1695,39 @@ def test_gmgn_direct_manipulation_evidence_is_a_hard_stop(tmp_path):
     assert any("top 10 circulating wallets hold 62%" in reason for reason in rug_or_bundle(coin, settings))
 
 
+def test_traded_kol_conviction_and_extreme_volume_override_only_moderate_concentration(tmp_path):
+    from brief.journal import publisher_quality_reasons, rug_or_bundle, runner_universe_reasons
+    from brief.models import SafetyReport
+
+    settings = build_settings(tmp_path / "conviction-override")
+    coin = _tape("FIH", mcap=300_000, vol24=950_000, vol6=400_000,
+                 liq=46_000, trades6=3_000, buys6=1_700)
+    coin.safety = SafetyReport(
+        "m", holder_count=1_455, top10_pct=36.25, lp_locked_or_burned_pct=100.0,
+    )
+    coin.provider_evidence["gmgn"] = {
+        "exactTraderHistoryChecked": True,
+        "renownedTrustedCount": 4,
+        "devTeamHoldRate": 0.278,
+        "insiderRate": 0.0,
+        "washTrading": False,
+        "isHoneypot": 0,
+    }
+
+    assert not any("dev-team" in r for r in rug_or_bundle(coin, settings))
+    assert not any("top 10" in r or "dev team" in r for r in runner_universe_reasons(coin, settings))
+    assert not any("top 10 hold" in r for r in publisher_quality_reasons(coin, settings, NOW))
+
+    # Strong flow is not permission to waive confirmed contract danger.
+    coin.provider_evidence["gmgn"]["isHoneypot"] = 1
+    assert any("honeypot" in r for r in rug_or_bundle(coin, settings))
+
+    # Nor does it excuse extreme ownership control.
+    coin.provider_evidence["gmgn"]["isHoneypot"] = 0
+    coin.provider_evidence["gmgn"]["devTeamHoldRate"] = 0.31
+    assert any("dev-team" in r for r in rug_or_bundle(coin, settings))
+
+
 def test_old_launch_bundle_is_context_while_current_concentration_is_enforced(tmp_path):
     from brief.journal import risk_labels, rug_or_bundle
     from brief.models import SafetyReport

@@ -240,19 +240,35 @@ test("all-caps delivery preserves every validated runnerUniverse row", () => {
   );
 });
 
+test("Discord buttons expose the full universe beyond the featured shortlist", () => {
+  const published = safeRunner({ symbol: "VISIBLE", mint: "mint-visible" });
+  const snapshot = {
+    discordPublishedRunners: [published],
+    runnerUniverse: [
+      published,
+      safeRunner({ symbol: "HIDDEN", mint: "mint-hidden", peakMarketCap: 9_000_000 }),
+    ],
+  };
+  assert.deepEqual(
+    filterRunnerRows(snapshot, "all", "all").map((row) => row.symbol),
+    ["HIDDEN", "VISIBLE"],
+  );
+  const counted = filterComponents("all", "all", "20260826", 0, 1, 1234, snapshot);
+  assert.equal(counted[0].components[0].label, "All (2)");
+});
+
 
 test("Discord controls use balanced rows and visible filter state", () => {
   const initial = publicComponents(1234, "20260825");
-  assert.deepEqual(initial.slice(0, 2).map((row) => row.components.length), [3, 3]);
-  assert.deepEqual(initial[0].components.map((button) => button.label), ["All", "Solana", "BNB"]);
-  assert.deepEqual(initial[1].components.map((button) => button.label), ["Base", "Ethereum", "Robinhood"]);
+  assert.deepEqual(initial.map((row) => row.components.length), [4, 4, 4]);
+  assert.deepEqual(initial[0].components.map((button) => button.label), ["All", "Solana", "BNB", "Base"]);
+  assert.deepEqual(initial[1].components.map((button) => button.label), ["Ethereum", "Robinhood", "All caps", "$250K-$500K"]);
   assert.equal(initial[0].components[0].style, 1);
-  assert.equal(initial[2].components[0].style, 1);
-  assert.equal(initial[3].components[1].disabled, true);
+  assert.equal(initial[1].components[2].style, 1);
 
   const filtered = filterComponents("solana", "1m-10m", "20260825", 1, 4, 1234);
   assert.equal(filtered[0].components[1].style, 1);
-  assert.equal(filtered[2].components[3].style, 1);
+  assert.equal(filtered[2].components[1].style, 1);
   assert.deepEqual(filtered[3].components.map((button) => button.label), [
     "Prev", "Page 2 / 4", "Next", "Refresh prices",
   ]);
@@ -276,8 +292,8 @@ test("Discord controls use balanced rows and visible filter state", () => {
   assert.equal(counted[0].components[1].label, "Solana (1)");
   assert.equal(counted[0].components[2].label, "BNB (0)");
   assert.equal(counted[0].components[2].disabled, true);
-  assert.equal(counted[2].components[3].label, "$1M-$10M (0)");
-  assert.equal(counted[2].components[3].disabled, true);
+  assert.equal(counted[2].components[1].label, "$1M-$10M (0)");
+  assert.equal(counted[2].components[1].disabled, true);
 });
 
 

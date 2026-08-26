@@ -140,30 +140,12 @@ export function publicComponents(epochSeconds = 0, reportDate = "latest", snapsh
       total === 0,
     );
   };
-  return [
-    {
-      type: 1,
-      components: CHAINS.slice(0, 3).map(chainButton),
-    },
-    {
-      type: 1,
-      components: CHAINS.slice(3).map(chainButton),
-    },
-    {
-      type: 1,
-      components: BANDS.map(bandButton),
-    },
-    {
-      type: 1,
-      components: [
-        componentButton(
-          "Refresh prices",
-          `${REFRESH_PREFIX}${Math.max(0, Number(epochSeconds) || 0)}:${date}`,
-        ),
-        componentButton("30s cooldown", `cooldown_info:${date}`, false, true),
-      ],
-    },
+  const controls = [
+    ...CHAINS.map(chainButton),
+    ...BANDS.map(bandButton),
+    componentButton("Refresh", `${REFRESH_PREFIX}${Math.max(0, Number(epochSeconds) || 0)}:${date}`),
   ];
+  return [0, 4, 8].map((start) => ({ type: 1, components: controls.slice(start, start + 4) }));
 }
 
 export function filterComponents(chain, band, date, page, pages, refreshedAt, snapshot = null) {
@@ -202,19 +184,13 @@ export function filterComponents(chain, band, date, page, pages, refreshedAt, sn
     `${FILTER_REFRESH_PREFIX}${chain}:${band}:${date}:${page}:${refreshedAt}`,
     ),
   ];
+  const controls = [
+    ...CHAINS.map(chainButton),
+    ...BANDS.map(bandButton),
+    componentButton("Filters", `filter_info:${date}:${chain}:${band}`, false, true),
+  ];
   return [
-    {
-      type: 1,
-      components: CHAINS.slice(0, 3).map(chainButton),
-    },
-    {
-      type: 1,
-      components: CHAINS.slice(3).map(chainButton),
-    },
-    {
-      type: 1,
-      components: BANDS.map(bandButton),
-    },
+    ...[0, 4, 8].map((start) => ({ type: 1, components: controls.slice(start, start + 4) })),
     { type: 1, components: navigation },
   ];
 }
@@ -507,9 +483,8 @@ export function filterRunnerRows(snapshot, chain = "all", band = "all") {
   for (const row of source) {
     const rowChain = String(row?.chain || "").toLowerCase();
     const key = `${rowChain}:${String(row?.mint || "").toLowerCase()}`;
-    // runnerUniverse is the scan's already-validated, fail-closed publication
-    // set. Reapplying interaction-only gates here made Discord/Telegram hide
-    // valid runners that were present on the website.
+    // The compact recap is a featured shortlist; its buttons intentionally
+    // expose the complete validated runner universe for deeper inspection.
     if (chain !== "all" && rowChain !== chain) continue;
     if (!inBand(runnerPeak(row), band)) continue;
     const existing = unique.get(key);

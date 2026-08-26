@@ -27,10 +27,11 @@ if str(ROOT) not in sys.path:
 from brief.config import Settings, load_settings
 from brief.ledger import open_ledger
 from brief.lore import attach_lore
+from brief.lore_style import humanize_lore
 from brief.models import Candidate, Enrichment, SafetyReport, Signals, TokenSnapshot, XInteraction, integer
-from brief.newsletter import research_day
 from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
 from brief.sources.http import CachedHttpClient
+from brief.sources.linked_socials import attach_linked_x_posts
 from brief.sources.social import match_x_interactions
 from brief.sources.x import TwitterApiIoSource, candidate_search_terms, load_x_accounts
 
@@ -164,7 +165,7 @@ def _apply_curated(result: dict[str, Any], curated_path: Path | None) -> int:
         if not research:
             continue
         sources = [str(url) for url in (research.get("sources") or []) if str(url)]
-        coin["lore"] = str(research.get("lore") or coin.get("lore") or "")
+        coin["lore"] = humanize_lore(research.get("lore") or coin.get("lore") or "")
         coin["researchStatus"] = str(research.get("researchStatus") or "")
         coin["researchSources"] = sources
         coin["webResearch"] = {
@@ -241,14 +242,19 @@ async def run(
             internal_only_accounts=x.get("internal_only_accounts", []),
         )
 
-        # Free search gets the first pass. Paid browser research then runs on
-        # every coin that still has no legitimate monitored-X evidence.
+        # The monitored-account matcher replaces its candidate interaction
+        # list, so attach exact-contract profile posts afterwards. This also
+        # lets them suppress generic lore fallback when stronger X evidence
+        # is available.
+        linked_x_posts = await attach_linked_x_posts(
+            candidates, api_key=os.getenv("TWITTERAPI_IO_KEY")
+        )
+
+        # Automated enrichment uses deterministic free sources. Deep Codex
+        # web findings are merged separately from curated_lore.json.
         settings.values.setdefault("lore", {})["max_coins"] = len(candidates)
-        settings.values.setdefault("newsletter", {})["research_enabled"] = True
-        settings.values["newsletter"]["research_only_without_x"] = True
-        settings.values["newsletter"]["research_limit"] = 0
         await attach_lore(candidates, settings)
-        researched = await research_day(candidates, settings)
+        researched = 0
 
         enriched_rows: list[dict[str, Any]] = []
         for original, candidate in zip(rows, candidates):
@@ -279,9 +285,26 @@ async def run(
             "dexRefreshed": len(refreshed),
             "monitoredHandles": len(x_source.accounts),
             "postsRead": len(posts),
+            "linkedXPostsRead": linked_x_posts,
             "xMatchedCoins": sum(bool(candidate.x_interactions) for candidate in candidates),
             "internalXLeadCoins": sum(bool(candidate.internal_x_leads) for candidate in candidates),
             "browserResearchedCoins": researched,
+            "codexResearchQueue": [
+                {
+                    "chain": candidate.token.chain_id,
+                    "mint": candidate.token.mint,
+                    "symbol": candidate.token.symbol,
+                    "name": candidate.token.name,
+                    "dexUrl": candidate.token.url,
+                    "linkedSources": [
+                        str((item or {}).get("url") or "")
+                        for item in candidate.token.socials or []
+                        if isinstance(item, dict) and (item or {}).get("url")
+                    ],
+                }
+                for candidate in candidates
+                if not candidate.x_interactions and not candidate.news_evidence
+            ],
             "coins": enriched_rows,
         }
         _apply_curated(result, curated_path)

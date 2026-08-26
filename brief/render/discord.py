@@ -55,6 +55,7 @@ TIERS = (
 def interactive_market_components(
     refreshed_at: int = 0,
     report_date: str = "latest",
+    runner_count: int | None = None,
 ) -> list[dict[str, Any]]:
     """Build public controls for the complete qualified runner universe.
 
@@ -81,8 +82,9 @@ def interactive_market_components(
             result["disabled"] = True
         return result
 
+    all_label = f"View all {runner_count}" if runner_count else "View all runners"
     chain_buttons = [
-        ("All", "all"),
+        (all_label, "all"),
         ("Solana", "solana"),
         ("BNB", "bsc"),
         ("Base", "base"),
@@ -96,53 +98,27 @@ def interactive_market_components(
         ("$1M-$10M", "1m-10m"),
         ("$10M+", "10m-plus"),
     ]
-    components = [
-        {
-            "type": 1,
-            "components": [
-                button(label, f"rfilter:{value}:all:{date_key}:0:chain")
-                if value != "all" else button(
-                    label,
-                    f"rfilter:{value}:all:{date_key}:0:chain",
-                    style=1,
-                )
-                for label, value in chain_buttons[:3]
-            ],
-        },
-        {
-            "type": 1,
-            "components": [
-                button(label, f"rfilter:{value}:all:{date_key}:0:chain")
-                for label, value in chain_buttons[3:]
-            ],
-        },
-        {
-            "type": 1,
-            "components": [
-                button(
-                    label,
-                    f"rfilter:all:{value}:{date_key}:0:band",
-                    style=1 if value == "all" else 2,
-                )
-                for label, value in range_buttons
-            ],
-        },
-        {
-            "type": 1,
-            "components": [
-                button(
-                    "Refresh prices",
-                    f"refresh_mc:{int(refreshed_at)}:{date_key}",
-                ),
-                button(
-                    "30s cooldown",
-                    f"cooldown_info:{date_key}",
-                    disabled=True,
-                ),
-            ],
-        },
+    controls = [
+        button(
+            label,
+            f"rfilter:{value}:all:{date_key}:0:chain",
+            style=1 if value == "all" else 2,
+        )
+        for label, value in chain_buttons
     ]
-    return components
+    controls.extend(
+        button(
+            label,
+            f"rfilter:all:{value}:{date_key}:0:band",
+            style=1 if value == "all" else 2,
+        )
+        for label, value in range_buttons
+    )
+    controls.append(button("Refresh", f"refresh_mc:{int(refreshed_at)}:{date_key}"))
+    return [
+        {"type": 1, "components": controls[start:start + 4]}
+        for start in range(0, len(controls), 4)
+    ]
 
 
 def bot_token() -> str:

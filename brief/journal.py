@@ -171,6 +171,23 @@ def kol_trade_count(candidate: Candidate) -> int:
     )
 
 
+def high_conviction_flow_override(candidate: Candidate, settings: Settings) -> bool:
+    """Allow strong, traded KOL consensus to outweigh moderate concentration.
+
+    This is deliberately narrow: it is consulted only by the top-holder and
+    developer-holding quality gates. Contract powers, honeypots, pullable LP,
+    wash trading, insider flow and taxes can never use this exception.
+    """
+    section = settings.section("journal")
+    peak = max(verified_window_peak_market_cap(candidate), candidate.token.market_cap, 1.0)
+    turnover = candidate.token.volume_24h / peak
+    return (
+        kol_trade_count(candidate) >= int(section.get("conviction_override_min_kols", 4) or 4)
+        and candidate.token.volume_24h >= float(section.get("conviction_override_min_volume_24h", 750_000) or 750_000)
+        and turnover >= float(section.get("conviction_override_min_turnover", 2.25) or 2.25)
+    )
+
+
 def kol_touch_required(candidate: Candidate, settings: Settings) -> bool:
     """Whether a tracked-wallet touch is mandatory for this coin's chain.
 
@@ -516,7 +533,8 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     effective_top10 = report.top10_pct
     if effective_top10 is None and gmgn.get("top10Pct") is not None:
         effective_top10 = float(gmgn["top10Pct"])
-    if effective_top10 is not None and effective_top10 > bundle_pct:
+    conviction_override = high_conviction_flow_override(candidate, settings)
+    if effective_top10 is not None and effective_top10 > bundle_pct and not conviction_override:
         reasons.append(f"bundled supply, top 10 circulating wallets hold {effective_top10:.0f}%")
 
     # GMGN sees manipulation that a contract audit cannot: insider flow and
@@ -553,6 +571,8 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
             float(section.get(setting, default) or default),
         )
         if value is not None and float(value) > ceiling:
+            if field == "devTeamHoldRate" and conviction_override and float(value) <= 0.30:
+                continue
             reasons.append(f"{label} is {float(value):.0%}, above {ceiling:.0%}")
     for flag in report.risk_flags:
         lowered = flag.lower()
@@ -672,9 +692,12 @@ def runner_universe_reasons(candidate: Candidate, settings: Settings) -> list[st
         peak_market_cap,
         float(section.get("publisher_max_top10_pct", 30) or 30),
     )
+    conviction_override = high_conviction_flow_override(candidate, settings)
     if top10 is None and not holder_exception:
         reasons.append("top-10 concentration unavailable")
-    elif float(top10) > max_top10:
+    elif float(top10) > max_top10 and not (
+        conviction_override and float(top10) <= 40.0
+    ):
         reasons.append(f"top 10 hold {float(top10):.0f}%, above {max_top10:.0f}%")
 
     dev_hold = gmgn.get("devTeamHoldRate")
@@ -684,7 +707,9 @@ def runner_universe_reasons(candidate: Candidate, settings: Settings) -> list[st
         peak_market_cap,
         float(section.get("gmgn_max_dev_team_hold_rate", 0.15) or 0.15),
     )
-    if dev_hold is not None and float(dev_hold) > max_dev:
+    if dev_hold is not None and float(dev_hold) > max_dev and not (
+        conviction_override and float(dev_hold) <= 0.30
+    ):
         reasons.append(f"dev team holds {float(dev_hold):.0%}, above {max_dev:.0%}")
 
     burned = (
@@ -873,7 +898,9 @@ def publisher_quality_reasons(candidate: Candidate, settings: Settings, now: dat
         if top10_pct is None:
             if strict_missing:
                 reasons.append("top-10 concentration unavailable")
-        elif top10_pct > max_top10:
+        elif top10_pct > max_top10 and not (
+            high_conviction_flow_override(candidate, settings) and top10_pct <= 40.0
+        ):
             reasons.append(f"top 10 hold {top10_pct:.0f}%, above publisher ceiling")
 
     if bool(section.get("require_socials", False)) and not token.socials and not strong_kol_flow:
