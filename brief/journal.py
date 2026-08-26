@@ -519,8 +519,11 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
     if effective_top10 is not None and effective_top10 > bundle_pct:
         reasons.append(f"bundled supply, top 10 circulating wallets hold {effective_top10:.0f}%")
 
-    # GMGN sees launch-specific manipulation that a contract audit cannot:
-    # bundled buys, insider flow and coordinated wash volume. These are direct
+    # GMGN sees manipulation that a contract audit cannot: insider flow and
+    # coordinated wash volume. Historical launch bundling remains visible in
+    # risk labels, but is not a hard stop because launch bundles are common and
+    # current ownership/concentration is screened independently below.
+    # These are direct
     # adverse observations, not arbitrary score cut-offs, so they fail closed
     # while KOL absence, boosts and a high standalone rug heuristic do not.
     if gmgn.get("washTrading") is True:
@@ -539,7 +542,6 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
         )
     peak_market_cap = verified_window_peak_market_cap(candidate)
     for field, label, setting, band_setting, default in (
-        ("bundlerRate", "GMGN bundled launch flow", "gmgn_max_bundler_rate", "max_bundler_rate_by_peak_market_cap", 0.30),
         ("insiderRate", "GMGN insider/rat-trader flow", "gmgn_max_insider_rate", "max_insider_rate_by_peak_market_cap", 0.30),
         ("devTeamHoldRate", "GMGN dev-team holding", "gmgn_max_dev_team_hold_rate", "max_dev_team_hold_rate_by_peak_market_cap", 0.15),
     ):
@@ -551,8 +553,6 @@ def rug_or_bundle(candidate: Candidate, settings: Settings) -> list[str]:
             float(section.get(setting, default) or default),
         )
         if value is not None and float(value) > ceiling:
-            if field == "bundlerRate" and redistributed_launch_bundle(candidate, settings):
-                continue
             reasons.append(f"{label} is {float(value):.0%}, above {ceiling:.0%}")
     for flag in report.risk_flags:
         lowered = flag.lower()
@@ -743,7 +743,6 @@ def runner_universe_reasons(candidate: Candidate, settings: Settings) -> list[st
         )
 
     for field, label, setting, band_setting, default in (
-        ("bundlerRate", "bundled launch flow", "gmgn_max_bundler_rate", "max_bundler_rate_by_peak_market_cap", 0.30),
         ("insiderRate", "insider flow", "gmgn_max_insider_rate", "max_insider_rate_by_peak_market_cap", 0.30),
     ):
         value = gmgn.get(field)
@@ -754,8 +753,6 @@ def runner_universe_reasons(candidate: Candidate, settings: Settings) -> list[st
             float(section.get(setting, default) or default),
         )
         if value is not None and float(value) > ceiling:
-            if field == "bundlerRate" and redistributed_launch_bundle(candidate, settings):
-                continue
             reasons.append(f"GMGN {label} is {float(value):.0%}, above {ceiling:.0%}")
     return list(dict.fromkeys(reasons))
 

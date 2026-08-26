@@ -1674,8 +1674,10 @@ def test_gmgn_direct_manipulation_evidence_is_a_hard_stop(tmp_path):
     coin.provider_evidence["gmgn"] = {"washTrading": True}
     assert "GMGN detected wash trading" in rug_or_bundle(coin, settings)
 
+    # Historical launch bundling is context, not a hard stop. Current holder
+    # and developer concentration are enforced separately.
     coin.provider_evidence["gmgn"] = {"bundlerRate": 0.41}
-    assert any("bundled launch flow" in reason for reason in rug_or_bundle(coin, settings))
+    assert rug_or_bundle(coin, settings) == []
 
     coin.provider_evidence["gmgn"] = {"insiderRate": 0.35}
     assert any("insider/rat-trader" in reason for reason in rug_or_bundle(coin, settings))
@@ -1693,7 +1695,7 @@ def test_gmgn_direct_manipulation_evidence_is_a_hard_stop(tmp_path):
     assert any("top 10 circulating wallets hold 62%" in reason for reason in rug_or_bundle(coin, settings))
 
 
-def test_old_launch_bundle_can_pass_only_after_measured_redistribution(tmp_path):
+def test_old_launch_bundle_is_context_while_current_concentration_is_enforced(tmp_path):
     from brief.journal import risk_labels, rug_or_bundle
     from brief.models import SafetyReport
 
@@ -1725,9 +1727,10 @@ def test_old_launch_bundle_can_pass_only_after_measured_redistribution(tmp_path)
     assert not any("bundled launch flow" in reason for reason in rug_or_bundle(coin, settings))
     assert any("launch bundle" in label for label in risk_labels(coin, settings, NOW))
 
-    # The same launch remains blocked if current ownership is concentrated.
+    # The launch metric itself remains informational even when ownership later
+    # concentrates; the independent top-holder gate blocks the token instead.
     coin.safety.top10_pct = 35.0
-    assert any("bundled launch flow" in reason for reason in rug_or_bundle(coin, settings))
+    assert not any("bundled launch flow" in reason for reason in rug_or_bundle(coin, settings))
 
 
 def test_gmgn_market_fees_are_not_misread_as_transfer_tax(tmp_path):
