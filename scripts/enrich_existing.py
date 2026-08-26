@@ -300,7 +300,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=ROOT / "output" / "enriched-current-40.json")
     parser.add_argument(
         "--curated", type=Path,
-        default=ROOT / "output" / "curated-lore-current-40.json",
+        default=ROOT / "brief" / "curated_lore.json",
     )
     parser.add_argument("--merge-curated-only", action="store_true")
     args = parser.parse_args()

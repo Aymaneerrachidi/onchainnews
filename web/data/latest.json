@@ -95026,7 +95026,7 @@
     "LP lock unknown",
     "no contract safety source covers this chain"
    ],
-   "lore": "",
+   "lore": "BEM is the mined asset in TapeOut's Proof-of-Design system: users acquire transistor primitives, design circuits, assemble on-chain mining machines and compete on layout efficiency.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 444770.23,
@@ -95724,6 +95724,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "BEM is the mined asset in TapeOut's Proof-of-Design system: users acquire transistor primitives, design circuits, assemble on-chain mining machines and compete on layout efficiency.",
+     "sourceUrl": "https://twstalker.com/raimen1983"
     }
    },
    "lifecycleEvents": [
@@ -96141,7 +96145,7 @@
     "thin pool, 63x its liquidity traded",
     "active Dexscreener boost"
    ],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for BARK.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 83736.66,
@@ -96576,6 +96580,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for BARK.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -96639,7 +96647,7 @@
     "active Dexscreener boost",
     "fading, down 25% in the last hour"
    ],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for PROXY.",
    "loreIsFresh": true,
    "faded": -24.87,
    "volume6h": 214857.7,
@@ -96943,6 +96951,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for PROXY.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -97003,7 +97015,7 @@
    "securityFlags": [],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "The Council is based on a fictional online cult that spread through viral YouTube Shorts and became a recurring internet character universe.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 1218916.6,
@@ -97663,6 +97675,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "The Council is based on a fictional online cult that spread through viral YouTube Shorts and became a recurring internet character universe.",
+     "sourceUrl": "https://lorescreener.com/entry/the-council"
     }
    },
    "lifecycleEvents": [
@@ -97731,7 +97747,7 @@
    "securityFlags": [],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "Exact-contract results identify the token as Unc Ash and show active trading calls, but no verifiable character origin or project story was found.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 448106.03,
@@ -98011,6 +98027,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "Exact-contract results identify the token as Unc Ash and show active trading calls, but no verifiable character origin or project story was found.",
+     "sourceUrl": "https://www.solflare.com/pt-pt/precos/unc-ash/4kKgb1AyKo3xpbspPk6PkRxaaUtiYw3FLPbSpbZxpump/"
     }
    },
    "lifecycleEvents": [
@@ -110454,7 +110474,7 @@
     "LP lock unknown",
     "no contract safety source covers this chain"
    ],
-   "lore": "",
+   "lore": "BEM is the mined asset in TapeOut's Proof-of-Design system: users acquire transistor primitives, design circuits, assemble on-chain mining machines and compete on layout efficiency.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 444770.23,
@@ -111152,6 +111172,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "BEM is the mined asset in TapeOut's Proof-of-Design system: users acquire transistor primitives, design circuits, assemble on-chain mining machines and compete on layout efficiency.",
+     "sourceUrl": "https://twstalker.com/raimen1983"
     }
    },
    "lifecycleEvents": [
@@ -111222,7 +111246,7 @@
     "LP lock unknown",
     "ticker also used by 1 other recent mint(s)"
    ],
-   "lore": "",
+   "lore": "Prologue is Fables' dynamic-fee ve(3,3) exchange on Robinhood Chain, built with Uniswap v4; its launch token is intended to redeem for the governance token at TGE.",
    "loreIsFresh": false,
    "faded": null,
    "volume6h": 306250.58,
@@ -111755,6 +111779,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Prologue is Fables' dynamic-fee ve(3,3) exchange on Robinhood Chain, built with Uniswap v4; its launch token is intended to redeem for the governance token at TGE.",
+     "sourceUrl": "https://www.coinbase.com/en-in/price/prologue"
     }
    },
    "lifecycleEvents": [],
@@ -111810,7 +111838,7 @@
     "thin pool, 63x its liquidity traded",
     "active Dexscreener boost"
    ],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for BARK.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 83736.66,
@@ -112245,6 +112273,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for BARK.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -112308,7 +112340,7 @@
     "active Dexscreener boost",
     "fading, down 25% in the last hour"
    ],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for PROXY.",
    "loreIsFresh": true,
    "faded": -24.87,
    "volume6h": 214857.7,
@@ -112612,6 +112644,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for PROXY.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -113387,6 +113423,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "internet-animals",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -114193,7 +114233,7 @@
    "securityFlags": [],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "The Council is based on a fictional online cult that spread through viral YouTube Shorts and became a recurring internet character universe.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 1218916.6,
@@ -114853,6 +114893,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "The Council is based on a fictional online cult that spread through viral YouTube Shorts and became a recurring internet character universe.",
+     "sourceUrl": "https://lorescreener.com/entry/the-council"
     }
    },
    "lifecycleEvents": [
@@ -114921,7 +114965,7 @@
    "securityFlags": [],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "Exact-contract results identify the token as Unc Ash and show active trading calls, but no verifiable character origin or project story was found.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 448106.03,
@@ -115201,6 +115245,10 @@
     },
     "editorial": {
      "published": true
+    },
+    "why": {
+     "cause": "Exact-contract results identify the token as Unc Ash and show active trading calls, but no verifiable character origin or project story was found.",
+     "sourceUrl": "https://www.solflare.com/pt-pt/precos/unc-ash/4kKgb1AyKo3xpbspPk6PkRxaaUtiYw3FLPbSpbZxpump/"
     }
    },
    "lifecycleEvents": [
@@ -115272,7 +115320,7 @@
     "LP lock unknown",
     "active Dexscreener boost"
    ],
-   "lore": "",
+   "lore": "Lil Uni uses the unicorn hidden in Uniswap's 404 page as its mascot and presents itself as an unaffiliated Robinhood Chain community takeover.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 83145.17,
@@ -115916,6 +115964,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Lil Uni uses the unicorn hidden in Uniswap's 404 page as its mascot and presents itself as an unaffiliated Robinhood Chain community takeover.",
+     "sourceUrl": "https://lilunicoin.com/"
     }
    },
    "lifecycleEvents": [
@@ -115978,7 +116030,7 @@
    "riskLabels": [
     "no trade at all in the last hour"
    ],
-   "lore": "",
+   "lore": "BOBOHOOD is linked by wallet-tracing posts to artist Marcello, creator of Pistacio; the attribution is social evidence rather than a formal project statement.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 40470.25,
@@ -116244,6 +116296,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "BOBOHOOD is linked by wallet-tracing posts to artist Marcello, creator of Pistacio; the attribution is social evidence rather than a formal project statement.",
+     "sourceUrl": "https://zamantika.com/profile/frostybabax"
     }
    },
    "lifecycleEvents": [],
@@ -116305,7 +116361,7 @@
     "no contract safety source covers this chain",
     "fading, down 39% in the last hour"
    ],
-   "lore": "",
+   "lore": "Indexed exact-contract posts identify \u778e\u732b as the 'blind cat' BSC meme, but no reliable original character source or outside catalyst was found.",
    "loreIsFresh": true,
    "faded": -38.61,
    "volume6h": 23403.12,
@@ -117011,6 +117067,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Indexed exact-contract posts identify \u778e\u732b as the 'blind cat' BSC meme, but no reliable original character source or outside catalyst was found.",
+     "sourceUrl": "https://search.yahoo.co.jp/realtime/search/FB/?ei=UTF-8&ifr=tl_unit&p=fb09&rkf=1"
     }
    },
    "lifecycleEvents": [],
@@ -117067,7 +117127,7 @@
     "3.0% tax on every trade",
     "no contract safety source covers this chain"
    ],
-   "lore": "",
+   "lore": "Exact-contract X posts describe TAPEOUT\u7ade\u901f as a TapeOut BSC circuit-design competition built around NAND/LATCH layouts; independent project documentation remains limited.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 18691.0,
@@ -117659,6 +117719,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Exact-contract X posts describe TAPEOUT\u7ade\u901f as a TapeOut BSC circuit-design competition built around NAND/LATCH layouts; independent project documentation remains limited.",
+     "sourceUrl": "https://mobile.twstalker.com/A8_Pedro"
     }
    },
    "lifecycleEvents": [],
@@ -117711,7 +117775,7 @@
    "securityFlags": [],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "Exact-contract pages identify Astro Markets, but deeper web and X searches found no reliable explanation of its product, origin, or catalyst.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 815406.57,
@@ -117918,6 +117982,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Exact-contract pages identify Astro Markets, but deeper web and X searches found no reliable explanation of its product, origin, or catalyst.",
+     "sourceUrl": "https://tlmtr.io/ch/channels/2159136506-dextools_updates_new/posts"
     }
    },
    "lifecycleEvents": [
@@ -118371,6 +118439,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "pons",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -118425,7 +118497,7 @@
    ],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "Exact-contract social results confirm KOI-MAN and its @KOIMANSol identity, but no independently verifiable origin story surfaced.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 147304.21,
@@ -118736,6 +118808,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Exact-contract social results confirm KOI-MAN and its @KOIMANSol identity, but no independently verifiable origin story surfaced.",
+     "sourceUrl": "https://www.sotwe.com/DexEventcat"
     }
    },
    "lifecycleEvents": [],
@@ -118796,7 +118872,7 @@
     "1.0% tax on every trade",
     "no contract safety source covers this chain"
    ],
-   "lore": "",
+   "lore": "Deep exact-contract search identifies Meekocoin, but found no reliable project origin, character story, or outside catalyst beyond market pages.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 38090.65,
@@ -119490,6 +119566,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Deep exact-contract search identifies Meekocoin, but found no reliable project origin, character story, or outside catalyst beyond market pages.",
+     "sourceUrl": "https://scalper.news/token/bsc/0x2C43C41E8De000DB5c12264E627CB6F813d37777"
     }
    },
    "lifecycleEvents": [],
@@ -119547,7 +119627,7 @@
     "only 3.0h old",
     "fading, down 37% in the last hour"
    ],
-   "lore": "",
+   "lore": "Exact-contract discovery links ZOLAR to zolar.cash and an X account, but indexed sources do not expose enough project material to verify a deeper story.",
    "loreIsFresh": true,
    "faded": -36.62,
    "volume6h": 637534.61,
@@ -119865,6 +119945,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Exact-contract discovery links ZOLAR to zolar.cash and an X account, but indexed sources do not expose enough project material to verify a deeper story.",
+     "sourceUrl": "https://tlmtr.io/es/channels/2478890607-trendscoinsteam/posts"
     }
    },
    "lifecycleEvents": [],
@@ -120646,7 +120730,7 @@
    "riskLabels": [
     "LP lock unknown"
    ],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for KITTY on Robinhood Chain.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 183492.78,
@@ -120971,6 +121055,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for KITTY on Robinhood Chain.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -121023,7 +121111,7 @@
    "securityFlags": [],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "Trickshot is presented in indexed X posts as a Helius-powered tool by Nathan Liow for replaying notable on-chain trading plays; the exact contract is corroborated by trading archives.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 110365.62,
@@ -121478,6 +121566,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Trickshot is presented in indexed X posts as a Helius-powered tool by Nathan Liow for replaying notable on-chain trading plays; the exact contract is corroborated by trading archives.",
+     "sourceUrl": "https://w.twstalker.com/winiam4444"
     }
    },
    "lifecycleEvents": [
@@ -122612,7 +122704,7 @@
    "securityFlags": [],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for BLACKBEAR.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 608791.97,
@@ -122929,6 +123021,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for BLACKBEAR.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -123715,6 +123811,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "cat",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [
@@ -123781,7 +123881,7 @@
    "riskLabels": [
     "LP lock unknown"
    ],
-   "lore": "",
+   "lore": "YOLO is a Robinhood Chain community meme built around the familiar 'You Only Live Once' slogan and mascot branding.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 148211.86,
@@ -124434,6 +124534,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "YOLO is a Robinhood Chain community meme built around the familiar 'You Only Live Once' slogan and mascot branding.",
+     "sourceUrl": "https://yolorh.com/"
     }
    },
    "lifecycleEvents": [],
@@ -124489,7 +124593,7 @@
     "thin pool, 67x its liquidity traded",
     "active Dexscreener boost"
    ],
-   "lore": "",
+   "lore": "Baton references Baton Corporation, the former legal identity behind Pump.fun; this later dog-meme token explicitly says it is unaffiliated.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 66503.91,
@@ -124966,6 +125070,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Baton references Baton Corporation, the former legal identity behind Pump.fun; this later dog-meme token explicitly says it is unaffiliated.",
+     "sourceUrl": "https://batoncoin.fun/"
     }
    },
    "lifecycleEvents": [],
@@ -127172,7 +127280,7 @@
    "riskLabels": [
     "68x its market cap traded in 24h"
    ],
-   "lore": "",
+   "lore": "\u306e\u3042\u3061\u3083\u3093 draws on a cute Google Japan mascot highlighted around International Dog Day; exact-contract posts connect the character to this BSC token.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 7256.99,
@@ -127883,6 +127991,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "\u306e\u3042\u3061\u3083\u3093 draws on a cute Google Japan mascot highlighted around International Dog Day; exact-contract posts connect the character to this BSC token.",
+     "sourceUrl": "https://tlmtr.io/en/channels/1541757109-bidaopd"
     }
    },
    "lifecycleEvents": [],
@@ -129275,7 +129387,7 @@
     "LP lock unknown",
     "active Dexscreener boost"
    ],
-   "lore": "",
+   "lore": "NASDANQ is a stock-index parody whose site publishes a composite intended to track liquidity, volume and price across Robinhood Chain memecoins.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 255116.96,
@@ -129762,6 +129874,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "NASDANQ is a stock-index parody whose site publishes a composite intended to track liquidity, volume and price across Robinhood Chain memecoins.",
+     "sourceUrl": "https://nasdanqonrh.com/"
     }
    },
    "lifecycleEvents": [
@@ -131070,7 +131186,7 @@
     "1.0% tax on every trade",
     "no contract safety source covers this chain"
    ],
-   "lore": "",
+   "lore": "\u6211\u7684\u5e01\u5b89\u4eba\u751f ('My Binance Life') is a satirical tribute to Binance-founder and memecoin culture, represented by a cartoon figure grabbing coins; indexed smart-money posts confirm the exact contract.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 156051.03,
@@ -131767,6 +131883,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "\u6211\u7684\u5e01\u5b89\u4eba\u751f ('My Binance Life') is a satirical tribute to Binance-founder and memecoin culture, represented by a cartoon figure grabbing coins; indexed smart-money posts confirm the exact contract.",
+     "sourceUrl": "https://zamantika.com/profile/laoyingkhq"
     }
    },
    "lifecycleEvents": [],
@@ -132987,7 +133107,7 @@
     "LP lock unknown",
     "active Dexscreener boost"
    ],
-   "lore": "",
+   "lore": "Robin Hood (FOX) is an unaffiliated Robinhood Chain community meme using a fox as the legendary Robin Hood mascot, echoing familiar animated depictions.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 104879.53,
@@ -133355,6 +133475,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Robin Hood (FOX) is an unaffiliated Robinhood Chain community meme using a fox as the legendary Robin Hood mascot, echoing familiar animated depictions.",
+     "sourceUrl": "https://www.0xcoral.com/t/robinhood/0x2103faa9d1762e27a716c61718b3acf3ec1f9bf1"
     }
    },
    "lifecycleEvents": [],
@@ -133412,7 +133536,7 @@
     "ticker also used by 4 other recent mint(s)",
     "fading, down 19% in the last hour"
    ],
-   "lore": "",
+   "lore": "Exact-contract pages confirm MEOW as an unverified Robinhood Chain cat meme, but no reliable character origin, utility, or outside catalyst was found.",
    "loreIsFresh": false,
    "faded": -18.73,
    "volume6h": 121374.71,
@@ -134063,6 +134187,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Exact-contract pages confirm MEOW as an unverified Robinhood Chain cat meme, but no reliable character origin, utility, or outside catalyst was found.",
+     "sourceUrl": "https://hashlink.me/0x75c8258eaa6d0f94b82951194191ca3efb0bcbe2"
     }
    },
    "lifecycleEvents": [
@@ -134125,7 +134253,7 @@
    "riskLabels": [
     "only 0.9h old"
    ],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for BABYP.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 430924.48,
@@ -134335,6 +134463,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for BABYP.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -135089,7 +135221,7 @@
    "riskLabels": [
     "taxed token: 5.0% is taken on every trade"
    ],
-   "lore": "",
+   "lore": "NianNian is framed as the 'Master Cat' of the Giggle Academy universe and appears in its stories and lessons; exact-contract posts tie this token to that character.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 45095.16,
@@ -135539,6 +135671,10 @@
     },
     "editorial": {
      "published": false
+    },
+    "why": {
+     "cause": "NianNian is framed as the 'Master Cat' of the Giggle Academy universe and appears in its stories and lessons; exact-contract posts tie this token to that character.",
+     "sourceUrl": "https://zamantika.com/profile/gigglecatxyz"
     }
    },
    "lifecycleEvents": [],
@@ -135593,7 +135729,7 @@
    "riskLabels": [
     "LP lock unknown"
    ],
-   "lore": "",
+   "lore": "On-chain indexing confirms token 6 was deployed through the Pons V2 launcher, but no reliable narrative or outside catalyst was discoverable.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 77375.74,
@@ -136031,6 +136167,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "On-chain indexing confirms token 6 was deployed through the Pons V2 launcher, but no reliable narrative or outside catalyst was discoverable.",
+     "sourceUrl": "https://robinscout.gitlawb.com/address/0xb245a0e4bcf6f7961b68785d54ccdf51eac906c1"
     }
    },
    "lifecycleEvents": [
@@ -136091,7 +136231,7 @@
    "securityFlags": [],
    "rugged": false,
    "riskLabels": [],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for PITCOIN.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 418500.83,
@@ -136815,6 +136955,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for PITCOIN.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
@@ -136873,7 +137017,7 @@
    "riskLabels": [
     "active Dexscreener boost"
    ],
-   "lore": "",
+   "lore": "Indexed X posts tie OFFICE to a Grok Bot 'digital office' concept with persistent AI agents, but no independent project documentation was found.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 67595.18,
@@ -137260,6 +137404,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Indexed X posts tie OFFICE to a Grok Bot 'digital office' concept with persistent AI agents, but no independent project documentation was found.",
+     "sourceUrl": "https://mobile.twstalker.com/19Dng"
     }
    },
    "lifecycleEvents": [],
@@ -137318,7 +137466,7 @@
    "riskLabels": [
     "LP lock unknown"
    ],
-   "lore": "",
+   "lore": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for FUEL on Robinhood Chain.",
    "loreIsFresh": true,
    "faded": null,
    "volume6h": 33872.27,
@@ -137704,6 +137852,10 @@
       "provider-union"
      ],
      "snapshotCountKnown": true
+    },
+    "why": {
+     "cause": "Deep exact-contract web and X search found no reliable origin story or outside catalyst for FUEL on Robinhood Chain.",
+     "sourceUrl": ""
     }
    },
    "lifecycleEvents": [],
