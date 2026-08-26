@@ -44,3 +44,4 @@ web/.playwright-mcp/
 /output/*.log
 /output/email-sent.*
 node_modules/
+*.traineddata

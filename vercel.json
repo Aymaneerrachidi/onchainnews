@@ -34,6 +34,14 @@
     {
       "source": "/control",
       "destination": "/control.html"
+    },
+    {
+      "source": "/join",
+      "destination": "/access.html"
+    },
+    {
+      "source": "/member-site",
+      "destination": "/api/member-access?action=site"
     }
   ]
 }

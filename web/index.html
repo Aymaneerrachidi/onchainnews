@@ -67,7 +67,7 @@ a:hover{color:var(--red)}
 .ticker span{font-size:.74rem;white-space:nowrap;letter-spacing:.02em}
 
 /* ---------- stats ---------- */
-.stats{display:grid;grid-template-columns:repeat(6,1fr);background:var(--line);gap:1px;border-bottom:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);background:var(--line);gap:1px;border-bottom:1px solid var(--line)}
 .stat{background:var(--paper-2);padding:1rem .9rem}
 .stat span{display:block;font-size:.58rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
 .stat b{font-family:var(--display);font-size:clamp(1.4rem,3vw,2.5rem);line-height:1;display:block}
@@ -505,14 +505,17 @@ function render(d) {
   $("#freshness").textContent = hours < 1 ? "Updated just now" : hours < 24 ? `Updated ${Math.round(hours)}h ago` : `Snapshot ${Math.round(hours / 24)}d old`;
   $("#rule").textContent = d.journalRule || $("#rule").textContent;
 
-  const s = d.summary;
+  const tierCounts = DATA.collections.validated.reduce((counts, runner) => {
+    const tier = String(runner.runnerTier || "BELOW").toUpperCase();
+    counts[tier] = (counts[tier] || 0) + 1;
+    return counts;
+  }, {});
   $("#stats").innerHTML = [
-    ["Validated runners", DATA.collections.validated.length, true],
-    ["$1M+ peaks", s.tierS ?? 0, false],
-    ["$500K–$1M", s.tierA ?? 0, false],
-    ["$250K–$500K", s.tierB ?? 0, false],
-    ["X enriched", DATA.collections.validated.filter((r) => (r.xInteractions || []).length).length, false],
-    ["Chains", new Set(DATA.collections.validated.map((r) => r.chain).filter(Boolean)).size, false],
+    ["Total runners", DATA.collections.validated.length, true],
+    ["$1M+ peaks", tierCounts.S || 0, false],
+    ["$500K-$1M peaks", tierCounts.A || 0, false],
+    ["$250K-$500K peaks", tierCounts.B || 0, false],
+    ["Below $250K now", tierCounts.BELOW || 0, false],
   ].map(([l, v, hot], i) => `<div class="stat ${hot ? "hot" : ""} rv" style="animation-delay:${i * 50}ms"><span>${l}</span><b>${v}</b></div>`).join("");
 
   const validated = DATA.collections.validated;
