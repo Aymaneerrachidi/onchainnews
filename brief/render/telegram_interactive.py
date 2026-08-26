@@ -43,7 +43,9 @@ def _in_band(peak: float, band: str) -> bool:
         return 1_000_000 <= peak < 10_000_000
     if band == "10m-plus":
         return peak >= 10_000_000
-    return peak >= 250_000
+    # "All caps" must mean the complete validated runner universe. Named cap
+    # bands retain their explicit floors.
+    return True
 
 
 def filter_rows(snapshot: dict[str, Any], chain: str = "all", band: str = "all") -> list[dict[str, Any]]:

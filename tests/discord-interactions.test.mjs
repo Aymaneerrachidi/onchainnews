@@ -226,6 +226,20 @@ test("runner filters combine chain and verified 24h peak bands", () => {
   );
 });
 
+test("all-caps delivery preserves every validated runnerUniverse row", () => {
+  const snapshot = {
+    runnerUniverse: [
+      safeRunner(),
+      safeRunner({ symbol: "LOW", mint: "mint-low", peakMarketCap: 218_000 }),
+      safeRunner({ symbol: "THIN", mint: "mint-thin", liquidity: 1 }),
+    ],
+  };
+  assert.deepEqual(
+    filterRunnerRows(snapshot, "all", "all").map((row) => row.symbol),
+    ["RUN", "THIN", "LOW"],
+  );
+});
+
 
 test("Discord controls use balanced rows and visible filter state", () => {
   const initial = publicComponents(1234, "20260825");

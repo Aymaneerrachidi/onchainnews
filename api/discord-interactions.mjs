@@ -496,7 +496,7 @@ function inBand(peak, band) {
   if (band === "500k-1m") return peak >= 500000 && peak < 1000000;
   if (band === "1m-10m") return peak >= 1000000 && peak < 10000000;
   if (band === "10m-plus") return peak >= 10000000;
-  return peak >= 250000;
+  return true;
 }
 
 export function filterRunnerRows(snapshot, chain = "all", band = "all") {
@@ -507,7 +507,9 @@ export function filterRunnerRows(snapshot, chain = "all", band = "all") {
   for (const row of source) {
     const rowChain = String(row?.chain || "").toLowerCase();
     const key = `${rowChain}:${String(row?.mint || "").toLowerCase()}`;
-    if (!securityEligible(row) || !activityEligible(row)) continue;
+    // runnerUniverse is the scan's already-validated, fail-closed publication
+    // set. Reapplying interaction-only gates here made Discord/Telegram hide
+    // valid runners that were present on the website.
     if (chain !== "all" && rowChain !== chain) continue;
     if (!inBand(runnerPeak(row), band)) continue;
     const existing = unique.get(key);

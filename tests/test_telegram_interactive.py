@@ -44,6 +44,11 @@ def test_interactive_message_has_fomo_links_filters_and_pagination() -> None:
     assert [item["symbol"] for item in filter_rows(snapshot, "bsc", "1m-10m")] == ["BNB"]
 
 
+def test_all_caps_includes_validated_runner_below_250k() -> None:
+    snapshot = {"runnerUniverse": [row("LOW", "low-mint", "solana", 218_000)]}
+    assert [item["symbol"] for item in filter_rows(snapshot)] == ["LOW"]
+
+
 @pytest.mark.asyncio
 async def test_delivery_forwards_html_and_inline_keyboard(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "bot-token")
