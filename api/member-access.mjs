@@ -112,11 +112,74 @@ async function localWrite(store) {
   await writeFile(LOCAL_STORE, `${JSON.stringify(store, null, 2)}\n`, "utf8");
 }
 
+function supabaseConfig(env = process.env) {
+  const url = String(env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = String(env.SUPABASE_SECRET_KEY || "");
+  return url && key ? { url, key } : null;
+}
+
+async function supabaseRequest(pathname, options = {}) {
+  const config = supabaseConfig();
+  if (!config) return null;
+  const authHeaders = config.key.startsWith("sb_secret_")
+    ? { apikey: config.key }
+    : { apikey: config.key, authorization: `Bearer ${config.key}` };
+  const response = await fetch(`${config.url}/rest/v1/${pathname}`, {
+    ...options,
+    headers: {
+      ...authHeaders,
+      "content-type": "application/json",
+      ...options.headers,
+    },
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    const error = new Error(detail.message || detail.details || `Supabase request failed (${response.status})`);
+    error.status = response.status;
+    error.code = detail.code;
+    throw error;
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
 async function getMember(email) {
+  if (supabaseConfig()) {
+    const rows = await supabaseRequest(`members?email=eq.${encodeURIComponent(email)}&select=*`);
+    const member = rows?.[0];
+    return member ? {
+      email: member.email,
+      approved: member.approved,
+      approvedAt: member.approved_at,
+      proofHash: member.proof_hash,
+      verifiedReferrer: member.verified_referrer,
+      fomoEmail: member.fomo_email,
+    } : null;
+  }
   return (await localRead()).members[email] || null;
 }
 
 async function approveMember(email, proofHash, proof) {
+  if (supabaseConfig()) {
+    try {
+      await supabaseRequest("members?on_conflict=email", {
+        method: "POST",
+        headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({
+          email,
+          approved: true,
+          approved_at: new Date().toISOString(),
+          proof_hash: proofHash,
+          verified_referrer: proof.referrer,
+          fomo_email: proof.fomoEmail || null,
+        }),
+      });
+      return;
+    } catch (error) {
+      if (error.status === 409 || error.code === "23505") throw new Error("This proof was already used");
+      throw error;
+    }
+  }
   const store = await localRead();
   const production = process.env.VERCEL_ENV === "production";
   if (production && store.proofs[proofHash] && store.proofs[proofHash] !== email) {
