@@ -307,8 +307,26 @@ def main() -> None:
     output = args.output.resolve()
     curated = args.curated.resolve() if args.curated else None
     if args.merge_curated_only:
-        result = json.loads(output.read_text(encoding="utf-8"))
+        result = json.loads(output.read_text(encoding="utf-8")) if output.exists() else {}
+        source = json.loads(args.source.resolve().read_text(encoding="utf-8"))
+        source_rows = list(source.get("runnerUniverse") or source.get("runners") or [])[:args.limit]
+        saved_by_mint = {
+            str(row.get("mint") or "").lower(): row
+            for row in result.get("coins") or []
+            if isinstance(row, dict) and row.get("mint")
+        }
+        # A fresh scan may have a completely different runner board. Seed the
+        # editorial artifact from that board, retaining any prior enrichment
+        # only for contracts that are still present.
+        result["coins"] = [
+            {**dict(row), **saved_by_mint.get(str(row.get("mint") or "").lower(), {})}
+            for row in source_rows
+        ]
+        result["generatedAt"] = source.get("generatedAt")
+        result["source"] = str(args.source)
+        result["fixedContracts"] = len(result["coins"])
         applied = _apply_curated(result, curated)
+        output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps({"output": str(output), "codexWebResearchedCoins": applied}))
         return

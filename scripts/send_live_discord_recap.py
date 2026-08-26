@@ -1367,7 +1367,7 @@ async def main() -> int:
         out.write_text(json.dumps(posts, ensure_ascii=False, indent=2), encoding="utf-8")
         print(
             f"dry_run=true coins={len(candidates)} posts={len(posts)} repriced={refreshed} "
-            f"x_enriched={x_enriched} snapshot_x_enriched={merged_x_context} output={out}"
+            f"x_enriched={x_enriched} snapshot_enriched={merged_enrichment} output={out}"
         )
         return 0
 
