@@ -52,14 +52,31 @@ export function readToken(token, expectedKind, now = Date.now(), key = secret())
   }
 }
 
-export function parseProofText(text) {
+export function parseProofText(text, image = {}) {
   const normalized = String(text || "").toLowerCase()
     .replace(/[^a-z0-9@._\s-]/g, " ").replace(/\s+/g, " ");
   const referrer = /account\s+referrer[\s\S]{0,100}@?\s*orangie\b/.test(normalized);
   const accountScreen = /account\s+referrer/.test(normalized)
     && (/manage\s+account/.test(normalized) || /login\s+email/.test(normalized));
+  const portraitPhone = Number(image.width) > 0 && Number(image.height) > Number(image.width) * 1.45;
+  const phoneChrome = /\b(?:4g|5g|lte)\b/.test(normalized);
+  const mobileSignals = [
+    /\bfollowing\b[\s\S]{0,40}\bfollowers\b/.test(normalized),
+    /\bno\s+hold\s+time\b/.test(normalized) && /\btrades?\b/.test(normalized) && /\bjoined\b/.test(normalized),
+    /\bno\s+positions\s+yet\b/.test(normalized) && /\b24h\b[\s\S]{0,40}\b7d\b[\s\S]{0,40}\b30d\b/.test(normalized),
+    /\bget\s+your\s+first\s+token\b/.test(normalized) && /\bbuy\s+now\b/.test(normalized),
+  ].filter(Boolean).length;
+  // The phone app does not expose Account referrer. Accept only a complete,
+  // portrait Fomo profile: phone chrome plus at least three independent app
+  // sections. A portrait crop of the desktop account modal cannot satisfy it.
+  const mobileProfile = portraitPhone && phoneChrome && mobileSignals >= 3;
   const email = normalizeEmail((normalized.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/) || [""])[0]);
-  return { approved: referrer && accountScreen, referrer: referrer ? "@orangie" : "", fomoEmail: email };
+  return {
+    approved: (referrer && accountScreen) || mobileProfile,
+    referrer: referrer ? "@orangie" : mobileProfile ? "mobile-fomo-profile" : "",
+    fomoEmail: email,
+    proofType: referrer && accountScreen ? "desktop-referral" : mobileProfile ? "mobile-profile" : "unverified",
+  };
 }
 
 export async function readProof(buffer) {
@@ -74,7 +91,9 @@ export async function readProof(buffer) {
     .resize({ width: 1400, withoutEnlargement: false })
     .grayscale().normalize().png().toBuffer();
   const full = await sharp(buffer)
-    .resize({ width: 2000, withoutEnlargement: true })
+    // Phone screenshots need enlargement for the small activity labels that
+    // distinguish a real app profile from a cropped desktop account modal.
+    .resize({ width: 2000, withoutEnlargement: false })
     .grayscale().normalize().png().toBuffer();
   const broadLeft = Math.floor(metadata.width * 0.18);
   const broadTop = Math.floor(metadata.height * 0.05);
@@ -96,10 +115,10 @@ export async function readProof(buffer) {
   for (const candidate of [crop, broad, full]) {
     const result = await Tesseract.recognize(candidate, "eng");
     texts.push(result.data.text);
-    const parsed = parseProofText(texts.join("\n"));
+    const parsed = parseProofText(texts.join("\n"), metadata);
     if (parsed.approved) return parsed;
   }
-  return parseProofText(texts.join("\n"));
+  return parseProofText(texts.join("\n"), metadata);
 }
 
 async function localRead() {
@@ -163,9 +182,9 @@ async function getMember(email) {
 async function approveMember(email, proofHash, proof) {
   if (supabaseConfig()) {
     try {
-      await supabaseRequest("members?on_conflict=email", {
+      await supabaseRequest("members", {
         method: "POST",
-        headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+        headers: { prefer: "return=minimal" },
         body: JSON.stringify({
           email,
           approved: true,
@@ -177,11 +196,17 @@ async function approveMember(email, proofHash, proof) {
       });
       return;
     } catch (error) {
-      if (error.status === 409 || error.code === "23505") throw new Error("This proof was already used");
+      if (error.status === 409 || error.code === "23505") {
+        if (await getMember(email)) throw new Error("This email is already registered. Use Already approved to sign in.");
+        throw new Error("This proof was already used");
+      }
       throw error;
     }
   }
   const store = await localRead();
+  if (store.members[email]) {
+    throw new Error("This email is already registered. Use Already approved to sign in.");
+  }
   const production = process.env.VERCEL_ENV === "production";
   if (production && store.proofs[proofHash] && store.proofs[proofHash] !== email) {
     throw new Error("This proof was already used");
@@ -220,13 +245,16 @@ async function handleVerify(request) {
   const email = normalizeEmail(form.get("newsletterEmail"));
   const image = form.get("proof");
   if (!email) return json({ error: "Enter a valid newsletter email" }, 400);
+  if (await getMember(email)) {
+    return json({ error: "This email is already registered. Use Already approved to sign in." }, 409);
+  }
   if (!(image instanceof Blob) || !image.size || image.size > MAX_IMAGE_BYTES) {
     return json({ error: "Upload a screenshot under 8 MB" }, 400);
   }
   const buffer = Buffer.from(await image.arrayBuffer());
   const proofHash = createHash("sha256").update(buffer).digest("hex");
   const proof = await readProof(buffer);
-  if (!proof.approved) return json({ error: "The screenshot did not show Account referrer @orangie" }, 422);
+  if (!proof.approved) return json({ error: "Upload either the full Fomo mobile profile or the desktop account page showing Account referrer @orangie" }, 422);
   await approveMember(email, proofHash, proof);
   const session = issueToken("session", email, SESSION_AGE_SECONDS);
   return json({
