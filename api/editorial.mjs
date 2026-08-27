@@ -31,14 +31,14 @@ function validAdmin(username, password) {
   const fallbackUsername = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
   return equalSecret(username, fallbackUsername) && equalSecret(password, String(process.env.ADMIN_PASSWORD || ""));
 }
-function token() { const value = `${Date.now() + MAX_AGE * 1000}.${Math.random().toString(36).slice(2)}`; return `${value}.${signature(value)}`; }
+function token(username) { const value = `${Date.now() + MAX_AGE * 1000}.${Math.random().toString(36).slice(2)}.${username}`; return `${value}.${signature(value)}`; }
 function authorized(request) {
   const raw = String(request.headers.get("cookie") || "").match(/(?:^|;\s*)onchain_admin=([^;]+)/)?.[1] || "";
-  const [expires, nonce, supplied] = decodeURIComponent(raw).split(".");
-  if (!expires || !nonce || !supplied || Number(expires) < Date.now() || !secret()) return false;
-  const expected = signature(`${expires}.${nonce}`);
+  const [expires, nonce, username, supplied] = decodeURIComponent(raw).split(".");
+  if (!expires || !nonce || !username || !supplied || Number(expires) < Date.now() || !secret()) return "";
+  const expected = signature(`${expires}.${nonce}.${username}`);
   const a = Buffer.from(supplied), b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  return a.length === b.length && timingSafeEqual(a, b) ? username : "";
 }
 function cleanPatch(value = {}) {
   return Object.fromEntries(Object.entries(value).filter(([key]) => EDITABLE.has(key)).map(([key, item]) => [key, ["marketCap", "observedPeakMarketCap", "peakMarketCap", "holders", "liquidity", "top10Pct"].includes(key) ? (item === "" || item == null ? null : Number(item)) : String(item ?? "").trim()]));
@@ -93,11 +93,17 @@ export async function handleEditorial(request) {
       const suppliedUsername = String(body.username || "").trim().toLowerCase();
       const suppliedPassword = String(body.password || "");
       if (!validAdmin(suppliedUsername, suppliedPassword)) return response({ error: "Invalid username or password" }, 401);
-      return response({ authenticated: true }, 200, { "set-cookie": `${COOKIE}=${encodeURIComponent(token())}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${MAX_AGE}` });
+      const base = await baseSnapshot();
+      const state = reportState(base, await readEditorialState());
+      const at = new Date().toISOString();
+      state.audit = [{ at, operation: "login", actor: suppliedUsername, key: "admin" }, ...(state.audit || [])].slice(0, 250);
+      await writeEditorialState(state);
+      return response({ authenticated: true, actor: suppliedUsername }, 200, { "set-cookie": `${COOKIE}=${encodeURIComponent(token(suppliedUsername))}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${MAX_AGE}` });
     }
     if (request.method === "POST" && action === "logout") return response({ authenticated: false }, 200, { "set-cookie": `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0` });
-    if (!authorized(request)) return response({ error: "Authentication required" }, 401);
-    if (request.method === "GET" && action === "status") return response({ authenticated: true });
+    const actor = authorized(request);
+    if (!actor) return response({ error: "Authentication required" }, 401);
+    if (request.method === "GET" && action === "status") return response({ authenticated: true, actor });
     const base = await baseSnapshot();
     let state = reportState(base, await readEditorialState());
     if (request.method === "GET" && action === "state") return response({ state, snapshot: await mergedSnapshot() });
@@ -111,7 +117,7 @@ export async function handleEditorial(request) {
       if (exists) state.overrides = { ...(state.overrides || {}), [key]: runner };
       else state.added = [...(state.added || []).filter((item) => runnerKey(item) !== key), runner];
       state.updatedAt = new Date().toISOString();
-      state.audit = [{ at: state.updatedAt, operation: "import", key }, ...(state.audit || [])].slice(0, 100);
+      state.audit = [{ at: state.updatedAt, operation: "import", actor, key }, ...(state.audit || [])].slice(0, 250);
       await writeEditorialState(state);
       const snapshot = await mergedSnapshot();
       const publications = await publishEverywhere(snapshot, state);
@@ -124,11 +130,14 @@ export async function handleEditorial(request) {
       else if (body.operation === "add") { const row = { ...body.runner, chain: String(body.runner?.chain || "").toLowerCase(), mint: String(body.runner?.mint || "").trim() }; if (!row.chain || !row.mint || !row.symbol) return response({ error: "Chain, contract and ticker are required" }, 400); state.added = [...(state.added || []).filter((item) => runnerKey(item) !== runnerKey(row)), row]; }
       else { state.overrides = { ...(state.overrides || {}), [key]: { ...(state.overrides?.[key] || {}), ...cleanPatch(body.patch) } }; }
       state.updatedAt = new Date().toISOString();
-      state.audit = [{ at: state.updatedAt, operation: body.operation || "edit", key }, ...(state.audit || [])].slice(0, 100);
+      state.audit = [{ at: state.updatedAt, operation: body.operation || "edit", actor, key }, ...(state.audit || [])].slice(0, 250);
       await writeEditorialState(state); return response({ saved: true, snapshot: await mergedSnapshot() });
     }
     if (request.method === "POST" && action === "publish") {
       const snapshot = await mergedSnapshot();
+      state.updatedAt = new Date().toISOString();
+      state.audit = [{ at: state.updatedAt, operation: "publish", actor, key: "all-platforms" }, ...(state.audit || [])].slice(0, 250);
+      await writeEditorialState(state);
       const publications = await publishEverywhere(snapshot, state);
       return response({ published: true, ...publications, runnerCount: filterRunnerRows(snapshot).length });
     }

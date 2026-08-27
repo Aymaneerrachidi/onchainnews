@@ -353,6 +353,16 @@
       .editor { min-height: 620px; }
       .modal { backdrop-filter: blur(10px); }
       .login form { box-shadow: 0 30px 90px rgba(0,0,0,.32); }
+      .log-panel { width: min(980px, 100%); max-height: 88dvh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; }
+      .log-tools { display: grid; grid-template-columns: 1fr 210px; gap: 8px; margin: 18px 0 10px; }
+      .log-tools input, .log-tools select { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 8px; background: #0f1218; color: var(--ink); outline: none; }
+      .log-list { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+      .log-row { display: grid; grid-template-columns: 150px 105px 120px minmax(0, 1fr); gap: 14px; padding: 13px 14px; border-bottom: 1px solid var(--line); align-items: center; }
+      .log-row:last-child { border-bottom: 0; }
+      .log-row time, .log-row small { color: var(--muted); font: 12px/1.35 ui-monospace, "SFMono-Regular", Consolas, monospace; }
+      .log-row b { text-transform: capitalize; }
+      .log-actor { color: #b9c4ff; font-weight: 750; }
+      .log-empty { padding: 56px 20px; color: var(--muted); text-align: center; }
       @media (max-width: 820px) {
         .shell {
           padding: 14px;
@@ -394,6 +404,9 @@
         .actions .primary { grid-column: 1/-1; grid-row: 1; }
         .overview strong { font-size: 20px; }
         .filters { grid-template-columns: 1fr; }
+        .log-tools { grid-template-columns: 1fr; }
+        .log-row { grid-template-columns: 1fr auto; gap: 5px 12px; }
+        .log-row small { grid-column: 1/-1; }
       }
     </style>
   </head>
@@ -441,6 +454,7 @@
           </div>
           <div class="actions">
             <button id="add" class="btn">Add runner</button
+            ><button id="logs" class="btn">Activity logs</button
             ><button id="publish" class="btn primary">Publish everywhere</button
             ><button id="logout" class="btn">Log out</button>
           </div>
@@ -527,10 +541,24 @@
         <p id="add-status" class="status" role="status"></p>
       </form>
     </div>
+    <div id="logs-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="logs-title">
+      <section class="log-panel">
+        <header class="modal-head">
+          <div><h2 id="logs-title">Activity logs</h2><p>Operator actions on the current report, newest first.</p></div>
+          <button class="btn" type="button" id="close-logs">Close</button>
+        </header>
+        <div class="log-tools">
+          <input id="log-search" type="search" placeholder="Search operator, action, or contract" aria-label="Search activity logs">
+          <select id="log-operation" aria-label="Filter activity logs by action"><option value="all">All actions</option><option value="login">Logins</option><option value="edit">Edits</option><option value="hide">Removals</option><option value="import">Runner imports</option><option value="publish">Publishing</option></select>
+        </div>
+        <div id="log-list" class="log-list"></div>
+      </section>
+    </div>
     <script>
       const $ = (s) => document.querySelector(s);
       let data = null,
-        selected = "";
+        selected = "",
+        audit = [];
       const key = (r) =>
         `${String(r.chain || "").toLowerCase()}:${String(r.mint || "").toLowerCase()}`;
       const money = (n) => {
@@ -576,6 +604,7 @@
       async function load() {
         const x = await api("state");
         data = x.snapshot;
+        audit = x.state?.audit || [];
         $("#stamp").textContent =
           `Report ${new Date(data.generatedAt).toLocaleString()} · corrections reset on the next run`;
         renderList();
@@ -586,6 +615,18 @@
       }
       function rows() {
         return data?.runnerUniverse || data?.runners || [];
+      }
+      function renderLogs() {
+        const q = $("#log-search").value.trim().toLowerCase();
+        const operation = $("#log-operation").value;
+        const visible = audit.filter((entry) =>
+          (operation === "all" || entry.operation === operation) &&
+          `${entry.actor || "legacy"} ${entry.operation || "action"} ${entry.key || ""}`.toLowerCase().includes(q),
+        );
+        $("#log-list").innerHTML = visible.length ? visible.map((entry) => {
+          const date = new Date(entry.at);
+          return `<article class="log-row"><time datetime="${esc(entry.at)}">${esc(date.toLocaleString())}</time><span class="log-actor">${esc(entry.actor || "legacy")}</span><b>${esc(entry.operation || "action")}</b><small>${esc(entry.key || "report")}</small></article>`;
+        }).join("") : '<div class="log-empty">No activity matches these filters.</div>';
       }
       function renderList() {
         const q = $("#search").value.trim().toLowerCase(),
@@ -690,6 +731,15 @@
       $("#chain-filter").onchange = renderList;
       $("#cap-filter").onchange = renderList;
       $("#add").onclick = () => $("#modal").classList.remove("hidden");
+      $("#logs").onclick = async () => {
+        const x = await api("state");
+        audit = x.state?.audit || [];
+        renderLogs();
+        $("#logs-modal").classList.remove("hidden");
+      };
+      $("#close-logs").onclick = () => $("#logs-modal").classList.add("hidden");
+      $("#log-search").oninput = renderLogs;
+      $("#log-operation").onchange = renderLogs;
       $("#close-modal").onclick = () => $("#modal").classList.add("hidden");
       $("#add-form").onsubmit = async (e) => {
         e.preventDefault();
