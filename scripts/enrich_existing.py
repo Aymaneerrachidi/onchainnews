@@ -1,11 +1,15 @@
 """Enrich a fixed saved runner set without running market discovery again.
 
 Usage:
-    uv run python scripts/enrich_existing.py --limit 40
+    uv run python scripts/enrich_existing.py
 
 The command is deliberately delivery-free. It refreshes exact contracts from
 Dexscreener, scans the configured monitored X accounts, and uses sourced web
 research only where no legitimate X evidence matched that token.
+
+By default every contract in ``runnerUniverse`` is enriched. ``--limit`` is
+only an explicit troubleshooting override; publication code must never use it
+for a normal daily run.
 """
 
 from __future__ import annotations
@@ -178,6 +182,12 @@ def _apply_curated(result: dict[str, Any], curated_path: Path | None) -> int:
     return applied
 
 
+def _runner_rows(payload: dict[str, Any], limit: int = 0) -> list[dict[str, Any]]:
+    """Return the complete qualified universe unless a debug limit is explicit."""
+    rows = list(payload.get("runnerUniverse") or payload.get("runners") or [])
+    return rows[:limit] if limit > 0 else rows
+
+
 async def run(
     limit: int,
     source_path: Path,
@@ -186,7 +196,7 @@ async def run(
 ) -> None:
     settings = load_settings(ROOT / "config.toml")
     payload = json.loads(source_path.read_text(encoding="utf-8"))
-    rows = list(payload.get("runnerUniverse") or [])[:limit]
+    rows = _runner_rows(payload, limit)
     if not rows:
         raise RuntimeError(f"no runnerUniverse rows in {source_path}")
 
@@ -318,9 +328,12 @@ async def run(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--limit", type=int, default=40)
+    parser.add_argument(
+        "--limit", type=int, default=0,
+        help="debug-only cap; 0 (default) enriches the full qualified runner universe",
+    )
     parser.add_argument("--source", type=Path, default=ROOT / "web" / "data" / "latest.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "output" / "enriched-current-40.json")
+    parser.add_argument("--output", type=Path, default=ROOT / "output" / "enriched-current-all.json")
     parser.add_argument(
         "--curated", type=Path,
         default=ROOT / "brief" / "curated_lore.json",
@@ -332,7 +345,7 @@ def main() -> None:
     if args.merge_curated_only:
         result = json.loads(output.read_text(encoding="utf-8")) if output.exists() else {}
         source = json.loads(args.source.resolve().read_text(encoding="utf-8"))
-        source_rows = list(source.get("runnerUniverse") or source.get("runners") or [])[:args.limit]
+        source_rows = _runner_rows(source, args.limit)
         saved_by_mint = {
             str(row.get("mint") or "").lower(): row
             for row in result.get("coins") or []

@@ -839,6 +839,7 @@ def _dedupe(rows: list[dict], excluded: set[str]) -> list:
 def _saved_enrichment() -> dict[str, dict]:
     """Load exact-contract browser research without internal competitor copy."""
     paths = (
+        ROOT / "output" / "enriched-current-all.json",
         ROOT / "output" / "enriched-current-72.json",
         ROOT / "output" / "enriched-current-40.json",
     )
