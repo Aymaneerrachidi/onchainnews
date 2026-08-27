@@ -371,33 +371,36 @@ function fallbackDexEvidence(r) {
 }
 
 function usableNarrative(value) {
-  const text = String(value || "").replace(/\s+/g, " ").trim();
+  let text = String(value || "")
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/gi, "$1")
+    .replace(/(?:https?:\/\/|www\.)\S+/gi, "")
+    .replace(/(^|\s)@[A-Za-z0-9_]{1,30}\b/g, "$1")
+    .replace(/\b(?:0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{40,64})\b/g, "")
+    .replace(/\s+/g, " ").trim();
   const lowered = text.toLowerCase();
   if (!text || lowered.includes("mellometrics")) return "";
   if (lowered.includes("no monitored x account") || lowered.includes("no verified monitored-account match")) return "";
+  if (/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff]/.test(text)) return "";
+  if (text.length < 80) return "";
+  if (["follow me on", "crypto alpha", "warned you", "insta dumped", "just aped", "paired with"].some((phrase) => lowered.includes(phrase))) return "";
   return text;
 }
 
 function publicNarrative(r) {
-  const publicX = (r.xInteractions || []).find((item) =>
-    String(item.handle || "").toLowerCase() !== "mellometrics" && usableNarrative(item.summary));
-  const news = (r.newsEvidence || []).find((item) => usableNarrative(item.summary));
+  const status = String(r.researchStatus || r.webResearch?.status || r.providerEvidence?.editorial?.status || "").toLowerCase();
+  if (["not_found", "market_only", "linked_evidence", "thin"].includes(status)) return "";
   return [
-    publicX?.summary,
     r.providerEvidence?.why?.cause,
     r.lore,
-    news?.summary,
-    r.catalyst,
-  ].map(usableNarrative).find(Boolean) || "No exact-contract story has been verified yet.";
+    r.webResearch?.summary,
+  ].map(usableNarrative).find(Boolean) || "";
 }
 
 function provenance(r) {
-  const x = (r.xInteractions || []).filter((item) => usableNarrative(item.summary));
-  const web = (r.newsEvidence || []).filter((item) => usableNarrative(item.summary));
-  if (x.length && web.length) return { key: "x-web", label: "X + web verified" };
-  if (x.length) return { key: "x", label: "X enriched" };
-  if (web.length) return { key: "web", label: "Web researched" };
-  if (usableNarrative(r.lore)) return { key: "lore", label: "Lore fallback" };
+  const narrative = publicNarrative(r);
+  const sources = r.researchSources || r.webResearch?.sources || [];
+  if (narrative && sources.some((url) => /(?:x\.com|twitter\.com)/i.test(url))) return { key: "x", label: "X researched" };
+  if (narrative) return { key: "web", label: "Web researched" };
   return { key: "open", label: "Unresolved" };
 }
 
@@ -406,6 +409,7 @@ function rowHTML(r, i) {
   const x = r.xInteractions || [];
   const news = r.newsEvidence || [];
   const sourceType = provenance(r);
+  const narrative = publicNarrative(r);
   const search = [r.symbol, r.name, r.mint, r.lore, r.runnerTier, r.recapCategory, ...risks, ...x.map((item) => `${item.handle} ${item.summary}`), ...news.map((item) => item.summary || "")].join(" ").toLowerCase();
   const fomoUrl = r.tradeUrl || `https://fomo.family/tokens/${encodeURIComponent(String(r.chain || "solana").toLowerCase())}/${encodeURIComponent(r.mint)}`;
   return `
@@ -429,10 +433,10 @@ function rowHTML(r, i) {
     <span class="coin-tag">${money(r.volume24h)} volume</span>
     <span class="coin-tag ${sourceType.key === "x" || sourceType.key === "x-web" ? "x" : ""}">${esc(sourceType.label)}</span>
   </div>
-  <section class="evidence">
+  ${narrative ? `<section class="evidence">
     <h3>Story</h3>
-    <p class="x-lead">${esc(publicNarrative(r))}</p>
-  </section>
+    <p class="x-lead">${esc(narrative)}</p>
+  </section>` : ""}
   <nav class="sources-row" aria-label="Open ${esc(r.symbol)}"><a href="${esc(fomoUrl)}" target="_blank" rel="noreferrer">Open on Fomo ↗</a></nav>
 </article>`;
 }

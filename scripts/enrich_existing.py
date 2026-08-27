@@ -32,7 +32,7 @@ if str(ROOT) not in sys.path:
 from brief.config import Settings, load_settings
 from brief.ledger import open_ledger
 from brief.lore import attach_lore
-from brief.lore_style import humanize_lore
+from brief.lore_style import contains_untranslated_text, humanize_lore
 from brief.models import Candidate, Enrichment, SafetyReport, Signals, TokenSnapshot, XInteraction, integer
 from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
 from brief.sources.http import CachedHttpClient
@@ -170,8 +170,10 @@ def _apply_curated(result: dict[str, Any], curated_path: Path | None) -> int:
         if not research:
             continue
         sources = [str(url) for url in (research.get("sources") or []) if str(url)]
-        coin["lore"] = humanize_lore(research.get("lore") or coin.get("lore") or "")
-        coin["researchStatus"] = str(research.get("researchStatus") or "")
+        status = str(research.get("researchStatus") or "").lower()
+        raw_lore = research.get("lore") or coin.get("lore") or ""
+        coin["lore"] = "" if status in {"not_found", "market_only", "linked_evidence", "thin"} or contains_untranslated_text(raw_lore) else humanize_lore(raw_lore)
+        coin["researchStatus"] = status
         coin["researchSources"] = sources
         coin["webResearch"] = {
             "summary": coin["lore"],
