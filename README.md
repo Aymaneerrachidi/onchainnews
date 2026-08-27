@@ -256,9 +256,9 @@ Run `scripts/install-pulse-task.ps1` to register the hourly runner pulse locally
 
 For no-laptop operation, the repo includes `.github/workflows/onchain-rundown.yml`. Add these repository secrets in GitHub Actions: `HELIUS_API_KEY`, `BIRDEYE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `RESEND_API_KEY`, optional `X_BEARER_TOKEN` for monitored-account evidence, and optional OAuth 1.0a posting secrets `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`. OAuth 1.0a posting tokens must be regenerated after the X app permission is changed from Read to Read and write. The workflow runs the morning report at 04:45 UTC and the pulse every hour, commits `web/data/latest.json` plus `web/data/pulse-state.json`, and lets Vercel redeploy from `main`.
 
-### Temporary Codex lore routine
+### Mandatory daily editorial lore stage
 
-Until hosted enrichment moves to OpenAI web search in GitHub Actions, every full daily run has a mandatory local editorial pass:
+Every full daily run includes this editorial pass over the complete qualified runner universe. While Codex web search remains the research tool, run it locally after discovery and before publication:
 
 ```powershell
 powershell -File scripts/codex-lore-routine.ps1 -Stage prepare

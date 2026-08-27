@@ -29,7 +29,7 @@ $unresolved = @($data.coins | Where-Object { [string]::IsNullOrWhiteSpace($_.lor
 $lines = @(
     "# Codex lore research queue"
     ""
-    "Research every contract below. Start with linked deployer/project posts, then exact CA searches, then ticker/name lore and story searches. For every unresolved meme, explicitly check Know Your Meme and TikTok/Douyin/short-form trend results; coins such as LA PEACE and Gucci Morty can originate outside crypto. A meme page proves the underlying trend, but the token still needs contract-linked or deployer-linked evidence connecting it to that meme. Publish real origin, event, utility or creator context only. Trading calls, price reactions, generic community copy and ticker collisions are not lore. If nothing defensible exists, leave it blank."
+    "This is a mandatory stage of every full daily run, for the complete qualified runner universe. Research every contract below. Start with linked deployer/project posts, then exact CA searches, then ticker/name lore and story searches. For every unresolved meme, explicitly check Know Your Meme and TikTok/Douyin/short-form trend results; coins such as LA PEACE and Gucci Morty can originate outside crypto. A meme page proves the underlying trend, but the token still needs contract-linked or deployer-linked evidence connecting it to that meme. Publish real origin, event, utility or creator context only. Trading calls, price reactions, generic community copy and ticker collisions are not lore. If nothing defensible exists, leave it blank."
     ""
 )
 
