@@ -17,6 +17,20 @@ function equalSecret(supplied, expected) {
   if (!expected || supplied.length !== expected.length) return false;
   return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
 }
+function adminAccounts() {
+  try {
+    const accounts = JSON.parse(String(process.env.ADMIN_ACCOUNTS_JSON || "{}"));
+    return accounts && typeof accounts === "object" && !Array.isArray(accounts) ? accounts : {};
+  } catch {
+    return {};
+  }
+}
+function validAdmin(username, password) {
+  const entry = Object.entries(adminAccounts()).find(([name]) => String(name).trim().toLowerCase() === username);
+  if (entry && typeof entry[1] === "string") return equalSecret(password, entry[1]);
+  const fallbackUsername = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
+  return equalSecret(username, fallbackUsername) && equalSecret(password, String(process.env.ADMIN_PASSWORD || ""));
+}
 function token() { const value = `${Date.now() + MAX_AGE * 1000}.${Math.random().toString(36).slice(2)}`; return `${value}.${signature(value)}`; }
 function authorized(request) {
   const raw = String(request.headers.get("cookie") || "").match(/(?:^|;\s*)onchain_admin=([^;]+)/)?.[1] || "";
@@ -78,9 +92,7 @@ export async function handleEditorial(request) {
       const body = await request.json();
       const suppliedUsername = String(body.username || "").trim().toLowerCase();
       const suppliedPassword = String(body.password || "");
-      const expectedUsername = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
-      const expectedPassword = String(process.env.ADMIN_PASSWORD || "");
-      if (!equalSecret(suppliedUsername, expectedUsername) || !equalSecret(suppliedPassword, expectedPassword)) return response({ error: "Invalid username or password" }, 401);
+      if (!validAdmin(suppliedUsername, suppliedPassword)) return response({ error: "Invalid username or password" }, 401);
       return response({ authenticated: true }, 200, { "set-cookie": `${COOKIE}=${encodeURIComponent(token())}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${MAX_AGE}` });
     }
     if (request.method === "POST" && action === "logout") return response({ authenticated: false }, 200, { "set-cookie": `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0` });
