@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
+import re
 import sys
 from typing import Any
 
@@ -179,7 +180,68 @@ def _apply_curated(result: dict[str, Any], curated_path: Path | None) -> int:
         }
         applied += 1
     result["codexWebResearchedCoins"] = applied
+    _fill_evidence_recaps(result)
     return applied
+
+
+def _clean_evidence_text(value: Any, limit: int = 280) -> str:
+    text = re.sub(r"https?://\S+", "", str(value or ""))
+    text = re.sub(r"\s+", " ", text).strip(" -\n\t")
+    if len(text) > limit:
+        text = text[:limit].rsplit(" ", 1)[0].rstrip(" ,.;:") + "…"
+    return text
+
+
+def _fill_evidence_recaps(result: dict[str, Any]) -> None:
+    """Give every qualified runner an honest, readable desk note.
+
+    Curated research always wins. Remaining coins use their exact linked X or
+    web evidence; a final market-only note makes the absence of a verified
+    story explicit instead of silently leaving the runner blank.
+    """
+    evidence_count = 0
+    market_only_count = 0
+    for coin in result.get("coins") or []:
+        if str(coin.get("lore") or "").strip():
+            continue
+        symbol = str(coin.get("symbol") or coin.get("name") or "This runner")
+        interactions = [x for x in (coin.get("xInteractions") or []) if isinstance(x, dict)]
+        evidence = [x for x in (coin.get("newsEvidence") or []) if isinstance(x, dict)]
+        item = interactions[0] if interactions else (evidence[0] if evidence else None)
+        if item:
+            summary = _clean_evidence_text(item.get("summary"))
+            author = _clean_evidence_text(item.get("author") or item.get("source"), 60)
+            if summary:
+                lead = f"{symbol}'s move came with a linked post"
+                if author:
+                    lead += f" from {author}"
+                lore = f"{lead}: {summary}"
+            else:
+                lore = f"{symbol} had an exact linked social source during the move, but it did not expose enough context to verify a deeper story."
+            coin["lore"] = humanize_lore(lore)
+            coin["researchStatus"] = coin.get("researchStatus") or "linked_evidence"
+            url = str(item.get("url") or "")
+            coin["researchSources"] = [url] if url else []
+            coin["webResearch"] = {
+                "summary": coin["lore"],
+                "status": coin["researchStatus"],
+                "sources": coin["researchSources"],
+            }
+            evidence_count += 1
+            continue
+        coin["lore"] = humanize_lore(
+            f"{symbol} qualified on the 24-hour market tape, but no trustworthy linked post, creator story, or outside catalyst was available."
+        )
+        coin["researchStatus"] = coin.get("researchStatus") or "not_found"
+        coin["researchSources"] = []
+        coin["webResearch"] = {
+            "summary": coin["lore"],
+            "status": coin["researchStatus"],
+            "sources": [],
+        }
+        market_only_count += 1
+    result["evidenceEnrichedCoins"] = evidence_count
+    result["marketOnlyRecapCoins"] = market_only_count
 
 
 def _runner_rows(payload: dict[str, Any], limit: int = 0) -> list[dict[str, Any]]:
