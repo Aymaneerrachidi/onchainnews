@@ -13,6 +13,10 @@ function response(body, status = 200, headers = {}) {
 }
 function secret() { return String(process.env.MEMBER_ACCESS_SECRET || process.env.DISCORD_BOT_TOKEN || ""); }
 function signature(value) { return createHmac("sha256", secret()).update(value).digest("base64url"); }
+function equalSecret(supplied, expected) {
+  if (!expected || supplied.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+}
 function token() { const value = `${Date.now() + MAX_AGE * 1000}.${Math.random().toString(36).slice(2)}`; return `${value}.${signature(value)}`; }
 function authorized(request) {
   const raw = String(request.headers.get("cookie") || "").match(/(?:^|;\s*)onchain_admin=([^;]+)/)?.[1] || "";
@@ -65,9 +69,12 @@ export async function handleEditorial(request) {
   try {
     if (request.method === "GET" && action === "snapshot") return response(await mergedSnapshot(), 200, { "cache-control": "public, max-age=0, s-maxage=15" });
     if (request.method === "POST" && action === "login") {
-      const supplied = String((await request.json()).password || "");
-      const expected = String(process.env.ADMIN_PASSWORD || "");
-      if (!expected || supplied.length !== expected.length || !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) return response({ error: "Invalid admin password" }, 401);
+      const body = await request.json();
+      const suppliedUsername = String(body.username || "").trim().toLowerCase();
+      const suppliedPassword = String(body.password || "");
+      const expectedUsername = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
+      const expectedPassword = String(process.env.ADMIN_PASSWORD || "");
+      if (!equalSecret(suppliedUsername, expectedUsername) || !equalSecret(suppliedPassword, expectedPassword)) return response({ error: "Invalid username or password" }, 401);
       return response({ authenticated: true }, 200, { "set-cookie": `${COOKIE}=${encodeURIComponent(token())}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${MAX_AGE}` });
     }
     if (request.method === "POST" && action === "logout") return response({ authenticated: false }, 200, { "set-cookie": `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0` });

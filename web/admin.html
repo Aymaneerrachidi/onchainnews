@@ -350,7 +350,18 @@
             clean.
           </p>
           <div class="field">
-            <label for="password">Admin password</label
+            <label for="username">Username</label
+            ><input
+              id="username"
+              type="text"
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="password">Password</label
             ><input
               id="password"
               type="password"
@@ -575,8 +586,12 @@
           await api("login", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ password: $("#password").value }),
+            body: JSON.stringify({
+              username: $("#username").value,
+              password: $("#password").value,
+            }),
           });
+          $("#username").value = "";
           $("#password").value = "";
           boot();
         } catch (err) {
