@@ -604,8 +604,9 @@
       $("#close-modal").onclick = () => $("#modal").classList.add("hidden");
       $("#add-form").onsubmit = async (e) => {
         e.preventDefault();
+        const form = e.currentTarget;
         const request = Object.fromEntries(
-          new FormData(e.currentTarget).entries(),
+          new FormData(form).entries(),
         );
         const button = $("#scan-submit");
         const status = $("#add-status");
@@ -622,7 +623,7 @@
           });
           data = x.snapshot;
           selected = key(x.runner);
-          e.currentTarget.reset();
+          form.reset();
           renderList();
           renderEditor(rows().find((row) => key(row) === selected));
           status.textContent = `$${x.runner.symbol} was researched and published across the website, Discord and Telegram.`;
