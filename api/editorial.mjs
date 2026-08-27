@@ -33,6 +33,11 @@ function reportState(base, state) {
   return state.reportId === base.generatedAt ? state : { reportId: base.generatedAt, overrides: {}, hidden: [], added: [], audit: [], publications: {} };
 }
 function money(value) { const n = Number(value) || 0; return Math.abs(n) >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : Math.abs(n) >= 1e3 ? `$${Math.round(n / 1e3)}K` : `$${Math.round(n)}`; }
+const BOARD_FIELDS = ["chain", "mint", "symbol", "name", "marketCap", "observedPeakMarketCap", "peakMarketCap", "athVerified", "liquidity", "volume24h", "change24h", "startMarketCap", "ageHours", "holders", "top10Pct", "lpLockedPct", "lore", "recapCategory", "manualImport", "riskLabels", "rugged", "freezeAuthorityDisabled", "mintAuthorityRenounced", "scores", "providerEvidence"];
+function boardSnapshot(snapshot) {
+  const rows = snapshot.runnerUniverse || snapshot.runners || [];
+  return { generatedAt: snapshot.generatedAt, runnerUniverse: rows.map((row) => Object.fromEntries(BOARD_FIELDS.filter((key) => row?.[key] !== undefined).map((key) => [key, row[key]]))) };
+}
 
 async function publishDiscord(snapshot, state) {
   const bot = String(process.env.DISCORD_BOT_TOKEN || ""), channel = String(process.env.DISCORD_CHANNEL_ID || "").split(",")[0].trim();
@@ -68,6 +73,7 @@ export async function handleEditorial(request) {
   const action = new URL(request.url).searchParams.get("action") || "status";
   try {
     if (request.method === "GET" && action === "snapshot") return response(await mergedSnapshot(), 200, { "cache-control": "public, max-age=0, s-maxage=15" });
+    if (request.method === "GET" && action === "board") return response(boardSnapshot(await mergedSnapshot()), 200, { "cache-control": "public, max-age=0, s-maxage=30, stale-while-revalidate=60" });
     if (request.method === "POST" && action === "login") {
       const body = await request.json();
       const suppliedUsername = String(body.username || "").trim().toLowerCase();

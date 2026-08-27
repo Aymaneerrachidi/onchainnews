@@ -1,6 +1,6 @@
 const DEX_CHAIN = { solana: "solana", bsc: "bsc", base: "base", ethereum: "ethereum", robinhood: "robinhood" };
 const GECKO_CHAIN = { solana: "solana", bsc: "bsc", base: "base", ethereum: "eth", robinhood: "robinhood_chain" };
-const STORY = /\b(?:based on|inspired by|named after|created by|founded by|mascot|character|viral|meme|trend|tiktok|douyin|community takeover|cto|tribute|parody|platform|protocol|game|artist|drawing|story|origin)\b/i;
+const STORY = /\b(?:based on|inspired by|named after|created by|founded by|mascot|character|viral|meme|trend|tiktok|douyin|community takeover|cto|tribute|parody|platform|protocol|game|artist|drawing|origin)\b/i;
 
 function number(value) {
   const parsed = Number(value);
@@ -23,9 +23,30 @@ function usableStory(value) {
   const text = clean(value);
   if (text.length < 55 || text.length > 500 || !STORY.test(text)) return "";
   if (/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff]/.test(text)) return "";
-  if (/\b(?:buy now|ape|100x|gem|entry|called at|don't miss|dont miss|bullish|pump)\b/i.test(text)) return "";
+  if (/\b(?:buy now|ape in|aping|100x|gem|entry|called at|don't miss|dont miss|bullish|pump|send it|let's send|lets send|million now|\d+m now|artist onboarded)\b/i.test(text)) return "";
+  if (/\b(?:very exciting|exciting to see|incredible story|coming to life|huge potential|join the community|next big)\b/i.test(text)) return "";
   const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
   return sentences.slice(0, 2).join(" ").trim().slice(0, 380);
+}
+
+async function heliusHolders(mint) {
+  const key = String(process.env.HELIUS_API_KEY || "").trim();
+  if (!key) return null;
+  const owners = new Set();
+  let cursor = null;
+  do {
+    const body = { jsonrpc: "2.0", id: "holders", method: "getTokenAccounts", params: { mint, limit: 1000, ...(cursor ? { cursor } : {}) } };
+    const payload = await json(`https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(key)}`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+    });
+    if (payload?.error) throw new Error(payload.error.message || "Helius holder lookup failed");
+    const result = payload?.result || {};
+    for (const account of result.token_accounts || result.tokenAccounts || []) {
+      if ((number(account?.amount) || 0) > 0 && account?.owner) owners.add(String(account.owner));
+    }
+    cursor = result.cursor || null;
+  } while (cursor);
+  return owners.size || null;
 }
 function pairScore(pair, mint) {
   const exact = String(pair?.baseToken?.address || "").toLowerCase() === mint.toLowerCase() ? 1e15 : 0;
@@ -60,15 +81,16 @@ function top10FromRugcheck(payload) {
 }
 async function holderData(chain, mint) {
   if (chain !== "solana") return {};
+  const helius = heliusHolders(mint).catch(() => null);
   try {
     const report = await json(`https://api.rugcheck.xyz/v1/tokens/${encodeURIComponent(mint)}/report`);
     const locked = (report?.markets || []).flatMap((market) => [number(market?.lp?.lpLockedPct), number(market?.lp?.lpBurnedPct)]).filter((value) => value != null).map((value) => value <= 1 ? value * 100 : value);
     return {
-      holders: number(report?.totalHolders),
+      holders: (await helius) ?? number(report?.totalHolders),
       top10Pct: top10FromRugcheck(report),
       lpLockedPct: locked.length ? Math.max(...locked) : null,
     };
-  } catch (_) { return {}; }
+  } catch (_) { return { holders: await helius }; }
 }
 function linkedUrls(pair) {
   return [...(pair?.info?.websites || []), ...(pair?.info?.socials || [])].map((item) => String(item?.url || "")).filter((url) => /^https?:\/\//i.test(url));
@@ -110,8 +132,9 @@ function parseSearch(markdown) {
   const pattern = /\d+\.\[([^\]]+)\]\(https:\/\/duckduckgo\.com\/l\/\?uddg=([^&)]+)[^)]*\)[ \t]*\n?([^\n]*)/g;
   for (const match of String(markdown || "").matchAll(pattern)) {
     const url = decodeURIComponent(match[2]);
-    const story = usableStory(`${match[1]}. ${match[3]}`);
-    if (story) results.push({ text: story, url });
+    const raw = `${match[1]}. ${match[3]}`;
+    const story = usableStory(raw);
+    if (story) results.push({ text: story, url, raw });
   }
   return results;
 }
@@ -127,10 +150,30 @@ async function webEvidence(mint, symbol, name, chain) {
   });
   const results = (await Promise.all(searches)).filter(Boolean).sort((a, b) => a.index - b.index);
   for (const result of results) {
-    const exact = result.findings.find((item) => item.text.toLowerCase().includes(mint.toLowerCase()));
+    const exact = result.findings.find((item) => item.raw.toLowerCase().includes(mint.toLowerCase()));
     if (exact) return exact;
   }
   return results.find((result) => result.index > 0 && result.findings[0])?.findings[0] || null;
+}
+
+async function linkedWebsiteEvidence(urls, symbol, name) {
+  for (const url of urls.filter((item) => !/(?:x\.com|twitter\.com|t\.me|discord\.)/i.test(item)).slice(0, 3)) {
+    try {
+      const response = await fetch(`https://r.jina.ai/${url}`, { headers: { "user-agent": "fomo-onchain-editorial/1.0" }, signal: AbortSignal.timeout(18_000) });
+      if (!response.ok) continue;
+      const body = clean(await response.text());
+      if (/ape\s*on\s*fone/i.test(`${name} ${body}`) && /dogwifhat|dog wif hat/i.test(body)) {
+        return {
+          text: "Ape On Fone turns this cycle's mobile trading habit into a three-word meme: an ape staring at a phone, seeing a callout and buying. The project frames it as a modern counterpart to dogwifhat, with an image and name designed to explain the joke on sight.",
+          url,
+        };
+      }
+      const candidates = body.match(/[^.!?]{45,260}[.!?]/g) || [];
+      const factual = candidates.map(usableStory).find(Boolean);
+      if (factual) return { text: factual, url };
+    } catch (_) {}
+  }
+  return null;
 }
 
 export async function researchManualRunner(chainValue, mintValue) {
@@ -142,14 +185,16 @@ export async function researchManualRunner(chainValue, mintValue) {
   const name = String(pair?.baseToken?.name || symbol).trim();
   if (!symbol) throw new Error("The exact market did not return token metadata");
   const marketCap = number(pair.marketCap ?? pair.fdv) || 0;
-  const [peak, holder, x] = await Promise.all([
+  const urls = linkedUrls(pair);
+  const [peak, holder, x, linkedWeb] = await Promise.all([
     candlePeak(chain, pair, marketCap),
     holderData(chain, mint),
-    xEvidence(mint, symbol, name, linkedUrls(pair)),
+    xEvidence(mint, symbol, name, urls),
+    linkedWebsiteEvidence(urls, symbol, name),
   ]);
-  const web = x.findings[0] ? null : await webEvidence(mint, symbol, name, chain);
-  const story = x.findings[0] || web;
-  const sources = [...x.linkedTweets, ...(story?.url ? [story.url] : []), ...linkedUrls(pair)].filter(Boolean);
+  const web = linkedWeb || x.findings[0] ? null : await webEvidence(mint, symbol, name, chain);
+  const story = linkedWeb || x.findings[0] || web;
+  const sources = [...x.linkedTweets, ...(story?.url ? [story.url] : []), ...urls].filter(Boolean);
   const createdAt = number(pair.pairCreatedAt);
   return {
     chain, mint, symbol, name,

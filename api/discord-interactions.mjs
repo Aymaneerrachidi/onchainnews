@@ -15,7 +15,7 @@ const PAGE_SIZE = 8;
 // Keep each network leg short enough to leave room for a cold function start
 // and JSON rendering. Ordinary filters never call Dexscreener (see below).
 const DEX_TIMEOUT_MS = 1000;
-const SNAPSHOT_TIMEOUT_MS = 900;
+const SNAPSHOT_TIMEOUT_MS = 3500;
 const HOLDER_STRUCTURE_EXCEPTIONS = new Set([
   "bsc:0x02fca66c1d1afb4e2a7884261eb00f63598a7436", // NVDAB
   "bsc:0xcaae2a2f939f51d97cdfa9a86e79e3f085b799f3", // TUT
@@ -634,7 +634,7 @@ async function pricesForMessage(key, contracts, requestUrl) {
 }
 
 function snapshotUrl(request) {
-  return String(process.env.RUNNER_SNAPSHOT_URL || new URL("/api/editorial?action=snapshot", request.url));
+  return String(process.env.RUNNER_SNAPSHOT_URL || new URL("/api/editorial?action=board", request.url));
 }
 
 function repositorySnapshotUrl(date) {
