@@ -47,6 +47,7 @@ EXPLANATORY = (
     "academy", "phemex.com", "bingx.com", "cointelegraph.com", "coindesk.com",
     "theblock.co", "decrypt.co", "binance.com/en/square", "medium.com",
     "mirror.xyz", "x.com", "twitter.com", "reddit.com", "wikipedia.org",
+    "knowyourmeme.com", "tiktok.com",
 )
 # Price pages and explorers. They prove the coin exists, which we already knew
 # from having its contract address, and explain nothing.
@@ -103,7 +104,7 @@ STORY_WORDS = re.compile(
     r"(is a|are a|inspired|named after|named by|tied to|based on"
     r"|refers? to|launched|created by|founded|viral|meme|themed|tribute"
     r"|parody|community|narrative|story|explained|what is|film"
-    r"|movie|character|mascot|announced|listed on|partnership|airdrop"
+    r"|movie|character|mascot|tiktok|douyin|short-form|trend|announced|listed on|partnership|airdrop"
     r"|rewards?|holders earn|platform|protocol|launchpad|game|event)",
     re.I,
 )
@@ -264,13 +265,16 @@ def query_ladder(candidate: Candidate) -> list[str]:
     # Humanoid Robot Games" finds the event, "WHRG" finds nothing.
     if name and name.lower() != symbol.lower() and len(name) >= 5:
         queries.append(f'"{name}" {chain} token')
+        queries.append(f'site:knowyourmeme.com "{name}"')
+        queries.append(f'"{name}" TikTok trend meme')
     if symbol:
         queries.append(f"{symbol} {chain} meme coin")
         # The other queries ask what the coin is. This one asks what happened,
         # which is the sentence the recap is actually missing. People write
         # "why is X pumping" and search engines index the answers.
         queries.append(f"why is {symbol} pumping {chain}")
-    return [q for q in queries if q.strip()][:4]
+        queries.append(f'"{symbol}" TikTok meme trend')
+    return list(dict.fromkeys(q for q in queries if q.strip()))
 
 
 class LoreResearcher:

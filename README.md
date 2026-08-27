@@ -264,7 +264,7 @@ Until hosted enrichment moves to OpenAI web search in GitHub Actions, every full
 powershell -File scripts/codex-lore-routine.ps1 -Stage prepare
 ```
 
-This refreshes evidence for the complete runner universe and writes every still-unexplained exact contract to `output/codex-lore-queue.md`. Give that queue to Codex for deep web research. Research must check linked deployer/project posts first, then the exact contract, `$TICKER lore`, `$TICKER story`, quoted name plus lore/story, project sites, Telegram pages and reputable contract-matched coverage. Only a real origin, event, creator connection or product mechanic is saved in `brief/curated_lore.json`; calls, price commentary, generic community claims and ticker collisions stay blank.
+This refreshes evidence for the complete runner universe and writes every still-unexplained exact contract to `output/codex-lore-queue.md`. Give that queue to Codex for deep web research. Research must check linked deployer/project posts first, then the exact contract, `$TICKER lore`, `$TICKER story`, quoted name plus lore/story, project sites, Telegram pages and reputable contract-matched coverage. Every unresolved meme also gets explicit Know Your Meme and TikTok/Douyin/short-form trend searches so culture-native stories such as LA PEACE or Gucci Morty are not missed. A trend result establishes the meme's origin; contract-linked or deployer-linked evidence must still connect that meme to the correct token. Only a real origin, event, creator connection or product mechanic is saved in `brief/curated_lore.json`; calls, price commentary, generic community claims and ticker collisions stay blank.
 
 After the curated entries are reviewed, rebuild the canonical artifact with:
 
