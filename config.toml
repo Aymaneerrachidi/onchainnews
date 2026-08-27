@@ -264,7 +264,7 @@ enabled = true
 # expose the whole qualified universe and therefore need lore for every row.
 max_coins = 100
 # Exact identity checks plus dedicated meme-culture discovery queries.
-queries_per_coin = 10
+queries_per_coin = 16
 # 8 = contract address matched, 5 = full name or the project's own domain,
 # 3 = ticker only. Below this a result is discarded rather than published.
 min_score = 5

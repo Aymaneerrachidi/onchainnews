@@ -268,10 +268,16 @@ def query_ladder(candidate: Candidate) -> list[str]:
         queries.extend((identity, f"{identity} lore", f"{identity} story"))
     # A descriptive name is the single best search term we hold: "World
     # Humanoid Robot Games" finds the event, "WHRG" finds nothing.
-    if name and name.lower() != symbol.lower() and len(name) >= 5:
+    if name and len(name) >= 4:
+        queries.append(f'"{name}" lore')
+        queries.append(f'"{name}" story')
+        queries.append(f'"{name}" origin')
         queries.append(f'"{name}" {chain} token')
+        queries.append(f'"{name}" {chain} meme coin')
+        queries.append(f'why is "{name}" trending {chain}')
         queries.append(f'site:knowyourmeme.com "{name}"')
         queries.append(f'"{name}" TikTok trend meme')
+        queries.append(f'"{name}" Douyin trend meme')
     if symbol:
         queries.append(f"{symbol} {chain} meme coin")
         # The other queries ask what the coin is. This one asks what happened,

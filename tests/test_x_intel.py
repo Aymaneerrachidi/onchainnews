@@ -17,6 +17,7 @@ from brief.sources.social import build_dex_evidence, match_x_interactions, x_han
 from brief.sources.x import (
     TwitterApiIoSource,
     XSource,
+    candidate_lore_search_terms,
     candidate_search_terms,
     load_x_accounts,
 )
@@ -48,6 +49,20 @@ def test_candidate_search_terms_include_specific_token_name():
     item = candidate()
 
     assert '"Plumber"' in candidate_search_terms(item)
+    assert '"Plumber" lore' in candidate_search_terms(item)
+    assert '"Plumber" story' in candidate_search_terms(item)
+
+
+def test_x_lore_search_terms_cover_full_token_name():
+    terms = candidate_lore_search_terms(candidate())
+
+    assert '"Plumber" lore' in terms
+    assert '"Plumber" story' in terms
+    assert '"Plumber" origin' in terms
+    assert '"Plumber" meme' in terms
+    assert '"Plumber" news' in terms
+    assert '"Plumber" TikTok' in terms
+    assert '"Plumber" Douyin' in terms
 
 
 def test_daily_x_audit_replaces_stale_context_in_every_snapshot_index():

@@ -64,7 +64,8 @@ def candidate_search_terms(candidate: Candidate) -> list[str]:
     if name_is_specific:
         # Quoting preserves multi-word meme names and gives the timeline audit
         # a chance to find posts that omit the cashtag and contract address.
-        terms.append(f'"{name.replace(chr(34), "")}"')
+        quoted_name = f'"{name.replace(chr(34), "")}"'
+        terms.extend((quoted_name, f'{quoted_name} lore', f'{quoted_name} story'))
     for social in token.socials:
         kind = str(social.get("type") or "").lower()
         url = str(social.get("url") or "")
@@ -98,8 +99,19 @@ def candidate_lore_search_terms(candidate: Candidate) -> list[str]:
         terms.extend((identity, f'{identity} lore', f'{identity} story'))
     if symbol and len(symbol) >= 2 and not symbol.isdigit():
         terms.extend((f'${symbol} lore', f'${symbol} story'))
-    if name and name.casefold() != symbol.casefold() and len(name) >= 4:
-        terms.extend((f'"{name}" lore', f'"{name}" story'))
+    if name and len(name) >= 4:
+        quoted_name = f'"{name}"'
+        terms.extend(
+            (
+                f'{quoted_name} lore',
+                f'{quoted_name} story',
+                f'{quoted_name} origin',
+                f'{quoted_name} meme',
+                f'{quoted_name} news',
+                f'{quoted_name} TikTok',
+                f'{quoted_name} Douyin',
+            )
+        )
     return list(dict.fromkeys(terms))
 
 
