@@ -38,10 +38,10 @@ foreach ($coin in $unresolved) {
     $name = [string]$coin.name
     $mint = [string]$coin.mint
     $chain = [string]$coin.chain
-    $lines += "## `$$symbol` — $name"
+    $lines += ('## `${0}` - {1}' -f $symbol, $name)
     $lines += "- Chain: $chain"
-    $lines += "- Contract: `$mint`"
-    $lines += "- Searches: `\"$mint\"`, `\"$mint\" lore`, `\"$mint\" story`, `$$symbol lore`, `$$symbol story`, `\"$name\" lore`, `\"$name\" story`, `site:knowyourmeme.com \"$name\"`, `\"$name\" TikTok trend meme`, `\"$name\" Douyin meme`"
+    $lines += ('- Contract: `{0}`' -f $mint)
+    $lines += ('- Searches: `"{0}"`, `"{0}" lore`, `"{0}" story`, `${1} lore`, `${1} story`, `"{2}" lore`, `"{2}" story`, `site:knowyourmeme.com "{2}"`, `"{2}" TikTok trend meme`, `"{2}" Douyin meme`' -f $mint, $symbol, $name)
     $lines += ""
 }
 

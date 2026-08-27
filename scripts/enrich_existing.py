@@ -439,7 +439,10 @@ async def run(
         _apply_curated(result, curated_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(json.dumps({key: value for key, value in result.items() if key != "coins"}, ensure_ascii=False))
+        # GitHub runners use UTF-8, but local Windows PowerShell commonly
+        # exposes a CP1252 stdout. Keep multilingual token names in the JSON
+        # artifact without letting a console summary crash the completed run.
+        print(json.dumps({key: value for key, value in result.items() if key != "coins"}, ensure_ascii=True))
     finally:
         await http.close()
         ledger.close()
