@@ -179,6 +179,13 @@ def _apply_curated(result: dict[str, Any], curated_path: Path | None) -> int:
             "sources": sources,
         }
         applied += 1
+    # Old artifacts may already contain a raw X post or scraped page as lore.
+    # Curated rows above are safe; force every other unsafe row back through
+    # the non-quoting fallback instead of preserving yesterday's bad copy.
+    for coin in result.get("coins") or []:
+        mint = str(coin.get("mint") or "").lower()
+        if mint not in curated and _looks_like_unsynthesized_evidence(coin.get("lore")):
+            coin["lore"] = ""
     result["codexWebResearchedCoins"] = applied
     _fill_evidence_recaps(result)
     return applied
@@ -190,6 +197,31 @@ def _clean_evidence_text(value: Any, limit: int = 280) -> str:
     if len(text) > limit:
         text = text[:limit].rsplit(" ", 1)[0].rstrip(" ,.;:") + "…"
     return text
+
+
+def _looks_like_unsynthesized_evidence(value: Any) -> bool:
+    text = str(value or "")
+    lowered = text.casefold()
+    return any(marker in lowered for marker in (
+        "'s move came with a linked post",
+        "title:",
+        "published time:",
+        "just aped",
+        "signal group",
+        "from my call",
+    )) or bool(re.search(r"[1-9A-HJ-NP-Za-km-z]{40,64}", text))
+
+
+def _thin_evidence_lore(symbol: str, mint: str, attribution: str) -> str:
+    variants = (
+        f"{symbol} had a real source attached to the contract{attribution}, but it amounted to trading chatter rather than a verifiable story. The runner stays on the board without a made-up catalyst.",
+        f"The public trail for {symbol}{attribution} confirmed people were discussing the right contract, not why it existed or moved. There was not enough substance to call a catalyst.",
+        f"{symbol} reached the tape with contract-matched attention{attribution}. Nothing in that material established an original meme, creator event, or product update, so the desk left the narrative open.",
+        f"A contract-specific mention put {symbol} on the social radar{attribution}, although the post itself was a trade reaction rather than usable lore. No stronger trigger was verified.",
+        f"What surfaced for {symbol}{attribution} proved the market was being watched, but did not explain the coin beyond that activity. Its underlying story remains unconfirmed.",
+        f"The linked evidence around {symbol}{attribution} was relevant to this exact mint but too promotional or thin to support a clean narrative. It qualified on trading strength, not a confirmed news event.",
+    )
+    return variants[sum(ord(char) for char in mint) % len(variants)]
 
 
 def _fill_evidence_recaps(result: dict[str, Any]) -> None:
@@ -209,15 +241,13 @@ def _fill_evidence_recaps(result: dict[str, Any]) -> None:
         evidence = [x for x in (coin.get("newsEvidence") or []) if isinstance(x, dict)]
         item = interactions[0] if interactions else (evidence[0] if evidence else None)
         if item:
-            summary = _clean_evidence_text(item.get("summary"))
+            # Source summaries may contain a complete scraped X post, account
+            # counters, contracts, and search boilerplate. Those are research
+            # inputs, never publishable recap copy. Until an editorial pass
+            # synthesizes the context, disclose that the evidence was thin.
             author = _clean_evidence_text(item.get("author") or item.get("source"), 60)
-            if summary:
-                lead = f"{symbol}'s move came with a linked post"
-                if author:
-                    lead += f" from {author}"
-                lore = f"{lead}: {summary}"
-            else:
-                lore = f"{symbol} had an exact linked social source during the move, but it did not expose enough context to verify a deeper story."
+            attribution = f" from {author}" if author else ""
+            lore = _thin_evidence_lore(symbol, str(coin.get("mint") or ""), attribution)
             coin["lore"] = humanize_lore(lore)
             coin["researchStatus"] = coin.get("researchStatus") or "linked_evidence"
             url = str(item.get("url") or "")

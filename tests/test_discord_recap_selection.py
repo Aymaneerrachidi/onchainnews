@@ -100,8 +100,8 @@ def test_exhaustive_x_context_reaches_every_interactive_snapshot_collection():
     for collection in ("runnerUniverse", "runners"):
         row = snapshot[collection][0]
         assert not row["lore"].startswith("X:")
-        assert "PumpfunEco reported" in row["lore"]
-        assert "Normal community lore." in row["lore"]
+        assert "PumpfunEco reported" not in row["lore"]
+        assert row["lore"] == "Normal community lore."
         assert "Lore:" not in row["lore"]
         assert row["providerEvidence"]["why"]["sourceUrl"].startswith("https://x.com/")
         assert row["xInteractions"][0]["summary"].startswith("PumpfunEco reported")

@@ -1019,13 +1019,10 @@ def _merge_exhaustive_x_context_into_snapshot(snapshot: dict) -> int:
                 continue
             x_context = humanize_lore(evidence["context"])
             source = str(evidence["source"])
-            normal_lore = _compact(row.get("lore"), 210)
-            if normal_lore.startswith(x_context):
-                combined = normal_lore
-            else:
-                combined = f"{x_context} {normal_lore}" if normal_lore else x_context
-
-            row["lore"] = combined
+            # The post is supporting evidence, not recap prose. Preserve the
+            # separately written editorial lore and expose the X source through
+            # the evidence fields/buttons only.
+            combined = _compact(row.get("lore"), 420)
             provider = dict(row.get("providerEvidence") or {})
             provider["why"] = {"cause": combined, "sourceUrl": source}
             row["providerEvidence"] = provider
@@ -1056,9 +1053,6 @@ def _apply_exhaustive_x_context(candidates: list) -> int:
         evidence = X_AUDIT_CONTEXT.get(candidate.token.mint)
         if not evidence:
             continue
-        lore = _compact(candidate.lore, 210)
-        x_context = humanize_lore(evidence["context"])
-        candidate.lore = humanize_lore(f"{x_context} {lore}" if lore else x_context)
         candidate.provider_evidence["why"] = {
             "cause": candidate.lore,
             "sourceUrl": str(evidence["source"]),

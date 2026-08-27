@@ -462,6 +462,15 @@ Rules:
 - If you cannot find anything specific and verifiable, say so. An empty answer
   is correct and expected for most memecoins.
 - Do not describe price action, market cap or charts. We already have those.
+- Treat X posts as evidence, not copy. Never quote or lightly trim a post,
+  profile bio, search snippet, engagement counters, or contract dump.
+- Synthesize the context in fresh language: explain the meme/project first,
+  then the concrete reason it mattered today. Write like a trader briefing a
+  friend after following the tape, not like a search engine or press release.
+- Give every coin its own sentence structure. Do not reuse stock openings such
+  as "the move came from", "exact-contract research", or "X posts show".
+- If the evidence is only trading chatter, calls, or an attached market page,
+  return found=false instead of manufacturing lore from it.
 
 Return JSON only:
 {"found": true|false,

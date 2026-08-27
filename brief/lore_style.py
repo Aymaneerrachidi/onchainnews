@@ -11,10 +11,17 @@ _IDENTITY_PREAMBLES = (
     "Deep exact-contract search identifies ",
 )
 
+_ROBOTIC_OPENERS = (
+    r"^[^.!?]{1,40}'s move came with a linked post(?: from [^:]+)?:\s*",
+    r"^[^.!?]{1,40} had an exact linked social source during the move[,;:]?\s*",
+)
+
 
 def humanize_lore(value: object) -> str:
     """Keep research mechanics internal and present lore as editorial prose."""
     text = str(value or "").strip()
+    for pattern in _ROBOTIC_OPENERS:
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE)
     for preamble in _IDENTITY_PREAMBLES:
         text = text.replace(preamble, "")
     text = text.replace("X: ", "").replace(" Lore: ", " ")
@@ -23,6 +30,9 @@ def humanize_lore(value: object) -> str:
     text = text.replace("exact-contract exchange announcements corroborate the identity", "exchange listings support the identity")
     text = text.replace("exact-contract social evidence", "public posts")
     text = text.replace("exact-contract market pages", "market pages")
+    text = re.sub(r"\s+\d+\s+(?:likes?|replies?|views?)\b.*$", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bToken\s+[1-9A-HJ-NP-Za-km-z]{32,64}\b.*$", "", text)
+    text = text.replace("â€¦", "…")
     text = text.replace(", but found no ", "; no ")
     text = text.replace(",' but found no ", ". No ")
     text = re.sub(
