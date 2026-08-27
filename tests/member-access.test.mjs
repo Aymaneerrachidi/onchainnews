@@ -61,5 +61,5 @@ test("signed access tokens expire and reject tampering", () => {
 
 test("the protected site swaps the public snapshot URL for the authenticated feed", async () => {
   const source = await readFile(new URL("../web/index.html", import.meta.url), "utf8");
-  assert.match(source, /fetch\("data\/latest\.json", \{ cache: "no-store" \}\)/);
+  assert.match(source, /fetch\("\/api\/editorial\?action=snapshot", \{ cache: "no-store" \}\)/);
 });

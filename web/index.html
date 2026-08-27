@@ -581,7 +581,7 @@ $("#rows").addEventListener("click", async (event) => {
   setTimeout(() => { button.textContent = original; }, 1200);
 });
 
-fetch("data/latest.json", { cache: "no-store" })
+fetch("/api/editorial?action=snapshot", { cache: "no-store" })
   .then((r) => { if (!r.ok) throw new Error("no snapshot"); return r.json(); })
   .then(render)
   .catch(() => {

@@ -95,7 +95,7 @@ export function telegramText(rows, prices, chain, band, page, pages, total, refr
 }
 
 function snapshotUrl(request) {
-  return String(process.env.RUNNER_SNAPSHOT_URL || new URL("/data/latest.json", request.url));
+  return String(process.env.RUNNER_SNAPSHOT_URL || new URL("/api/editorial?action=snapshot", request.url));
 }
 
 export async function renderTelegramResponse(request, action, fetchImpl = fetch) {

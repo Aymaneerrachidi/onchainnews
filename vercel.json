@@ -6,6 +6,9 @@
     "api/member-access.mjs": {
       "includeFiles": "node_modules/tesseract.js-core/**/*",
       "maxDuration": 60
+    },
+    "api/editorial.mjs": {
+      "maxDuration": 60
     }
   },
   "headers": [
@@ -40,6 +43,10 @@
     {
       "source": "/control",
       "destination": "/control.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
     },
     {
       "source": "/join",

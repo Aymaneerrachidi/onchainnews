@@ -37,11 +37,11 @@ test("Telegram callback data parses and remains under Telegram's limit", () => {
   assert.equal(callbacks.every((value) => Buffer.byteLength(value) <= 64), true);
 });
 
-test("Telegram detail text uses Fomo links and enriched lore", () => {
+test("Telegram detail text uses Fomo links and reviewed lore", () => {
   const item = runner("ONE", "mint", "solana", 600000);
   item.xInteractions = [{ handle: "real", summary: "Fresh attributable X context.", url: "https://x.com/real/status/1" }];
   const text = telegramText([item], new Map(), "solana", "500k-1m", 0, 1, 1, Date.UTC(2026, 7, 26));
   assert.match(text, /fomo\.family\/tokens\/solana\/mint/);
-  assert.match(text, /Fresh attributable X context/);
-  assert.match(text, /source/);
+  assert.match(text, /ONE lore/);
+  assert.doesNotMatch(text, /Fresh attributable X context/);
 });

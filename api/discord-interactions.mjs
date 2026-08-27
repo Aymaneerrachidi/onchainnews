@@ -634,7 +634,7 @@ async function pricesForMessage(key, contracts, requestUrl) {
 }
 
 function snapshotUrl(request) {
-  return String(process.env.RUNNER_SNAPSHOT_URL || new URL("/data/latest.json", request.url));
+  return String(process.env.RUNNER_SNAPSHOT_URL || new URL("/api/editorial?action=snapshot", request.url));
 }
 
 function repositorySnapshotUrl(date) {

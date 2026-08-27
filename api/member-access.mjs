@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import Tesseract from "tesseract.js";
 import sharp from "sharp";
+import { mergedSnapshot } from "./editorial-store.mjs";
 
 const COOKIE = "onchain_member";
 const SESSION_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -290,7 +291,7 @@ async function handleSite(request) {
   }
   const source = await readFile(path.join(process.cwd(), "web", "index.html"), "utf8");
   const protectedSource = source.replace(
-    'fetch("data/latest.json", { cache: "no-store" })',
+    'fetch("/api/editorial?action=snapshot", { cache: "no-store" })',
     'fetch("/api/member-access?action=feed", { cache: "no-store" })',
   );
   return new Response(protectedSource, {
@@ -304,8 +305,7 @@ async function handleSite(request) {
 
 async function handleFeed(request) {
   if (!(await approvedSession(request))) return json({ error: "Authentication required" }, 401);
-  const data = await readFile(path.join(process.cwd(), "web", "data", "latest.json"), "utf8");
-  return new Response(data, { headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
+  return json(await mergedSnapshot());
 }
 
 export async function handleMemberAccess(request) {
