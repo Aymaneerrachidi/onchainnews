@@ -6,7 +6,7 @@ import { researchManualRunner } from "./manual-runner.mjs";
 
 const COOKIE = "onchain_admin";
 const MAX_AGE = 60 * 60 * 12;
-const EDITABLE = new Set(["symbol", "name", "lore", "marketCap", "observedPeakMarketCap", "peakMarketCap", "holders", "liquidity", "top10Pct", "recapCategory"]);
+const EDITABLE = new Set(["symbol", "name", "lore"]);
 
 function response(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "private, no-store", ...headers } });
@@ -41,7 +41,7 @@ function authorized(request) {
   return a.length === b.length && timingSafeEqual(a, b) ? username : "";
 }
 function cleanPatch(value = {}) {
-  return Object.fromEntries(Object.entries(value).filter(([key]) => EDITABLE.has(key)).map(([key, item]) => [key, ["marketCap", "observedPeakMarketCap", "peakMarketCap", "holders", "liquidity", "top10Pct"].includes(key) ? (item === "" || item == null ? null : Number(item)) : String(item ?? "").trim()]));
+  return Object.fromEntries(Object.entries(value).filter(([key]) => EDITABLE.has(key)).map(([key, item]) => [key, String(item ?? "").trim()]));
 }
 function reportState(base, state) {
   return state.reportId === base.generatedAt ? state : { reportId: base.generatedAt, overrides: {}, hidden: [], added: [], audit: [], publications: {} };

@@ -363,6 +363,12 @@
       .log-row b { text-transform: capitalize; }
       .log-actor { color: #b9c4ff; font-weight: 750; }
       .log-empty { padding: 56px 20px; color: var(--muted); text-align: center; }
+      .market-readout { grid-column: 1/-1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 8px 0 12px; }
+      .market-readout div { padding: 13px; border-right: 1px solid var(--line); background: #0f1218; }
+      .market-readout div:last-child { border-right: 0; }
+      .market-readout span { display: block; color: var(--muted); font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+      .market-readout strong { font: 700 14px/1 ui-monospace, "SFMono-Regular", Consolas, monospace; }
+      .locked-note { grid-column: 1/-1; color: var(--muted); font-size: 12px; margin: 0 0 4px; }
       @media (max-width: 820px) {
         .shell {
           padding: 14px;
@@ -407,6 +413,7 @@
         .log-tools { grid-template-columns: 1fr; }
         .log-row { grid-template-columns: 1fr auto; gap: 5px 12px; }
         .log-row small { grid-column: 1/-1; }
+        .market-readout { grid-template-columns: 1fr 1fr; }
       }
     </style>
   </head>
@@ -669,7 +676,7 @@
       }
       function renderEditor(r) {
         $("#editor").innerHTML =
-          `<form id="edit-form"><div class="editor-head"><div><h2>$${esc(r.symbol || "?")}</h2><div class="contract">${esc(r.chain)} · ${esc(r.mint)}</div></div><button id="hide" class="btn danger" type="button">Remove from report</button></div><div class="grid"><div class="field"><label>Ticker</label><input name="symbol" value="${esc(r.symbol || "")}"></div><div class="field"><label>Name</label><input name="name" value="${esc(r.name || "")}"></div><div class="field"><label>Current MC</label><input name="marketCap" type="number" min="0" value="${esc(r.marketCap ?? "")}"></div><div class="field"><label>Verified 24h high</label><input name="observedPeakMarketCap" type="number" min="0" value="${esc(r.observedPeakMarketCap ?? r.peakMarketCap ?? "")}"></div><div class="field"><label>Holders</label><input name="holders" type="number" min="0" value="${esc(r.holders ?? "")}"></div><div class="field"><label>Liquidity</label><input name="liquidity" type="number" min="0" value="${esc(r.liquidity ?? "")}"></div><div class="field wide"><label>Human-written lore</label><textarea name="lore" placeholder="Leave blank when there is no verified story">${esc(r.lore || "")}</textarea></div></div><div class="savebar"><span id="edit-status" class="status">Changes remain drafts until Publish everywhere.</span><button class="btn primary" type="submit">Save correction</button></div></form>`;
+          `<form id="edit-form"><div class="editor-head"><div><h2>$${esc(r.symbol || "?")}</h2><div class="contract">${esc(r.chain)} · ${esc(r.mint)}</div></div><button id="hide" class="btn danger" type="button">Remove from report</button></div><div class="grid"><div class="market-readout"><div><span>Current MC</span><strong>${money(r.marketCap)}</strong></div><div><span>Verified 24h high</span><strong>${money(r.observedPeakMarketCap ?? r.peakMarketCap)}</strong></div><div><span>Holders</span><strong>${Number(r.holders || 0).toLocaleString()}</strong></div><div><span>Liquidity</span><strong>${money(r.liquidity)}</strong></div></div><p class="locked-note">Market data is controlled by the scanner and cannot be edited manually.</p><div class="field"><label>Ticker</label><input name="symbol" value="${esc(r.symbol || "")}"></div><div class="field"><label>Name</label><input name="name" value="${esc(r.name || "")}"></div><div class="field wide"><label>Human-written lore</label><textarea name="lore" placeholder="Leave blank when there is no verified story">${esc(r.lore || "")}</textarea></div></div><div class="savebar"><span id="edit-status" class="status">Changes remain drafts until Publish everywhere.</span><button class="btn primary" type="submit">Save correction</button></div></form>`;
         $("#edit-form").onsubmit = save;
         $("#hide").onclick = hide;
       }
