@@ -42,6 +42,7 @@ async def test_attaches_oembed_post(monkeypatch) -> None:
     assert await attach_linked_x_posts([coin]) == 1
     assert coin.x_interactions[0].summary == "Someone made a meme based on one of my drawings."
     assert coin.x_interactions[0].confidence == "confirmed"
+    assert "deployer-supplied token-profile social" in coin.x_interactions[0].matched_on
 
 
 @pytest.mark.asyncio

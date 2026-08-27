@@ -103,7 +103,7 @@ def candidate() -> Candidate:
     )
 
 
-def test_x_match_keeps_provenance_and_labels_name_only_association():
+def test_name_only_match_is_a_research_lead_not_publishable_lore():
     item = candidate()
     post = XPost(
         post_id="123",
@@ -118,13 +118,14 @@ def test_x_match_keeps_provenance_and_labels_name_only_association():
         repost_count=2_400,
     )
     match_x_interactions([item], [post])
-    assert len(item.x_interactions) == 1
-    match = item.x_interactions[0]
+    assert item.x_interactions == []
+    assert len(item.internal_x_leads) == 1
+    match = item.internal_x_leads[0]
     assert match.author_handle == "cobie"
     assert match.url.endswith("/123")
     assert match.confidence == "possible"
     assert match.matched_on == "token name"
-    assert "possible" in item.catalyst
+    assert "No monitored X account" in item.catalyst
 
 
 def test_contract_address_is_a_confirmed_social_match():
@@ -222,7 +223,7 @@ def test_generic_name_collision_without_crypto_context_is_not_lore():
     assert item.x_interactions == []
 
 
-def test_name_match_with_explicit_memecoin_context_can_be_lore():
+def test_name_match_with_memecoin_context_still_needs_exact_identity_for_lore():
     item = candidate()
     item.token.symbol = "KYLIE"
     item.token.name = "Kylie"
@@ -235,7 +236,8 @@ def test_name_match_with_explicit_memecoin_context_can_be_lore():
 
     match_x_interactions([item], [post])
 
-    assert len(item.x_interactions) == 1
+    assert item.x_interactions == []
+    assert len(item.internal_x_leads) == 1
 
 
 def test_recycled_ticker_needs_exact_identity():
@@ -283,7 +285,8 @@ def test_whitelisted_editorial_recap_can_cover_multiple_tickers():
         [item], [post], editorial_accounts=["mellometrics"]
     )
 
-    assert len(item.x_interactions) == 1
+    assert item.x_interactions == []
+    assert len(item.internal_x_leads) == 1
 
 
 def test_internal_editorial_account_never_enters_public_interactions():
@@ -366,3 +369,19 @@ async def test_twitterapi_io_term_search_filters_to_monitored_accounts():
     assert MINT in http.kwargs["params"]["query"]
     assert "$PLUMBER" in http.kwargs["params"]["query"]
     assert "from:desk" not in http.kwargs["params"]["query"]
+
+
+@pytest.mark.asyncio
+async def test_twitterapi_io_targeted_lore_search_accepts_unmonitored_authors():
+    http = TwitterApiIoHttp()
+    source = TwitterApiIoSource(
+        http, "https://api.twitterapi.io/twitter/tweet/advanced_search",
+        "secret", ["someone_else"],
+    )
+    posts = await source.posts_for_terms(
+        NOW - timedelta(days=30), [[f'$PLUMBER lore', f'$PLUMBER story']],
+        allow_any_author=True,
+    )
+    assert len(posts) == 1
+    assert posts[0].author_handle == "Desk"
+    assert '$PLUMBER lore' in http.kwargs["params"]["query"]

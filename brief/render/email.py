@@ -22,6 +22,7 @@ from brief.sources.text_quality import (
     SUBSTANCE,
     WALLET_TRACKER,
 )
+from brief.sources.gmgn import verified_kline_peak_market_cap
 
 # Whether a post from outside the trusted list may ever be quoted.
 TRUSTED_ONLY = True
@@ -116,7 +117,7 @@ def _intraday_multiple(candidate: Candidate) -> float:
 
 def _window_open_market_cap(candidate: Candidate) -> float:
     evidence = candidate.provider_evidence.get("gmgn", {}) or {}
-    peak_cap = float(evidence.get("kline24hPeakMarketCap") or 0.0)
+    peak_cap = verified_kline_peak_market_cap(evidence)
     open_price = float(evidence.get("kline24hOpenPrice") or 0.0)
     high_price = float(evidence.get("kline24hHighPrice") or 0.0)
     if peak_cap > 0 and open_price > 0 and high_price > 0:
@@ -132,7 +133,7 @@ def _window_path(candidate: Candidate) -> str:
         float(candidate.token.market_cap or 0.0),
         float(candidate.peak_market_cap or 0.0),
         float(candidate.observed_peak_market_cap or 0.0),
-        float(evidence.get("kline24hPeakMarketCap") or 0.0),
+        verified_kline_peak_market_cap(evidence),
     )
     current = float(candidate.token.market_cap or 0.0)
     if start <= 0 or peak <= start:
@@ -695,7 +696,7 @@ def _lead_recap(candidate: Candidate) -> str:
         token.market_cap,
         float(candidate.peak_market_cap or 0.0),
         float(candidate.observed_peak_market_cap or 0.0),
-        float(gmgn.get("kline24hPeakMarketCap") or 0.0),
+        verified_kline_peak_market_cap(gmgn),
     )
     thesis = _coin_thesis(candidate)
     path = _window_path(candidate)
@@ -744,7 +745,7 @@ def _coin_recap_line(candidate: Candidate) -> str:
         token.market_cap,
         float(candidate.peak_market_cap or 0.0),
         float(candidate.observed_peak_market_cap or 0.0),
-        float(gmgn.get("kline24hPeakMarketCap") or 0.0),
+        verified_kline_peak_market_cap(gmgn),
     )
     thesis = _coin_thesis(candidate)
     thesis_key = thesis.casefold()

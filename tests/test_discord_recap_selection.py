@@ -61,6 +61,7 @@ def _coin(
                 "devTeamHoldRate": 0.0,
                 "kline24hCandleCount": 24,
                 "kline24hPeakMarketCap": peak,
+                "kline24hMarketCapVerified": True,
                 "kline24hPeakFromOpenPct": move,
             }
         },
@@ -372,6 +373,70 @@ def test_lore_never_publishes_urls_handles_or_untranslated_copy():
 
     assert cleaned == "named the dog Frankie after the community adopted him."
     assert untranslated == ""
+
+
+def test_trading_warning_is_never_published_as_lore_or_source_link():
+    candidate = _coin("QUAKE", peak=1_400_000)
+    candidate.token.market_cap = 300_000
+    candidate.provider_evidence["editorial"] = {"status": "partial"}
+    warning = (
+        "QUAKE's contract-matched X trail was a warning after the coin collapsed "
+        "from an earlier call. No separate project story surfaced."
+    )
+
+    line = recap._runner_line(
+        candidate,
+        candidate.token.mint,
+        warning,
+        "https://x.com/trader/status/1",
+    )
+
+    assert "warning" not in line.lower()
+    assert "x.com" not in line.lower()
+    assert "reached $1.4M ATH, now at $300k" in line
+
+
+def test_research_process_notes_are_not_lore():
+    candidate = _coin("SPARKY", peak=2_300_000)
+    candidate.provider_evidence["editorial"] = {"status": "partial"}
+    note = (
+        "SPARKY is being traded as the official Tesla dog after a contract-matched "
+        "post. That social framing is visible, but no affiliation was verified."
+    )
+
+    assert recap._publishable_lore(candidate, note) == ""
+
+
+def test_call_flex_and_bullish_copy_are_never_published_as_lore():
+    candidate = _coin("RUNNER", peak=400_000)
+    candidate.provider_evidence["editorial"] = {"status": "partial"}
+
+    rejected = (
+        "Called this early, LFG bullish. Took it from 20k -> 400k and still "
+        "looks bullish for the next leg."
+    )
+
+    assert recap._publishable_lore(candidate, rejected) == ""
+
+
+def test_long_lore_is_never_cut_mid_sentence():
+    candidate = _coin("COMPLETE")
+    first = "This is a complete origin sentence with enough genuine character context."
+    second = "This follow-up sentence is deliberately " + ("long " * 100) + "and should not be cropped."
+
+    rendered = recap._publishable_lore(candidate, f"{first} {second}")
+
+    assert rendered == first
+    assert not rendered.endswith("â€¦")
+
+
+def test_incomplete_lore_fragment_is_not_published():
+    candidate = _coin("FRAGMENT")
+
+    assert recap._publishable_lore(
+        candidate,
+        "A community mascot derived from an old animated character",
+    ) == ""
 
 
 def test_approved_fifteen_name_layout_stays_in_one_discord_message():

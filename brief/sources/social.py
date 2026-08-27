@@ -151,13 +151,7 @@ def _match_post(
 
     symbol = token.symbol.strip().lstrip("$")
     if len(symbol) >= 2 and re.search(rf"(?<![\w$])\${re.escape(symbol)}(?!\w)", post.text, re.IGNORECASE):
-        # A recycled ticker is not an identity. Require a contract, exact pair
-        # URL or project-account match elsewhere instead of attaching another
-        # coin's story to this one.
-        if (
-            not candidate.recycled_label_count
-            and symbol.casefold() not in (ambiguous_symbols or set())
-        ):
+        if not candidate.recycled_label_count and symbol.casefold() not in (ambiguous_symbols or set()):
             return "confirmed", f"${symbol} cashtag"
 
     linked_handle = x_handle(token.socials)
@@ -165,17 +159,16 @@ def _match_post(
         return "probable", "linked project account"
 
     name = _SPACE.sub(" ", token.name).strip()
-    name_is_specific = len(name) >= 5 or (
-        len(name) >= 2 and any(ord(character) > 127 for character in name)
-    )
+    name_is_specific = len(name) >= 5 or (len(name) >= 2 and any(ord(character) > 127 for character in name))
     if (
-        name_is_specific
-        and name.casefold() not in _GENERIC_NAMES
+        name_is_specific and name.casefold() not in _GENERIC_NAMES
         and name.casefold() not in (ambiguous_names or set())
         and not candidate.recycled_label_count
+        and re.search(rf"(?<!\w){re.escape(name)}(?!\w)", post.text, re.IGNORECASE)
     ):
-        if re.search(rf"(?<!\w){re.escape(name)}(?!\w)", post.text, re.IGNORECASE):
-            return "possible", "token name"
+        return "possible", "token name"
+    # Ticker/name searches are discovery leads only. They may guide exact-
+    # contract research, but cannot be attached as publishable coin lore.
     return None
 
 
@@ -282,13 +275,14 @@ def match_x_interactions(
             )
             for post, confidence, matched_on in matches[:max_per_token]
         ]
+        exact_matches = {"contract address", "Dexscreener link", "linked project account"}
         candidate.internal_x_leads = [
             item for item in interactions
-            if item.author_handle.casefold() in internal_only
+            if item.author_handle.casefold() in internal_only or item.matched_on not in exact_matches
         ]
         candidate.x_interactions = [
             item for item in interactions
-            if item.author_handle.casefold() not in internal_only
+            if item.author_handle.casefold() not in internal_only and item.matched_on in exact_matches
         ]
         if candidate.x_interactions:
             lead = candidate.x_interactions[0]

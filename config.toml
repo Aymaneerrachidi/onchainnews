@@ -340,12 +340,15 @@ max_pages_per_query = 5
 max_pages_per_term_query = 1
 requests_per_minute = 60
 max_matches_per_token = 6
+# Do not sweep all of X for every runner during the automated pass. Deep
+# ticker/lore searches are reserved for unresolved coins during editorial QA.
+broad_lore_search_enabled = false
 # Long-form recap accounts may legitimately mention many tickers in one post.
 # Only these explicitly selected handles bypass the generic ticker-list rule.
-editorial_accounts = ["mellometrics"]
+editorial_accounts = ["mellometrics", "NotSoEasyMoney", "cryptogorilla"]
 # Discovery intelligence only. These accounts can help identify a story, but
 # their handles, wording and direct links never enter public recap payloads.
-internal_only_accounts = ["mellometrics", "newanoncoins"]
+internal_only_accounts = ["mellometrics", "NotSoEasyMoney", "cryptogorilla", "newanoncoins"]
 # Large tracker exports are merged with the curated list below. Keeping the
 # export in a line-oriented file makes additions auditable and avoids replacing
 # the high-confidence fallback desk when a tracker export changes.
@@ -426,6 +429,8 @@ accounts = [
   "PoorGoat_",
   "PumpfunEco",
   "mellometrics",
+  "NotSoEasyMoney",
+  "cryptogorilla",
   "rainmaker1973",
   "raydiumprotocol",
   "realdonaldtrump",

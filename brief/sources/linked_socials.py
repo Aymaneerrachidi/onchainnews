@@ -16,7 +16,7 @@ _TAGS = re.compile(r"<[^>]+>")
 
 
 def linked_x_statuses(candidate: Candidate) -> list[tuple[str, str, str]]:
-    """Return unique exact X posts attached to the token's market profile."""
+    """Return unique deployer-supplied X posts attached to the token profile."""
     found: list[tuple[str, str, str]] = []
     seen: set[str] = set()
     for social in candidate.token.socials or []:
@@ -41,11 +41,12 @@ async def attach_linked_x_posts(
     candidates: list[Candidate], *, api_key: str | None = None,
     timeout: float = 20.0, concurrency: int = 8
 ) -> int:
-    """Resolve Dex/GMGN-attached X posts, preferring TwitterAPI.io.
+    """Resolve token-profile X posts, preferring TwitterAPI.io.
 
-    These links are exact-contract metadata leads, not proof that the author
-    launched or endorsed the token. The writer receives the verbatim post and
-    must preserve any caveats in it.
+    Product policy treats a status URL attached to the token's Dexscreener or
+    GMGN profile as deployer-supplied evidence for the token's narrative. The
+    verbatim post remains internal: public copy must extract the underlying
+    origin/story and must never expose the provider, handle, post, or URL.
     """
     semaphore = asyncio.Semaphore(max(1, concurrency))
     attached = 0
@@ -107,12 +108,12 @@ async def attach_linked_x_posts(
             candidate.x_interactions.append(XInteraction(
                 author_handle=handle,
                 author_name=str(author.get("name") or (payload or {}).get("author_name") or handle),
-                interaction="linked post",
+                interaction="deployer-linked post",
                 summary=summary,
                 url=f"https://x.com/{handle}/status/{post_id}",
                 created_at=created_at,
                 confidence="confirmed",
-                matched_on=f"exact-contract Dexscreener/GMGN social link via {provider}",
+                matched_on=f"deployer-supplied token-profile social via {provider}",
                 like_count=int((payload or {}).get("likeCount") or 0),
                 repost_count=int((payload or {}).get("retweetCount") or 0),
                 reply_count=int((payload or {}).get("replyCount") or 0),

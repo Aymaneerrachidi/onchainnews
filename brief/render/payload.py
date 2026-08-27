@@ -68,6 +68,7 @@ def _candidate(candidate: Candidate, trade_template: str = "") -> dict[str, Any]
         "observedPeakMarketCap": candidate.observed_peak_market_cap,
         "startMarketCap": candidate.start_market_cap,
         "peakMarketCap": candidate.peak_market_cap,
+        "athVerified": bool((candidate.provider_evidence.get("gmgn", {}) or {}).get("kline24hMarketCapVerified") is True),
         "peakAt": candidate.peak_at.isoformat() if candidate.peak_at else None,
         "peakMultiple": candidate.peak_multiple,
         "drawdownFromPeakPct": candidate.drawdown_from_peak_pct,

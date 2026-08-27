@@ -20,10 +20,94 @@ _NON_ENGLISH_SCRIPT = re.compile(
     r"[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff]"
 )
 
+_NON_LORE_PHRASES = (
+    "lfg",
+    "let's fucking go",
+    "lets fucking go",
+    "called this early",
+    "called this at",
+    "warned you",
+    "earlier call",
+    "from my call",
+    "called at",
+    "entry at",
+    "insta dumped",
+    "just aped",
+    "buy now",
+    "sell now",
+    "send it",
+    "easy x",
+    "next leg",
+    "still bullish",
+    "looks bullish",
+    "bullish on",
+    "target is",
+    "new ath",
+    "ath soon",
+    "bullish catalyst",
+    "trading chatter",
+    "social context cautionary",
+    "no separate project story",
+    "underlying story remains",
+    "no credible public story",
+    "no reliable project story",
+    "no reliable origin story",
+    "no independently verified",
+    "exact-contract research",
+    "contract-matched x trail",
+    "contract-matched attention",
+    "contract-matched post",
+    "exact contract",
+    "indexed publicly",
+    "indexed social",
+    "public posts",
+    "social evidence",
+    "social framing",
+    "market pages",
+    "primary documentation",
+    "linked x trail",
+    "linked social footprint",
+    "available web trail",
+    "visible trader attention",
+    "does not prove",
+    "does not clearly certify",
+    "could not be verified",
+    "could not verify",
+    "no documented product",
+    "qualified on trading strength",
+)
+
 
 def contains_untranslated_text(value: object) -> bool:
     """Reject raw non-English source copy before it reaches a recap."""
     return bool(_NON_ENGLISH_SCRIPT.search(str(value or "")))
+
+
+def is_real_lore(value: object) -> bool:
+    """Accept an origin, character, product, creator, or real catalyst—not market chatter."""
+    text = str(value or "").strip()
+    lowered = text.casefold()
+    if not text or contains_untranslated_text(text):
+        return False
+    # Public lore must read as finished editorial copy. A dangling clause or
+    # scraped caption without sentence-ending punctuation stays internal.
+    if not re.search(r"[.!?](?:[\"'”’])?$", text):
+        return False
+    if any(phrase in lowered for phrase in _NON_LORE_PHRASES):
+        return False
+    # Reject performance-flex/call copy such as "20k -> 400k", "4x from my
+    # call" and "at 300k MC". Those posts may help discovery, but never explain
+    # what a coin is or why its story exists.
+    if re.search(r"\$?\d+(?:\.\d+)?\s*[kmb]?\s*(?:-{1,2}>|→|to)\s*\$?\d+(?:\.\d+)?\s*[kmb]?\b", lowered):
+        return False
+    if re.search(r"\b\d+(?:\.\d+)?x\b|\b(?:mc|mcap|market cap)\s*(?:at|of|is)?\s*\$?\d", lowered):
+        return False
+    if re.search(r"(?:https?://|www\.|(?<!\w)@[A-Za-z0-9_]{1,30}\b)", text, re.I):
+        return False
+    # Raw contracts and ticker-only trading commentary are evidence, not lore.
+    if re.search(r"\b0x[a-fA-F0-9]{40}\b|\b[1-9A-HJ-NP-Za-km-z]{40,64}\b", text):
+        return False
+    return True
 
 
 def humanize_lore(value: object) -> str:

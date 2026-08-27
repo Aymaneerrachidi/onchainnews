@@ -32,13 +32,18 @@ if str(ROOT) not in sys.path:
 from brief.config import Settings, load_settings
 from brief.ledger import open_ledger
 from brief.lore import attach_lore
-from brief.lore_style import contains_untranslated_text, humanize_lore
+from brief.lore_style import contains_untranslated_text, humanize_lore, is_real_lore
 from brief.models import Candidate, Enrichment, SafetyReport, Signals, TokenSnapshot, XInteraction, integer
 from brief.sources.dexscreener import DexscreenerSource, merge_token_snapshots
 from brief.sources.http import CachedHttpClient
 from brief.sources.linked_socials import attach_linked_x_posts
 from brief.sources.social import match_x_interactions
-from brief.sources.x import TwitterApiIoSource, candidate_search_terms, load_x_accounts
+from brief.sources.x import (
+    TwitterApiIoSource,
+    candidate_lore_search_terms,
+    candidate_search_terms,
+    load_x_accounts,
+)
 
 
 def _number(value: Any, default: float = 0.0) -> float:
@@ -172,7 +177,8 @@ def _apply_curated(result: dict[str, Any], curated_path: Path | None) -> int:
         sources = [str(url) for url in (research.get("sources") or []) if str(url)]
         status = str(research.get("researchStatus") or "").lower()
         raw_lore = research.get("lore") or coin.get("lore") or ""
-        coin["lore"] = "" if status in {"not_found", "market_only", "linked_evidence", "thin"} or contains_untranslated_text(raw_lore) else humanize_lore(raw_lore)
+        cleaned_lore = humanize_lore(raw_lore)
+        coin["lore"] = "" if status in {"not_found", "market_only", "linked_evidence", "thin"} or not is_real_lore(cleaned_lore) else cleaned_lore
         coin["researchStatus"] = status
         coin["researchSources"] = sources
         coin["webResearch"] = {
@@ -343,6 +349,27 @@ async def run(
             internal_only_accounts=x.get("internal_only_accounts", []),
         )
 
+        # Search all of X for each coin's origin/story, including the explicit
+        # "$TICKER lore" and "$TICKER story" queries used by the desk. These
+        # results do not bypass identity checks: ticker/name-only matches stay
+        # in internal_x_leads, while exact-CA, Dex URL and official-account
+        # matches may become publishable evidence.
+        targeted_posts = []
+        if bool(x.get("broad_lore_search_enabled", False)):
+            targeted_posts = await x_source.posts_for_terms(
+                datetime.now(timezone.utc) - timedelta(days=30),
+                [candidate_lore_search_terms(candidate) for candidate in candidates],
+                max_pages_per_query=1,
+                allow_any_author=True,
+            )
+        match_x_interactions(
+            candidates, list({post.post_id: post for post in [*posts, *targeted_posts]}.values()),
+            max_per_token=int(x.get("max_matches_per_token", 6)),
+            informative_only=True,
+            editorial_accounts=x.get("editorial_accounts", []),
+            internal_only_accounts=x.get("internal_only_accounts", []),
+        )
+
         # The monitored-account matcher replaces its candidate interaction
         # list, so attach exact-contract profile posts afterwards. This also
         # lets them suppress generic lore fallback when stronger X evidence
@@ -386,6 +413,7 @@ async def run(
             "dexRefreshed": len(refreshed),
             "monitoredHandles": len(x_source.accounts),
             "postsRead": len(posts),
+            "targetedXPostsRead": len(targeted_posts),
             "linkedXPostsRead": linked_x_posts,
             "xMatchedCoins": sum(bool(candidate.x_interactions) for candidate in candidates),
             "internalXLeadCoins": sum(bool(candidate.internal_x_leads) for candidate in candidates),

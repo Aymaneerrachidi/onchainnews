@@ -256,6 +256,24 @@ Run `scripts/install-pulse-task.ps1` to register the hourly runner pulse locally
 
 For no-laptop operation, the repo includes `.github/workflows/onchain-rundown.yml`. Add these repository secrets in GitHub Actions: `HELIUS_API_KEY`, `BIRDEYE_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `RESEND_API_KEY`, optional `X_BEARER_TOKEN` for monitored-account evidence, and optional OAuth 1.0a posting secrets `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`. OAuth 1.0a posting tokens must be regenerated after the X app permission is changed from Read to Read and write. The workflow runs the morning report at 04:45 UTC and the pulse every hour, commits `web/data/latest.json` plus `web/data/pulse-state.json`, and lets Vercel redeploy from `main`.
 
+### Temporary Codex lore routine
+
+Until hosted enrichment moves to OpenAI web search in GitHub Actions, every full daily run has a mandatory local editorial pass:
+
+```powershell
+powershell -File scripts/codex-lore-routine.ps1 -Stage prepare
+```
+
+This refreshes evidence for the complete runner universe and writes every still-unexplained exact contract to `output/codex-lore-queue.md`. Give that queue to Codex for deep web research. Research must check linked deployer/project posts first, then the exact contract, `$TICKER lore`, `$TICKER story`, quoted name plus lore/story, project sites, Telegram pages and reputable contract-matched coverage. Only a real origin, event, creator connection or product mechanic is saved in `brief/curated_lore.json`; calls, price commentary, generic community claims and ticker collisions stay blank.
+
+After the curated entries are reviewed, rebuild the canonical artifact with:
+
+```powershell
+powershell -File scripts/codex-lore-routine.ps1 -Stage finalize
+```
+
+This stage is intentionally human-in-the-loop: a ChatGPT/Codex session is not an unattended API. When the pipeline moves fully into GitHub Actions, replace the research step with OpenAI API web search using the same queue, exact-contract validation and real-lore-or-blank rules; do not automate a consumer ChatGPT session.
+
 The broad launch count comes from the continuous Helius collector, not Dexscreener's small trending sample. Run `scripts/install-launch-collector-startup.ps1` once to install the no-admin per-user startup shortcut. The collector listens to the official Pump program create instructions, writes them to `launch_events`, heals short disconnects from the latest 1,000 program transactions, and states the exact beginning of coverage in every report. Its first full rolling window is available after 24 hours of continuous collection; Dexscreener then supplies market data only for captured mints that established a tracked market.
 
 ## Configuration

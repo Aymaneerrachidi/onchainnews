@@ -501,8 +501,14 @@ export function fomoUrl(row) {
 }
 
 function usableNarrative(value) {
-  const text = String(value || "").replace(/\s+/g, " ").trim();
+  const text = String(value || "")
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/gi, "$1")
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/(^|\s)@[A-Za-z0-9_]+/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!text) return "";
+  if (/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff\uac00-\ud7af]/u.test(text)) return "";
   const lowered = text.toLowerCase();
   if (lowered.includes("mellometrics")) return "";
   if (lowered.includes("no monitored x account")) return "";
@@ -512,60 +518,24 @@ function usableNarrative(value) {
 }
 
 function factualContext(row) {
-  const gmgn = row?.providerEvidence?.gmgn || {};
-  const age = Number(row?.ageHours);
-  const volume = Number(row?.volume24h || 0);
   const current = Number(row?.marketCap || 0);
   const peak = runnerPeak(row);
-  const kol = Number(gmgn?.kolCount || row?.kolBuyers?.length || 0);
-  const smart = Number(gmgn?.smartMoneyCount || 0);
-  const opening = Number.isFinite(age) && age <= 30
-    ? `${Math.max(1, Math.round(age))}h-old launch reached ${money(peak)}`
-    : `The pair returned to a ${money(peak)} 24h high`;
-  const flow = [
-    kol ? `${count(kol)} KOL wallets` : "",
-    smart ? `${count(smart)} smart-money wallets` : "",
-  ].filter(Boolean).join(" and ");
-  const drawdown = peak > current && current > 0
-    ? ` and sat ${Math.round((peak - current) / peak * 100)}% below that high at the snapshot`
-    : "";
-  return `${opening} on ${money(volume)} volume${drawdown}`
-    + (flow ? `; GMGN mapped ${flow}.` : ".");
+  const holders = row?.holders === null || row?.holders === undefined
+    ? ""
+    : ` with ${count(row.holders)} holders`;
+  return `Reached a verified ${money(peak)} 24h peak and now sits at ${money(current)}${holders}.`;
 }
 
 export function shortCause(row) {
-  const publicX = (row?.xInteractions || []).find((item) =>
-    String(item?.handle || "").toLowerCase() !== "mellometrics"
-    && usableNarrative(item?.summary));
-  const news = (row?.newsEvidence || []).find((item) => usableNarrative(item?.summary));
-  const choices = [
-    publicX?.summary,
-    row?.providerEvidence?.why?.cause,
-    row?.lore,
-    news?.summary,
-    row?.catalyst,
-  ];
-  const stated = choices.map(usableNarrative).find(Boolean) || "";
-  if (!stated) return factualContext(row);
+  const stated = usableNarrative(row?.lore);
+  if (!stated) return "";
   // Filter pages are the detail view: allow substantially more context than
   // the compact lead recap while keeping eight rows inside one Discord embed.
   return stated.length > 240 ? `${stated.slice(0, 237).trimEnd()}…` : stated;
 }
 
 export function narrativeSource(row) {
-  const publicX = (row?.xInteractions || []).find((item) =>
-    String(item?.handle || "").toLowerCase() !== "mellometrics"
-    && usableNarrative(item?.summary));
-  const news = (row?.newsEvidence || []).find((item) => usableNarrative(item?.summary));
-  const source = String(
-    publicX?.url
-    || row?.providerEvidence?.why?.sourceUrl
-    || news?.url
-    || "",
-  ).trim();
-  return /^https?:\/\//i.test(source) && !source.toLowerCase().includes("mellometrics")
-    ? source
-    : "";
+  return "";
 }
 
 function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedAt, notice = "") {
@@ -577,15 +547,10 @@ function filteredEmbed(rows, prices, chain, band, page, pages, total, refreshedA
     const holderText = row?.holders === null || row?.holders === undefined
       ? "holders unknown"
       : `${count(row.holders)} holders`;
-    const top10Text = row?.top10Pct === null || row?.top10Pct === undefined
-      ? "top10 unknown"
-      : `top10 ${Number(row.top10Pct).toFixed(1)}%`;
     const stats = [
       `**now ${money(current)}**`,
       `24h high ${money(runnerPeak(row))}`,
-      `liq ${money(row.liquidity)}`,
       holderText,
-      top10Text,
     ].join(" · ");
     const cause = shortCause(row);
     const source = narrativeSource(row);

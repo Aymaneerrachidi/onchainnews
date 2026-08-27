@@ -123,6 +123,15 @@ class Finding:
     def text(self) -> str:
         return f"{self.title} {self.snippet}".strip()
 
+    @property
+    def exact_identity(self) -> bool:
+        """Whether this page is contract-bound rather than ticker-matched."""
+        return self.matched in {
+            "contract address",
+            "project's own site",
+            "Dexscreener/GMGN linked website or Telegram",
+        }
+
 
 @dataclass(slots=True)
 class CoinLore:
@@ -340,7 +349,11 @@ class LoreResearcher:
                 score_finding(finding, candidate)
                 if looks_like_page_furniture(finding.text):
                     continue
-                if finding.score >= self.min_score and finding.story > 0:
+                # A ticker or even a reused name is only a search lead. It can
+                # never become published lore unless the result itself is tied
+                # to the exact contract or to a URL attached to that contract's
+                # market profile.
+                if finding.exact_identity and finding.score >= self.min_score and finding.story > 0:
                     lore.findings.append(finding)
             # Stop only when something both identifies the coin and explains
             # it. Identity alone is not worth ending the search for: the

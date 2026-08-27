@@ -28,7 +28,7 @@ from brief.journal import kol_trade_count
 from datetime import datetime
 
 from brief.models import Candidate
-from brief.sources.gmgn import transfer_tax_pct
+from brief.sources.gmgn import transfer_tax_pct, verified_kline_peak_market_cap
 from brief.render.formatting import money
 
 log = logging.getLogger("brief.newsletter")
@@ -59,7 +59,7 @@ def _peak(candidate: Candidate) -> float:
     return max(
         float(candidate.peak_market_cap or 0),
         float(candidate.observed_peak_market_cap or 0),
-        float(gmgn.get("kline24hPeakMarketCap") or 0),
+        verified_kline_peak_market_cap(gmgn),
         float(candidate.token.market_cap or 0),
     )
 

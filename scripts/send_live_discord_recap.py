@@ -23,7 +23,7 @@ from brief.config import load_settings  # noqa: E402
 from brief.journal import kol_trade_count, rug_or_bundle, verified_window_multiple  # noqa: E402
 from brief.links import fomo_token_url  # noqa: E402
 from brief.lore import attach_lore  # noqa: E402
-from brief.lore_style import contains_untranslated_text, humanize_lore  # noqa: E402
+from brief.lore_style import contains_untranslated_text, humanize_lore, is_real_lore  # noqa: E402
 from brief.newsletter import write_recap  # noqa: E402
 from brief.render.discord import (  # noqa: E402
     BRAND,
@@ -176,7 +176,7 @@ EDITORIAL: dict[str, tuple[str, str]] = {
         "https://ponsfamily.com/launchpad",
     ),
     "GUmbtfjSZkybSFgPibBcvwExEBdXwewJHR5PkTjzpump": (
-        "Gucci Morty edits spread across TikTok, Instagram, Shorts and X",
+        "Gucci Morty is a Gucci-dressed version of the Rick and Morty character whose edits spread across TikTok, Instagram, Shorts and X.",
         "https://pump.fun/coin/GUmbtfjSZkybSFgPibBcvwExEBdXwewJHR5PkTjzpump/article",
     ),
     "GPzpoXpD74E2C4CJNayuoyBqPQJEsPtdse3nhntrpump": (
@@ -280,7 +280,7 @@ EDITORIAL: dict[str, tuple[str, str]] = {
         "https://knowyourmeme.com/sensitive/memes/doge-2-caesar",
     ),
     "0x0c5142bc58f9a61ab8c3d2085dd2f4e550c5ce0b": (
-        "the Base meme that accelerated after Elon Musk replied with a fire emoji",
+        "RUSSELL is a Base community meme that accelerated after Elon Musk replied to the character with a fire emoji.",
         "https://www.kucoin.com/news/flash/elon-musk-reacts-to-base-ecosystem-meme-coin-russell-token-surges-3x-before-retreating",
     ),
     "0xb2000000000000000000007bf6d5cbb0e24cb301": (
@@ -489,10 +489,30 @@ def _lore_limit(candidate) -> int:
     return 420
 
 
+def _complete_lore(value: object, limit: int) -> str:
+    """Return short editorial copy without ever cutting through a sentence."""
+    text = SPACE.sub(" ", str(value or "")).strip(" ,-â€“â€”")
+    if len(text) <= limit:
+        return text
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    kept: list[str] = []
+    for sentence in sentences:
+        candidate = " ".join([*kept, sentence]).strip()
+        if len(candidate) > limit:
+            break
+        kept.append(sentence)
+    # If the opening sentence itself is too long, reject the lore instead of
+    # publishing an amputated fragment or manufacturing an ellipsis.
+    return " ".join(kept).strip() if kept else ""
+
+
 def _market_only_result(candidate) -> str:
     current = float(candidate.token.market_cap or 0)
     current_text = money(current) if current > 0 else "unavailable"
-    return f"reached {money(_verified_peak(candidate))} ATH, now at {current_text}"
+    peak = _verified_peak(candidate)
+    if peak <= 0:
+        return f"now at {current_text} · report-window ATH unavailable"
+    return f"reached {money(peak)} ATH, now at {current_text}"
 
 
 def _publishable_lore(candidate, value: object) -> str:
@@ -502,24 +522,27 @@ def _publishable_lore(candidate, value: object) -> str:
     raw = str(value or "")
     if contains_untranslated_text(raw):
         return ""
-    text = _compact(humanize_lore(raw), _lore_limit(candidate))
+    text = _complete_lore(humanize_lore(raw), _lore_limit(candidate))
     rejected = (
         "no fresh public catalyst", "no credible public story",
         "no trustworthy linked post", "qualified on the 24-hour market tape",
         "trading chatter rather than", "underlying story remains unconfirmed",
     )
-    return "" if any(fragment in text.casefold() for fragment in rejected) else text
+    if any(fragment in text.casefold() for fragment in rejected):
+        return ""
+    return text if is_real_lore(text) else ""
 
 
 def _runner_line(candidate, mint: str, lore: str = "", source: str = "") -> str:
     lore = _publishable_lore(candidate, lore)
     result = _result(candidate) if lore else _market_only_result(candidate)
     suffix = f" — {lore}" if lore else ""
-    if lore and source:
-        suffix += f" · [src]({source})"
+    holders = int(candidate.enrichment.holder_count or candidate.safety.holder_count or 0)
+    holder_text = f" · {holders:,} holders" if holders > 0 else ""
+    # Research URLs stay internal. The public recap links only the ticker to Fomo.
     return (
         f"[**${candidate.token.symbol}**]({fomo_token_url(candidate.token.chain_id, mint)}) "
-        f"→ **{result}**{suffix}"
+        f"→ **{result}**{holder_text}{suffix}"
     )
 
 
@@ -531,10 +554,8 @@ def _verified_peak(candidate) -> float:
     sub-$1M tape entry into a fake billion-dollar runner.
     """
     gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
-    return max(
-        peak_cap(candidate),
-        float(gmgn.get("kline24hPeakMarketCap") or 0),
-    )
+    from brief.sources.gmgn import verified_kline_peak_market_cap
+    return verified_kline_peak_market_cap(gmgn)
 
 
 def _truthy(value: object) -> bool:
@@ -895,7 +916,10 @@ def _apply_saved_enrichment(candidates: list) -> int:
             applied += 1
             continue
         lore = _compact(humanize_lore(row.get("lore")), 420)
-        if not lore or "mellometrics" in lore.casefold():
+        if not lore or "mellometrics" in lore.casefold() or not is_real_lore(lore):
+            candidate.lore = ""
+            candidate.provider_evidence.pop("why", None)
+            candidate.provider_evidence["editorial"] = {"status": "not_found"}
             continue
         web_research = row.get("webResearch") or {}
         sources = [
@@ -962,7 +986,12 @@ def _merge_saved_enrichment_into_snapshot(snapshot: dict) -> int:
                 or ((saved or {}).get("webResearch") or {}).get("summary")
                 or (editorial[0] if editorial else "")
             ), 420)
-            if not lore or "mellometrics" in lore.casefold():
+            if not lore or "mellometrics" in lore.casefold() or not is_real_lore(lore):
+                row["lore"] = ""
+                provider = dict(row.get("providerEvidence") or {})
+                provider.pop("why", None)
+                provider["editorial"] = {"status": "not_found"}
+                row["providerEvidence"] = provider
                 continue
             sources = [
                 str(url).strip()
@@ -1150,8 +1179,10 @@ def _render_posts(
             placed.add(mint)
             override = EDITORIAL.get(mint)
             lore_limit = _lore_limit(candidate)
-            editorial_copy = candidate.lore if candidate.x_interactions else (
-                TAIL_EDITORIAL.get(mint) or (override[0] if override else "")
+            editorial_copy = (
+                candidate.lore
+                or TAIL_EDITORIAL.get(mint)
+                or (override[0] if override else "")
             )
             line = _publishable_lore(candidate, (
                 _compact(editorial_copy, lore_limit)
@@ -1305,14 +1336,10 @@ def _render_compact_posts(candidates: list, generated: datetime) -> list[dict]:
         if candidate is None:
             continue
         placed.add(mint)
-        source = str(story["source"])
         headline = (
             f"[**${candidate.token.symbol}**]({fomo_token_url(candidate.token.chain_id, mint)}) "
             f"→ **{_result(candidate)}** — {_compact(story['summary'], 150)} "
-            f"· [source]({source})"
         )
-        # One supporting line is enough in Discord. The linked source carries
-        # the deeper read without turning the morning recap into an article.
         detail = _compact(story["bullets"][-1], 155)
         blocks.append(f"**{story['title']}**\n{headline}\n• {detail}")
 

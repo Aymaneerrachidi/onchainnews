@@ -319,8 +319,10 @@ const money = (n) => {
 const pct = (n) => (n === null || n === undefined) ? "n/a" : (n >= 0 ? "+" : "") + Math.round(n) + "%";
 const sized = (m, c) => Number(m) >= 2 ? Number(m).toFixed(1) + "x" : pct(c);
 const age = (h) => h === null || h === undefined ? "n/a" : h < 48 ? Math.round(h) + "h" : Math.round(h / 24) + "d";
-const displayCap = (r) => Math.max(Number(r.marketCap) || 0, Number(r.peakMarketCap) || 0, Number(r.observedPeakMarketCap) || 0);
-const capLabel = (r) => displayCap(r) > Number(r.marketCap) ? "peak" : "mcap";
+const displayCap = (r) => r.athVerified === false
+  ? Number(r.marketCap) || 0
+  : Math.max(Number(r.marketCap) || 0, Number(r.peakMarketCap) || 0, Number(r.observedPeakMarketCap) || 0);
+const capLabel = (r) => r.athVerified === false ? "mcap · ATH unavailable" : (displayCap(r) > Number(r.marketCap) ? "verified peak" : "mcap");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const shortSymbol = (value, max = 16) => {
   const symbol = String(value || "UNKNOWN").trim();
@@ -382,7 +384,20 @@ function usableNarrative(value) {
   if (lowered.includes("no monitored x account") || lowered.includes("no verified monitored-account match")) return "";
   if (/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff]/.test(text)) return "";
   if (text.length < 80) return "";
-  if (["follow me on", "crypto alpha", "warned you", "insta dumped", "just aped", "paired with"].some((phrase) => lowered.includes(phrase))) return "";
+  if ([
+    "follow me on", "crypto alpha", "warned you", "earlier call", "from my call",
+    "called at", "entry at", "insta dumped", "just aped", "paired with",
+    "bullish catalyst", "trading chatter", "social context cautionary",
+    "no separate project story", "underlying story remains", "no credible public story",
+    "no reliable project story", "no reliable origin story", "no independently verified",
+    "exact-contract research", "contract-matched x trail", "contract-matched attention",
+    "contract-matched post", "exact contract", "indexed publicly", "indexed social",
+    "public posts", "social evidence", "social framing", "market pages",
+    "primary documentation", "linked x trail", "linked social footprint",
+    "available web trail", "visible trader attention", "does not prove",
+    "does not clearly certify", "could not be verified", "could not verify",
+    "no documented product", "qualified on trading strength"
+  ].some((phrase) => lowered.includes(phrase))) return "";
   return text;
 }
 
@@ -426,7 +441,7 @@ function rowHTML(r, i) {
     ${r.runnerTier ? `<span class="coin-tag tier">${esc(({S: "$1M+", A: "$500K-$1M", B: "$250K-$500K"})[r.runnerTier] || r.runnerTier)}</span>` : ""}
     ${r.roundTrip ? `<span class="coin-tag questionable">Round trip</span>` : ""}
     <span class="coin-tag">Now ${money(r.marketCap)}</span>
-    <span class="coin-tag">24h high ${money(displayCap(r))}</span>
+    <span class="coin-tag">${r.athVerified === false ? "24h ATH unavailable" : "24h high " + money(displayCap(r))}</span>
     <span class="coin-tag">Liq ${money(r.liquidity)}</span>
     ${r.holders ? `<span class="coin-tag">${Number(r.holders).toLocaleString()} holders</span>` : ""}
     ${r.top10Pct !== null && r.top10Pct !== undefined ? `<span class="coin-tag">Top 10 ${Number(r.top10Pct).toFixed(1)}%</span>` : ""}

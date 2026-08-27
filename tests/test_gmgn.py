@@ -168,14 +168,50 @@ def test_gmgn_hourly_candles_reconstruct_the_trailing_day_peak():
         {"time": 1_776_003_600_000, "open": "0.30", "close": "0.40", "high": "0.50", "low": "0.28", "volume": "150000"},
     ]}
 
-    evidence = GmgnSource.kline_evidence(payload, token)
+    evidence = GmgnSource.kline_evidence(
+        payload, token, exact_supply=1_000_000, reference_ath_market_cap=500_000,
+    )
 
     assert evidence["kline24hChangePct"] == 100
     assert evidence["kline24hPeakFromOpenPct"] == 150
     assert evidence["kline24hHighLowMultiple"] == pytest.approx(0.50 / 0.18)
     assert evidence["kline24hPeakMarketCap"] == 500_000
+    assert evidence["kline24hMarketCapVerified"] is True
     assert evidence["kline24hVolumeUsd"] == 250_000
     assert evidence["kline24hPeakAt"].startswith("2026-")
+
+
+def test_gmgn_candle_never_guesses_market_cap_without_exact_supply():
+    token = parse_rank_item({
+        "address": MINT, "symbol": "RUN", "market_cap": 400_000, "price": 0.40,
+    }, origin="test")
+    assert token is not None
+    payload = {"list": [{
+        "time": 1_776_000_000_000, "open": "0.20", "close": "0.40",
+        "high": "0.50", "low": "0.18", "volume": "100000",
+    }]}
+
+    evidence = GmgnSource.kline_evidence(payload, token)
+
+    assert evidence["kline24hHighPrice"] == 0.50
+    assert evidence["kline24hPeakMarketCap"] is None
+    assert evidence["kline24hMarketCapVerified"] is False
+
+
+def test_gmgn_candle_rejects_supply_that_disagrees_with_current_market_cap():
+    token = parse_rank_item({
+        "address": MINT, "symbol": "RUN", "market_cap": 400_000, "price": 0.40,
+    }, origin="test")
+    assert token is not None
+    payload = {"list": [{
+        "time": 1_776_000_000_000, "open": "0.20", "close": "0.40",
+        "high": "0.50", "low": "0.18", "volume": "100000",
+    }]}
+
+    evidence = GmgnSource.kline_evidence(payload, token, exact_supply=2_500_000)
+
+    assert evidence["kline24hPeakMarketCap"] is None
+    assert evidence["kline24hMarketCapVerified"] is False
 
 
 async def test_recovered_kline_pass_queries_only_exact_mint_recoveries(monkeypatch):
@@ -187,7 +223,10 @@ async def test_recovered_kline_pass_queries_only_exact_mint_recoveries(monkeypat
     }, origin="test")
     assert recovered is not None and broad is not None
     evidence = {
-        recovered.mint: {"kolCount": 12, "exactWalletCountsChecked": True},
+        recovered.mint: {
+            "kolCount": 12, "exactWalletCountsChecked": True,
+            "exactSupply": 1_000_000, "athMarketCap": 500_000,
+        },
         broad.mint: {"kolCount": 20},
     }
     source = GmgnSource(chains=("solana",))

@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 from brief.config import Settings
 from brief.models import Candidate, TokenSnapshot
-from brief.sources.gmgn import transfer_tax_pct
+from brief.sources.gmgn import transfer_tax_pct, verified_kline_peak_market_cap
 
 
 def _age_hours(token: TokenSnapshot, now: datetime) -> float | None:
@@ -47,7 +47,7 @@ def verified_window_multiple(candidate: Candidate) -> float:
         peak = max(
             float(candidate.peak_market_cap or 0),
             float(candidate.observed_peak_market_cap or 0),
-            float(gmgn.get("kline24hPeakMarketCap") or 0),
+            verified_kline_peak_market_cap(gmgn),
             float(candidate.token.market_cap or 0),
         )
         if peak > 0:
@@ -66,7 +66,7 @@ def verified_window_peak_market_cap(candidate: Candidate) -> float:
     return max(
         float(candidate.peak_market_cap or 0),
         float(candidate.observed_peak_market_cap or 0),
-        float(gmgn.get("kline24hPeakMarketCap") or 0),
+        verified_kline_peak_market_cap(gmgn),
         float(candidate.token.market_cap or 0),
     )
 
@@ -327,7 +327,8 @@ def belongs_in_journal(candidate: Candidate, settings: Settings, now: datetime) 
         return False
 
     gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
-    kline_peak_cap = float(gmgn.get("kline24hPeakMarketCap") or 0)
+    from brief.sources.gmgn import verified_kline_peak_market_cap
+    kline_peak_cap = verified_kline_peak_market_cap(gmgn)
     lifetime_ath = float(gmgn.get("athMarketCap") or 0)
     window_peak = max(
         float(candidate.peak_market_cap or 0),

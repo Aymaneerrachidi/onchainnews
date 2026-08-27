@@ -79,6 +79,27 @@ def candidate_search_terms(candidate: Candidate) -> list[str]:
     return list(dict.fromkeys(terms))
 
 
+def candidate_lore_search_terms(candidate: Candidate) -> list[str]:
+    """Build broad X discovery queries for a token's origin and story.
+
+    These searches intentionally cover authors outside the monitored desk.
+    Their results are still only *leads*: ``social.match_x_interactions`` keeps
+    ticker/name matches out of publishable lore until the exact contract,
+    Dexscreener URL, or linked official account confirms the identity.
+    """
+    token = candidate.token
+    symbol = token.symbol.strip().lstrip("$")
+    name = " ".join(token.name.split()).strip().replace('"', "")
+    terms: list[str] = []
+    if token.mint:
+        terms.extend((token.mint, f'{token.mint} lore', f'{token.mint} story'))
+    if symbol and len(symbol) >= 2 and not symbol.isdigit():
+        terms.extend((f'${symbol} lore', f'${symbol} story'))
+    if name and name.casefold() != symbol.casefold() and len(name) >= 4:
+        terms.extend((f'"{name}" lore', f'"{name}" story'))
+    return list(dict.fromkeys(terms))
+
+
 def _interaction(references: list[dict[str, Any]]) -> str:
     kinds = {str(item.get("type") or "") for item in references}
     if "retweeted" in kinds:
@@ -286,6 +307,7 @@ class TwitterApiIoSource:
         *,
         max_pages: int,
         until: datetime | None = None,
+        allow_any_author: bool = False,
     ) -> list[XPost]:
         """Run one provider search and keep only the configured accounts.
 
@@ -294,7 +316,7 @@ class TwitterApiIoSource:
         ``from:`` expression; the allow-list is enforced again here before a
         post can enter the evidence set.
         """
-        if not self.configured:
+        if not self.api_key or (not allow_any_author and not self.accounts):
             return []
         start = start.astimezone(timezone.utc)
         until = (until or datetime.now(timezone.utc)).astimezone(timezone.utc)
@@ -331,7 +353,7 @@ class TwitterApiIoSource:
                     author.get("userName") or author.get("username")
                     or raw.get("authorUserName") or ""
                 ).lstrip("@")
-                if handle.lower() not in allowed:
+                if not allow_any_author and handle.lower() not in allowed:
                     continue
                 post_id = str(raw.get("id") or raw.get("tweetId") or "")
                 if not post_id:
@@ -367,6 +389,7 @@ class TwitterApiIoSource:
         *,
         max_pages_per_query: int = 1,
         until: datetime | None = None,
+        allow_any_author: bool = False,
     ) -> list[XPost]:
         """Search token-specific terms, then enforce the monitored-handle list.
 
@@ -381,7 +404,8 @@ class TwitterApiIoSource:
                 continue
             query = " OR ".join(dict.fromkeys(clean))
             for post in await self._search(
-                query, start, max_pages=max_pages_per_query, until=until
+                query, start, max_pages=max_pages_per_query, until=until,
+                allow_any_author=allow_any_author,
             ):
                 collected[post.post_id] = post
         return sorted(collected.values(), key=lambda post: post.created_at, reverse=True)

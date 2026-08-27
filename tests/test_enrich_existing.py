@@ -39,4 +39,4 @@ def test_evidence_recap_never_pastes_raw_x_copy() -> None:
     lore = result["coins"][0]["lore"]
     assert "Joined the cult" not in lore
     assert "move came" not in lore
-    assert "trading chatter rather than a verifiable story" in lore
+    assert lore == "", "unverified chatter should publish no invented fallback story"

@@ -1559,7 +1559,8 @@ def test_old_coin_new_ath_exception_requires_an_in_window_gmgn_candle(tmp_path):
     assert not belongs_in_journal(coin, settings, NOW), "a stale lifetime ATH is not today's event"
 
     coin.provider_evidence["gmgn"].update({
-        "kline24hPeakMarketCap": 995_000,
+            "kline24hPeakMarketCap": 995_000,
+            "kline24hMarketCapVerified": True,
         "kline24hPeakFromOpenPct": 20,
         "kline24hPeakAt": NOW.isoformat(),
     })

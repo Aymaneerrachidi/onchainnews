@@ -35,6 +35,14 @@ CLI_CHAINS = {
 }
 
 
+def verified_kline_peak_market_cap(evidence: dict[str, Any] | None) -> float:
+    """Return a candle-derived market cap only after strict supply checks."""
+    evidence = evidence or {}
+    if evidence.get("kline24hMarketCapVerified") is not True:
+        return 0.0
+    return number(evidence.get("kline24hPeakMarketCap"))
+
+
 class GmgnError(RuntimeError):
     pass
 
@@ -234,6 +242,13 @@ def evidence_from_rank(item: dict[str, Any], origin: str) -> dict[str, Any]:
     return {
         "origin": origin,
         "athMarketCap": number(item.get("history_highest_market_cap")) or None,
+        "exactSupply": number(
+            item.get("circulating_supply") or item.get("total_supply") or item.get("max_supply")
+        ) or None,
+        "exactSupplySource": "gmgn-rank" if any(
+            item.get(key) not in (None, "")
+            for key in ("circulating_supply", "total_supply", "max_supply")
+        ) else None,
         # A tax on every transfer. Material enough to change whether a coin is
         # worth touching, and invisible in price data.
         "totalFee": number(item.get("total_fee")) if item.get("total_fee") is not None else None,
@@ -456,7 +471,7 @@ class GmgnSource:
         }
 
     @staticmethod
-    def wallet_count_evidence(payload: Any) -> dict[str, Any]:
+    def wallet_count_evidence(payload: Any, expected_mint: str | None = None) -> dict[str, Any]:
         """Extract exact-mint wallet counts from ``token info``.
 
         Discovery ranks are intentionally broad and occasionally omit the
@@ -470,9 +485,16 @@ class GmgnSource:
         data = _unwrap(payload)
         if not isinstance(data, dict):
             return {}
+        returned_mint = str(data.get("address") or (data.get("token_info") or {}).get("address") or "")
+        exact_contract = not expected_mint or returned_mint.casefold() == expected_mint.casefold()
         tags = data.get("wallet_tags_stat") or {}
         stat = data.get("stat") or {}
         dev = data.get("dev") or {}
+        token_info = data.get("token_info") or {}
+        supply = number(
+            data.get("circulating_supply") or data.get("total_supply") or data.get("max_supply")
+            or token_info.get("circulating_supply") or token_info.get("total_supply")
+        ) or None if exact_contract else None
         return {
             "holders": integer(data.get("holder_count") or stat.get("holder_count")) or None,
             "top10Pct": _ratio_pct(
@@ -484,6 +506,9 @@ class GmgnSource:
             "kolCount": integer(tags.get("renowned_wallets")),
             "exactWalletCountsChecked": True,
             "exactWalletCountSource": "token-info",
+            "exactSupply": supply,
+            "exactSupplySource": "gmgn-token-info" if supply else None,
+            "exactContractVerified": exact_contract,
         }
 
     async def enrich_missing_wallet_counts(
@@ -530,7 +555,7 @@ class GmgnSource:
                 if "rate limit" in str(error).lower():
                     break
                 continue
-            summary = self.wallet_count_evidence(payload)
+            summary = self.wallet_count_evidence(payload, candidate.token.mint)
             if not summary:
                 continue
             evidence = evidence_by_mint.setdefault(candidate.token.mint, {"origins": []})
@@ -547,13 +572,21 @@ class GmgnSource:
         return SourceStatus("GMGN exact wallet-count fallback", checked > 0, detail)
 
     @staticmethod
-    def kline_evidence(payload: Any, token: TokenSnapshot) -> dict[str, Any]:
+    def kline_evidence(
+        payload: Any,
+        token: TokenSnapshot,
+        *,
+        exact_supply: float | None = None,
+        reference_ath_market_cap: float | None = None,
+    ) -> dict[str, Any]:
         """Turn GMGN's hourly candles into an honest trailing-24h move.
 
         Dex feeds expose the present and a percentage.  The candles prove the
         actual high reached during the report window, including runners that
-        subsequently faded.  Market-cap estimates preserve the token's current
-        circulating-supply basis by scaling its current cap by price ratios.
+        subsequently faded. A candle proves price, not market cap. Market cap
+        is emitted only when an explicit supply agrees with an independent
+        current price/cap observation. Supply is never inferred from a candle
+        close because the snapshot and candle may describe different moments.
         """
         data = _unwrap(payload)
         rows = _dicts(data.get("list")) if isinstance(data, dict) else _dicts(data)
@@ -578,9 +611,22 @@ class GmgnSource:
         low_row = min(candles, key=lambda row: row["low"] if row["low"] > 0 else float("inf"))
         high = peak_row["high"]
         low = low_row["low"]
+        supply = float(exact_supply or 0)
+        peak_cap = high * supply if supply > 0 else 0.0
+        low_cap = low * supply if supply > 0 and low else 0.0
+        current_price = float(token.price_usd or 0)
         current_cap = float(token.market_cap or 0)
-        peak_cap = current_cap * high / closing if current_cap and closing else 0.0
-        low_cap = current_cap * low / closing if current_cap and closing and low else 0.0
+        current_check = current_price * supply if current_price > 0 and supply > 0 else 0.0
+        current_error = (
+            abs(current_check - current_cap) / max(current_check, current_cap)
+            if current_check > 0 and current_cap > 0 else None
+        )
+        ath_cap = float(reference_ath_market_cap or 0)
+        ath_consistent = not ath_cap or peak_cap <= ath_cap * 1.10
+        verified = bool(
+            supply > 0 and ath_consistent
+            and current_error is not None and current_error <= 0.15
+        )
         peak_time = _timestamp(peak_row["time"])
         return {
             "kline24hCandleCount": len(candles),
@@ -591,8 +637,12 @@ class GmgnSource:
             "kline24hChangePct": (closing / opening - 1.0) * 100.0,
             "kline24hPeakFromOpenPct": (high / opening - 1.0) * 100.0,
             "kline24hHighLowMultiple": high / low if low else 1.0,
-            "kline24hPeakMarketCap": peak_cap,
-            "kline24hLowMarketCap": low_cap,
+            "kline24hPeakMarketCap": peak_cap if verified else None,
+            "kline24hLowMarketCap": low_cap if verified else None,
+            "kline24hMarketCapVerified": verified,
+            "kline24hExactSupply": supply or None,
+            "kline24hSupplyCheckErrorPct": current_error * 100 if current_error is not None else None,
+            "kline24hAthLowerBoundConsistent": ath_consistent,
             "kline24hVolumeUsd": sum(row["volume"] for row in candles),
             "kline24hPeakAt": peak_time.isoformat() if peak_time else None,
         }
@@ -640,6 +690,20 @@ class GmgnSource:
         failures: list[str] = []
         for token in ranked:
             chain = CLI_CHAINS[token.chain_id.lower()]
+            evidence = evidence_by_mint.setdefault(token.mint, {"origins": []})
+            # ATH publication is fail-closed. Resolve exact supply before the
+            # candle call instead of reconstructing it from mismatched market
+            # snapshots. The response is cached and also improves holder/KOL
+            # evidence for later stages.
+            if number(evidence.get("exactSupply")) <= 0:
+                _, info_payload, info_error = await self._safe(
+                    f"ath-supply:{chain}:{token.mint}",
+                    "token", "info", "--chain", chain, "--address", token.mint,
+                )
+                if info_error is None:
+                    for key, value in self.wallet_count_evidence(info_payload, token.mint).items():
+                        if value is not None:
+                            evidence[key] = value
             _, payload, error = await self._safe(
                 f"kline:{chain}:{token.mint}",
                 "market", "kline", "--chain", chain, "--address", token.mint,
@@ -650,10 +714,15 @@ class GmgnSource:
                 if "rate limit" in str(error).lower():
                     break
                 continue
-            summary = self.kline_evidence(payload, token)
+            summary = self.kline_evidence(
+                payload,
+                token,
+                exact_supply=number(evidence.get("exactSupply")) or None,
+                reference_ath_market_cap=number(evidence.get("athMarketCap")) or None,
+            )
             if not summary:
                 continue
-            evidence_by_mint.setdefault(token.mint, {"origins": []}).update(summary)
+            evidence.update(summary)
             checked += 1
         available = checked > 0
         detail = f"{checked}/{len(ranked)} KOL-backed candidates verified from hourly candles"

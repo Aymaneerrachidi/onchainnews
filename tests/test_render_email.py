@@ -428,7 +428,8 @@ def test_email_explains_intraday_round_trips_without_vendor_branding(tmp_path):
     runner.provider_evidence["gmgn"] = {
         "kline24hOpenPrice": 0.0005,
         "kline24hHighPrice": 0.00145,
-        "kline24hPeakMarketCap": 1_450_000,
+            "kline24hPeakMarketCap": 1_450_000,
+            "kline24hMarketCapVerified": True,
         "kline24hPeakFromOpenPct": 190.0,
         "kline24hChangePct": 0.4,
         "kolCount": 12,

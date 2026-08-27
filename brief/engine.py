@@ -1235,7 +1235,8 @@ async def build_brief(
             """Best verified peak for size eligibility; motion is gated later."""
             token_gmgn = gmgn_evidence.get(token.mint, {}) or {}
             gmgn_ath = float(token_gmgn.get("athMarketCap") or 0)
-            kline_peak = float(token_gmgn.get("kline24hPeakMarketCap") or 0)
+            from brief.sources.gmgn import verified_kline_peak_market_cap
+            kline_peak = verified_kline_peak_market_cap(token_gmgn)
             lifecycle = ledger.lifecycle(token.mint, window_start, now)
             local_peak = float((lifecycle or {}).get("peak_market_cap") or 0)
             daily_move_peak = float(token.market_cap or 0) if token.price_change_24h >= float(

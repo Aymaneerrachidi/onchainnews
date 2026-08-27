@@ -181,25 +181,31 @@ test("internal competitor research can never become public filtered copy", () =>
 });
 
 
-test("a verified public monitored-X explanation outranks fallback web lore", () => {
+test("raw monitored-X copy never outranks reviewed lore", () => {
   const row = safeRunner({
     lore: "Fallback web lore.",
     xInteractions: [{ handle: "PoorGoat_", summary: "The community lead announced the takeover and explained the new campaign." }],
   });
-  assert.match(shortCause(row), /community lead announced/i);
+  assert.equal(shortCause(row), "Fallback web lore.");
 });
 
 
-test("filtered detail always has factual context when social and web lore are absent", () => {
+test("filtered detail stays blank when reviewed lore is absent", () => {
   const row = safeRunner({
     ageHours: 8,
     volume24h: 900_000,
     providerEvidence: { gmgn: { kolCount: 7, smartMoneyCount: 19 } },
   });
-  const cause = shortCause(row);
-  assert.match(cause, /8h-old launch reached \$420K/i);
-  assert.match(cause, /7 KOL wallets and 19 smart-money wallets/i);
-  assert.doesNotMatch(cause, /no monitored x account/i);
+  assert.equal(shortCause(row), "");
+});
+
+
+test("public lore strips links and handles and rejects untranslated posts", () => {
+  assert.equal(
+    shortCause(safeRunner({ lore: "Frankie became the mascot https://t.co/example @caller" })),
+    "Frankie became the mascot",
+  );
+  assert.equal(shortCause(safeRunner({ lore: "这只猫成为了代币故事" })), "");
 });
 
 
