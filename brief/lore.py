@@ -261,6 +261,11 @@ def query_ladder(candidate: Candidate) -> list[str]:
     queries: list[str] = []
     if token.mint:
         queries.append(f'"{token.mint}"')
+    # Pairing ticker and name is much more discriminating than either alone
+    # for short/common symbols such as MEAT, MEME, TASTE, or HUH.
+    if symbol and name and name.casefold() != symbol.casefold():
+        identity = f'"{symbol}" "{name}"'
+        queries.extend((identity, f"{identity} lore", f"{identity} story"))
     # A descriptive name is the single best search term we hold: "World
     # Humanoid Robot Games" finds the event, "WHRG" finds nothing.
     if name and name.lower() != symbol.lower() and len(name) >= 5:

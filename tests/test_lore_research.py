@@ -21,6 +21,9 @@ def _candidate() -> Candidate:
 
 def test_meme_research_always_checks_culture_sources() -> None:
     queries = query_ladder(_candidate())
+    assert '"MORTY" "Gucci Morty"' in queries
+    assert '"MORTY" "Gucci Morty" lore' in queries
+    assert '"MORTY" "Gucci Morty" story' in queries
     assert 'site:knowyourmeme.com "Gucci Morty"' in queries
     assert '"Gucci Morty" TikTok trend meme' in queries
     assert '"MORTY" TikTok meme trend' in queries

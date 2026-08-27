@@ -41,7 +41,7 @@ foreach ($coin in $unresolved) {
     $lines += ('## `${0}` - {1}' -f $symbol, $name)
     $lines += "- Chain: $chain"
     $lines += ('- Contract: `{0}`' -f $mint)
-    $lines += ('- Searches: `"{0}"`, `"{0}" lore`, `"{0}" story`, `${1} lore`, `${1} story`, `"{2}" lore`, `"{2}" story`, `site:knowyourmeme.com "{2}"`, `"{2}" TikTok trend meme`, `"{2}" Douyin meme`' -f $mint, $symbol, $name)
+    $lines += ('- Searches: `"{0}"`, `"{0}" lore`, `"{0}" story`, `"{1}" "{2}"`, `"{1}" "{2}" lore`, `"{1}" "{2}" story`, `${1} lore`, `${1} story`, `"{2}" lore`, `"{2}" story`, `site:knowyourmeme.com "{2}"`, `"{2}" TikTok trend meme`, `"{2}" Douyin meme`' -f $mint, $symbol, $name)
     $lines += ""
 }
 

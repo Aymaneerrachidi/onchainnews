@@ -93,6 +93,9 @@ def candidate_lore_search_terms(candidate: Candidate) -> list[str]:
     terms: list[str] = []
     if token.mint:
         terms.extend((token.mint, f'{token.mint} lore', f'{token.mint} story'))
+    if symbol and name and name.casefold() != symbol.casefold():
+        identity = f'${symbol} "{name}"'
+        terms.extend((identity, f'{identity} lore', f'{identity} story'))
     if symbol and len(symbol) >= 2 and not symbol.isdigit():
         terms.extend((f'${symbol} lore', f'${symbol} story'))
     if name and name.casefold() != symbol.casefold() and len(name) >= 4:
