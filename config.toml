@@ -727,7 +727,7 @@ min_kol_trades_by_peak_market_cap = [
 # Final publication is smaller and Solana-led. Other chains must make a much
 # stronger move to use one of the four non-Solana slots.
 publication_fresh_hours = 24.0
-publication_max_coins = 20
+publication_max_coins = 12
 publication_standard_coins = 15
 publication_overflow_min_multiple = 5.0
 publication_max_non_solana = 4

@@ -16,10 +16,23 @@ _ROBOTIC_OPENERS = (
     r"^[^.!?]{1,40} had an exact linked social source during the move[,;:]?\s*",
 )
 
+_NON_ENGLISH_SCRIPT = re.compile(
+    r"[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff]"
+)
+
+
+def contains_untranslated_text(value: object) -> bool:
+    """Reject raw non-English source copy before it reaches a recap."""
+    return bool(_NON_ENGLISH_SCRIPT.search(str(value or "")))
+
 
 def humanize_lore(value: object) -> str:
     """Keep research mechanics internal and present lore as editorial prose."""
     text = str(value or "").strip()
+    # Evidence links and handles belong in source metadata, not the story.
+    text = re.sub(r"\[([^\]]+)\]\(https?://[^)]+\)", r"\1", text)
+    text = re.sub(r"(?:https?://|www\.)\S+", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"(?<!\w)@[A-Za-z0-9_]{1,30}\b", "", text)
     for pattern in _ROBOTIC_OPENERS:
         text = re.sub(pattern, "", text, flags=re.IGNORECASE)
     for preamble in _IDENTITY_PREAMBLES:
@@ -57,4 +70,4 @@ def humanize_lore(value: object) -> str:
         text,
         flags=re.IGNORECASE,
     )
-    return text
+    return re.sub(r"\s+", " ", text).strip(" \t\r\n-–—·,;:")

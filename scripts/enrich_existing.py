@@ -247,25 +247,22 @@ def _fill_evidence_recaps(result: dict[str, Any]) -> None:
             # synthesizes the context, disclose that the evidence was thin.
             author = _clean_evidence_text(item.get("author") or item.get("source"), 60)
             attribution = f" from {author}" if author else ""
-            lore = _thin_evidence_lore(symbol, str(coin.get("mint") or ""), attribution)
-            coin["lore"] = humanize_lore(lore)
+            coin["lore"] = ""
             coin["researchStatus"] = coin.get("researchStatus") or "linked_evidence"
             url = str(item.get("url") or "")
             coin["researchSources"] = [url] if url else []
             coin["webResearch"] = {
-                "summary": coin["lore"],
+                "summary": "",
                 "status": coin["researchStatus"],
                 "sources": coin["researchSources"],
             }
             evidence_count += 1
             continue
-        coin["lore"] = humanize_lore(
-            f"{symbol} qualified on the 24-hour market tape, but no trustworthy linked post, creator story, or outside catalyst was available."
-        )
+        coin["lore"] = ""
         coin["researchStatus"] = coin.get("researchStatus") or "not_found"
         coin["researchSources"] = []
         coin["webResearch"] = {
-            "summary": coin["lore"],
+            "summary": "",
             "status": coin["researchStatus"],
             "sources": [],
         }

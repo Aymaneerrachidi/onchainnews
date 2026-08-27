@@ -23,7 +23,7 @@ from brief.config import load_settings  # noqa: E402
 from brief.journal import kol_trade_count, rug_or_bundle, verified_window_multiple  # noqa: E402
 from brief.links import fomo_token_url  # noqa: E402
 from brief.lore import attach_lore  # noqa: E402
-from brief.lore_style import humanize_lore  # noqa: E402
+from brief.lore_style import contains_untranslated_text, humanize_lore  # noqa: E402
 from brief.newsletter import write_recap  # noqa: E402
 from brief.render.discord import (  # noqa: E402
     BRAND,
@@ -457,14 +457,7 @@ def _source(candidate) -> str:
 
 
 def _fallback_line(candidate) -> str:
-    name = _compact(candidate.token.name, 70)
-    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
-    cto = bool(gmgn.get("ctoFlag"))
-    if cto:
-        return f"{name or candidate.token.symbol} community takeover; no fresh public catalyst was verified"
-    if name and name.lower() != candidate.token.symbol.lower():
-        return f"{name}; no fresh public catalyst was verified"
-    return "no fresh public catalyst was verified"
+    return ""
 
 
 def _result(candidate) -> str:
@@ -492,10 +485,42 @@ def _result(candidate) -> str:
 
 
 def _lore_limit(candidate) -> int:
-    """Leads get context; the sub-$1M tail reads like a compact tape."""
-    if candidate.x_interactions:
-        return 190
-    return 96 if peak_cap(candidate) >= 1_000_000 else 58
+    """Twelve featured runners leave room for complete editorial context."""
+    return 420
+
+
+def _market_only_result(candidate) -> str:
+    current = float(candidate.token.market_cap or 0)
+    current_text = money(current) if current > 0 else "unavailable"
+    return f"reached {money(_verified_peak(candidate))} ATH, now at {current_text}"
+
+
+def _publishable_lore(candidate, value: object) -> str:
+    status = str((candidate.provider_evidence.get("editorial", {}) or {}).get("status") or "").lower()
+    if status in {"not_found", "market_only", "linked_evidence", "thin"}:
+        return ""
+    raw = str(value or "")
+    if contains_untranslated_text(raw):
+        return ""
+    text = _compact(humanize_lore(raw), _lore_limit(candidate))
+    rejected = (
+        "no fresh public catalyst", "no credible public story",
+        "no trustworthy linked post", "qualified on the 24-hour market tape",
+        "trading chatter rather than", "underlying story remains unconfirmed",
+    )
+    return "" if any(fragment in text.casefold() for fragment in rejected) else text
+
+
+def _runner_line(candidate, mint: str, lore: str = "", source: str = "") -> str:
+    lore = _publishable_lore(candidate, lore)
+    result = _result(candidate) if lore else _market_only_result(candidate)
+    suffix = f" — {lore}" if lore else ""
+    if lore and source:
+        suffix += f" · [src]({source})"
+    return (
+        f"[**${candidate.token.symbol}**]({fomo_token_url(candidate.token.chain_id, mint)}) "
+        f"→ **{result}**{suffix}"
+    )
 
 
 def _verified_peak(candidate) -> float:
@@ -862,7 +887,14 @@ def _apply_saved_enrichment(candidates: list) -> int:
         row = researched.get(candidate.token.mint.lower())
         if not row:
             continue
-        lore = _compact(humanize_lore(row.get("lore")), 260)
+        status = str(row.get("researchStatus") or (row.get("webResearch") or {}).get("status") or "").lower()
+        candidate.provider_evidence["editorial"] = {"status": status}
+        if status in {"not_found", "market_only", "linked_evidence", "thin"}:
+            candidate.lore = ""
+            candidate.provider_evidence.pop("why", None)
+            applied += 1
+            continue
+        lore = _compact(humanize_lore(row.get("lore")), 420)
         if not lore or "mellometrics" in lore.casefold():
             continue
         web_research = row.get("webResearch") or {}
@@ -916,6 +948,15 @@ def _merge_saved_enrichment_into_snapshot(snapshot: dict) -> int:
             editorial = EDITORIAL.get(mint) or FILTER_EDITORIAL.get(mint)
             if not saved and not editorial:
                 continue
+            status = str((saved or {}).get("researchStatus") or ((saved or {}).get("webResearch") or {}).get("status") or "").lower()
+            if saved and status in {"not_found", "market_only", "linked_evidence", "thin"} and not editorial:
+                row["lore"] = ""
+                provider = dict(row.get("providerEvidence") or {})
+                provider.pop("why", None)
+                provider["editorial"] = {"status": status}
+                row["providerEvidence"] = provider
+                applied.add((collection, mint.lower()))
+                continue
             lore = _compact(humanize_lore(
                 (saved or {}).get("lore")
                 or ((saved or {}).get("webResearch") or {}).get("summary")
@@ -932,6 +973,7 @@ def _merge_saved_enrichment_into_snapshot(snapshot: dict) -> int:
                 sources = [editorial[1]]
             row["lore"] = lore
             provider = dict(row.get("providerEvidence") or {})
+            provider["editorial"] = {"status": status or "verified"}
             provider["why"] = {
                 "cause": lore,
                 "sourceUrl": sources[0] if sources else "",
@@ -1111,23 +1153,18 @@ def _render_posts(
             editorial_copy = candidate.lore if candidate.x_interactions else (
                 TAIL_EDITORIAL.get(mint) or (override[0] if override else "")
             )
-            line = (
+            line = _publishable_lore(candidate, (
                 _compact(editorial_copy, lore_limit)
                 if editorial_copy
                 else (
                     _compact(item.get("line"), lore_limit)
                     or _compact(candidate.lore, lore_limit)
-                    or _fallback_line(candidate)
                 )
-            )
+            ))
             source = _source(candidate) if candidate.x_interactions else (
                 override[1] if override else _source(candidate)
             )
-            links = f" · [src]({source})" if source else ""
-            lines.append(
-                f"[**${candidate.token.symbol}**]({fomo_token_url(candidate.token.chain_id, mint)}) "
-                f"→ **{_result(candidate)}** — {line}{links}"
-            )
+            lines.append(_runner_line(candidate, mint, line, source))
         if title and lines:
             sections.append((title, lines))
 
@@ -1141,15 +1178,11 @@ def _render_posts(
             source = _source(candidate) if candidate.x_interactions else (
                 override[1] if override else _source(candidate)
             )
-            links = f" · [src]({source})" if source else ""
             cause = (candidate.lore if candidate.x_interactions else "") or TAIL_EDITORIAL.get(mint) or (override[0] if override else str(
                 (candidate.provider_evidence.get("why", {}) or {}).get("cause") or ""
             )) or candidate.lore
-            lines.append(
-                f"[**${candidate.token.symbol}**]({fomo_token_url(candidate.token.chain_id, mint)}) "
-                f"→ **{_result(candidate)}** — "
-                f"{_compact(cause, _lore_limit(candidate)) or _fallback_line(candidate)}{links}"
-            )
+            cause = _publishable_lore(candidate, cause)
+            lines.append(_runner_line(candidate, mint, cause, source))
         sections.append(("More Plays", lines))
 
     rendered_mints = [mint for mint in placed]
@@ -1293,11 +1326,7 @@ def _render_compact_posts(candidates: list, generated: datetime) -> list[dict]:
         cause = TAIL_EDITORIAL.get(mint) or (override[0] if override else str(
             (candidate.provider_evidence.get("why", {}) or {}).get("cause") or ""
         ))
-        tail_lines.append(
-            f"[**${candidate.token.symbol}**]({fomo_token_url(candidate.token.chain_id, mint)}) "
-            f"→ **{_result(candidate)}** — "
-            f"{_compact(cause, 72) or _fallback_line(candidate)}"
-        )
+        tail_lines.append(_runner_line(candidate, mint, cause))
 
     if tail_lines:
         # Balanced chunks avoid an almost-empty final Discord post while
@@ -1369,8 +1398,8 @@ async def main() -> int:
         help="send only to this explicit webhook; repeat for multiple approval destinations",
     )
     parser.add_argument(
-        "--max-coins", type=int, default=15,
-        help="maximum runners on the public lead page (default: 15)",
+        "--max-coins", type=int, default=12,
+        help="maximum runners on the public lead page (default: 12)",
     )
     args = parser.parse_args()
 

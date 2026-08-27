@@ -343,6 +343,37 @@ def test_sectioned_recap_layout_is_preserved():
     assert "now" in rendered
 
 
+def test_market_only_runner_has_metrics_without_filler_lore():
+    candidate = _coin("ZOE", peak=4_200_000)
+    candidate.token.market_cap = 730_000
+    candidate.lore = "No fresh public catalyst was verified"
+    candidate.provider_evidence["editorial"] = {"status": "not_found"}
+    narrative = recap._approved_layout([candidate])
+
+    posts = recap._render_posts([candidate], narrative, recap.datetime(2026, 8, 27))
+    rendered = "\n".join(
+        embed["description"] for post in posts for embed in post["embeds"]
+    )
+
+    assert "reached $4.2M ATH, now at $730k" in rendered
+    assert "no fresh public catalyst" not in rendered.lower()
+    assert " — " not in rendered
+
+
+def test_lore_never_publishes_urls_handles_or_untranslated_copy():
+    candidate = _coin("FRANKIE", peak=2_000_000)
+    candidate.provider_evidence["editorial"] = {"status": "verified"}
+
+    cleaned = recap._publishable_lore(
+        candidate,
+        "@SomeAccount named the dog Frankie https://t.co/example after the community adopted him.",
+    )
+    untranslated = recap._publishable_lore(candidate, "你有球了 https://t.co/example")
+
+    assert cleaned == "named the dog Frankie after the community adopted him."
+    assert untranslated == ""
+
+
 def test_approved_fifteen_name_layout_stays_in_one_discord_message():
     leaders = [_coin(f"LEAD{i}", peak=20_000_000 - i * 1_000_000) for i in range(5)]
     solana = [_coin(f"SOL{i}", peak=8_000_000 - i * 500_000) for i in range(6)]
