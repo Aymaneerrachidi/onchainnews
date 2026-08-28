@@ -62,6 +62,25 @@ test("deferred Discord refreshes edit the original interaction response", async 
   assert.deepEqual(JSON.parse(requestOptions.body), data);
 });
 
+test("deferred Discord results retry a burst rate limit", async () => {
+  let calls = 0;
+  await editDeferredInteraction(
+    { application_id: "app-123", token: "interaction-token" },
+    { content: "ready" },
+    async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(JSON.stringify({ retry_after: 0.001 }), {
+          status: 429,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response("{}", { status: 200 });
+    },
+  );
+  assert.equal(calls, 2);
+});
+
 
 test("BNB refresh uses BSC and caches the deepest exact market", async () => {
   resetRefreshStateForTests();

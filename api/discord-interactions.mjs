@@ -757,18 +757,30 @@ function deferredUpdate() {
   return json({ type: 6 });
 }
 
+function deferredEphemeral() {
+  return json({ type: 5, data: { flags: 64 } });
+}
+
 export async function editDeferredInteraction(interaction, data, fetchImpl = fetch) {
   const applicationId = String(interaction?.application_id || "");
   const token = String(interaction?.token || "");
   if (!applicationId || !token) throw new Error("missing Discord interaction callback identity");
   const url = `https://discord.com/api/v10/webhooks/${encodeURIComponent(applicationId)}/${encodeURIComponent(token)}/messages/@original`;
-  const response = await fetchImpl(url, {
-    method: "PATCH",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(data),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) throw new Error(`Discord deferred edit HTTP ${response.status}`);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetchImpl(url, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (response.ok) return;
+    if (response.status !== 429 || attempt === 2) {
+      throw new Error(`Discord deferred edit HTTP ${response.status}`);
+    }
+    const body = await response.json().catch(() => ({}));
+    const retryMs = Math.min(2_000, Math.max(50, Number(body.retry_after || 0.25) * 1_000));
+    await new Promise((resolve) => setTimeout(resolve, retryMs));
+  }
 }
 
 function queueDeferredUpdate(interaction, task) {
@@ -777,6 +789,14 @@ function queueDeferredUpdate(interaction, task) {
     if (data) await editDeferredInteraction(interaction, data);
   })().catch(() => null));
   return deferredUpdate();
+}
+
+function queueDeferredEphemeral(interaction, task) {
+  waitUntil((async () => {
+    const data = await task;
+    if (data) await editDeferredInteraction(interaction, data);
+  })().catch(() => null));
+  return deferredEphemeral();
 }
 
 export default {
@@ -825,17 +845,22 @@ export default {
           }
         })());
       }
-      try {
-        const data = await renderFilterResponse(request, interaction, filterAction, now);
-        if (data.error) return ephemeralMessage(data.error);
-        const updatingEphemeral = Boolean(Number(interaction?.message?.flags || 0) & 64);
-        return json({ type: updatingEphemeral ? 7 : 4, data: {
-          ...data,
-          ...(updatingEphemeral ? {} : { flags: 64 }),
-        } });
-      } catch (_) {
-        return ephemeralMessage("The qualified runner index is temporarily unavailable. Try again shortly.");
-      }
+      const updatingEphemeral = Boolean(Number(interaction?.message?.flags || 0) & 64);
+      const task = (async () => {
+        try {
+          const data = await renderFilterResponse(request, interaction, filterAction, now);
+          if (data.error) return { content: data.error, allowed_mentions: { parse: [] } };
+          return data;
+        } catch (_) {
+          return {
+            content: "The qualified runner index is temporarily unavailable. Try again shortly.",
+            allowed_mentions: { parse: [] },
+          };
+        }
+      })();
+      return updatingEphemeral
+        ? queueDeferredUpdate(interaction, task)
+        : queueDeferredEphemeral(interaction, task);
     }
 
     if (!customId.startsWith(REFRESH_PREFIX)) return ephemeralMessage("Unknown action.");
