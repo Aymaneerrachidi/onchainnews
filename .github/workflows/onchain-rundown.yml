@@ -66,7 +66,15 @@ jobs:
 
       # Telegram and Discord are posted from the final X-enriched snapshot
       # below, so neither channel receives the earlier lore-only draft.
-      - run: uv run solana-brief run --no-discord --no-telegram
+      - run: uv run solana-brief run --no-discord --no-telegram --no-email
+
+      - name: Verify every 24-hour high from exact-contract candles
+        run: >-
+          uv run python scripts/audit_strict_ath.py
+          --snapshot web/data/latest.json
+          --output output/strict-ath-audit.json
+          --apply
+          --require-all-verified
 
       - name: Audit every monitored X account across the complete 24-hour window
         if: env.TWITTERAPI_IO_KEY != ''
@@ -81,7 +89,8 @@ jobs:
         if: env.TWITTERAPI_IO_KEY == ''
         run: echo "TWITTERAPI_IO_KEY is not configured; publishing the normal lore-only recap."
 
-      # Commit only after X has enriched the snapshot used by every filter.
+      # Commit only after strict ATH verification and X enrichment have updated
+      # the snapshot used by every public surface.
       - name: Commit public report
         run: |
           git config user.name "github-actions[bot]"

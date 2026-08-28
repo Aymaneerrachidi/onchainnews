@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -173,11 +174,23 @@ def main() -> None:
     parser.add_argument("--snapshot", type=Path, default=Path("web/data/latest.json"))
     parser.add_argument("--output", type=Path, default=Path("output/strict-ath-audit.json"))
     parser.add_argument("--apply", action="store_true", help="replace snapshot peaks with verified exact-supply peaks")
+    parser.add_argument(
+        "--require-all-verified",
+        action="store_true",
+        help="exit non-zero when any runner cannot be verified; use this before publishing",
+    )
     args = parser.parse_args()
     report = asyncio.run(audit(args.snapshot, args.output))
     if args.apply:
         report["snapshotObjectsCorrected"] = apply_verified_corrections(args.snapshot, report)
     print(json.dumps({key: report[key] for key in ("runnerCount", "verifiedCount", "unverifiedCount", "wrongCount")}))
+    if args.require_all_verified and report["unverifiedCount"]:
+        print(
+            f"STRICT ATH AUDIT FAILED: {report['unverifiedCount']} of "
+            f"{report['runnerCount']} runners could not be verified; publication is blocked.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,12 @@ from brief.interface import serve_interface
 from brief.ledger import open_ledger
 from brief.launch_collector import run_launch_collector
 from brief.pulse import load_state, run_pulse, save_state
-from brief.preflight import DeliveryPreflightError, audit_brief, delivery_candidates
+from brief.preflight import (
+    DeliveryPreflightError,
+    audit_brief,
+    delivery_candidates,
+    quarantine_unverified_highlights,
+)
 from brief.recheck import refresh_delivery_evidence
 from brief.render.email import email_subject, pulse_email_subject, render_email, render_pulse_email
 from brief.render.html import render_html
@@ -102,6 +107,23 @@ async def run(args: argparse.Namespace) -> int:
                 brief.source_statuses.extend(await refresh_delivery_evidence(
                     delivery_candidates(brief), settings, ledger,
                 ))
+                quarantined = quarantine_unverified_highlights(brief, settings)
+                if quarantined:
+                    names = ", ".join(
+                        f"${candidate.token.symbol}" for candidate, _ in quarantined
+                    )
+                    logging.getLogger("brief.preflight").warning(
+                        "Quarantined %d unresolved highlight(s): %s",
+                        len(quarantined), names,
+                    )
+                    console.print(
+                        f"[yellow]Quarantined {len(quarantined)} unresolved highlight(s) "
+                        f"after exact-contract retries: {names}[/yellow]"
+                    )
+                if not brief.runners and not brief.headline_tape:
+                    raise DeliveryPreflightError(
+                        "delivery blocked: no fully verified highlights remain after recheck"
+                    )
                 delivery_audit = audit_brief(brief, settings)
             except DeliveryPreflightError as exc:
                 # Do not route this through the outer failure handler: that

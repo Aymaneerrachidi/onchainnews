@@ -60,6 +60,45 @@ def _exact_kol_traders(candidate: Candidate) -> tuple[bool, int]:
     return True, len(identities)
 
 
+def _robinhood_current_safety_is_clean(candidate: Candidate, settings: Settings) -> bool:
+    """Allow Robinhood launches when the current, actionable checks are clean.
+
+    Robinhood Chain is not covered by GoPlus and several common launchpad
+    tokens do not publish source metadata on Blockscout.  Missing mint/freeze
+    or LP-lock fields are therefore provider-coverage gaps, not danger signals.
+    For this chain we publish from the current market state: the exact token
+    must be explicitly sellable/non-honeypot, have holder and concentration
+    measurements, and have no confirmed rug, bundle, insider, wash-trading,
+    tax, or pullable-liquidity finding.
+    """
+    if candidate.token.chain_id.lower() != "robinhood":
+        return False
+
+    report = candidate.safety
+    enrichment = candidate.enrichment
+    gmgn = candidate.provider_evidence.get("gmgn", {}) or {}
+    honeypot = gmgn.get("isHoneypot")
+    explicitly_sellable = (
+        honeypot is False
+        or honeypot == 0
+        or str(honeypot or "").strip().lower() in {"false", "no"}
+    )
+    holder_count = enrichment.holder_count or report.holder_count
+    top10 = report.top10_pct
+    if top10 is None and gmgn.get("top10Pct") is not None:
+        top10 = float(gmgn["top10Pct"])
+
+    return bool(
+        explicitly_sellable
+        and holder_count is not None
+        and int(holder_count) > 0
+        and top10 is not None
+        and not report.rugged
+        and not report.risk_flags
+        and not rug_or_bundle(candidate, settings)
+    )
+
+
 def candidate_preflight_reasons(candidate: Candidate, settings: Settings) -> list[str]:
     """List every reason this exact contract cannot be delivered yet."""
     reasons: list[str] = []
@@ -91,9 +130,10 @@ def candidate_preflight_reasons(candidate: Candidate, settings: Settings) -> lis
         report.freeze_authority_disabled is True
         or enrichment.freeze_authority_disabled is True
     )
-    if not mint_safe:
+    robinhood_current_safe = _robinhood_current_safety_is_clean(candidate, settings)
+    if not mint_safe and not robinhood_current_safe:
         reasons.append("mint authority/contract mintability not confirmed disabled")
-    if not freeze_safe:
+    if not freeze_safe and not robinhood_current_safe:
         reasons.append("freeze/pause/blacklist powers not confirmed disabled")
 
     holder_count = enrichment.holder_count or report.holder_count
@@ -107,13 +147,57 @@ def candidate_preflight_reasons(candidate: Candidate, settings: Settings) -> lis
         or float(gmgn.get("burnRatio") or 0) >= 0.90
     )
     lp_pct = report.lp_locked_or_burned_pct
-    if not gmgn_burned and (lp_pct is None or float(lp_pct) <= 0):
+    if (
+        not robinhood_current_safe
+        and not gmgn_burned
+        and (lp_pct is None or float(lp_pct) <= 0)
+    ):
         reasons.append("LP lock/burn status unavailable or zero")
 
     if bool(section.get("preflight_block_any_security_flag", True)):
         reasons.extend(f"security flag: {flag}" for flag in report.risk_flags)
     reasons.extend(rug_or_bundle(candidate, settings))
     return list(dict.fromkeys(reasons))
+
+
+def quarantine_unverified_highlights(
+    brief: Brief,
+    settings: Settings,
+) -> list[tuple[Candidate, list[str]]]:
+    """Remove unresolved contracts from the concise outbound highlights.
+
+    Provider coverage is not uniform across every supported chain.  After the
+    final exact-contract refresh, an unknown answer must remain unknown, but it
+    should not prevent independently verified highlights from being delivered.
+    Quarantined candidates remain in ``runner_universe`` for the inspectable
+    index and are recorded in ``blocked_runners``; they are never silently
+    promoted or treated as safe.
+    """
+    failures: dict[str, tuple[Candidate, list[str]]] = {}
+    for candidate in [*brief.runners, *brief.headline_tape]:
+        reasons = candidate_preflight_reasons(candidate, settings)
+        if reasons:
+            failures.setdefault(candidate.token.mint, (candidate, reasons))
+
+    if not failures:
+        return []
+
+    blocked_mints = set(failures)
+    brief.runners = [
+        candidate for candidate in brief.runners
+        if candidate.token.mint not in blocked_mints
+    ]
+    brief.headline_tape = [
+        candidate for candidate in brief.headline_tape
+        if candidate.token.mint not in blocked_mints
+    ]
+    already_blocked = {candidate.token.mint for candidate in brief.blocked_runners}
+    brief.blocked_runners.extend(
+        candidate
+        for mint, (candidate, _) in failures.items()
+        if mint not in already_blocked
+    )
+    return list(failures.values())
 
 
 def audit_candidates(candidates: Iterable[Candidate], settings: Settings) -> DeliveryProof:

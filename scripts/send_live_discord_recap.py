@@ -823,7 +823,15 @@ def _select_recap_candidates(candidates: list, settings) -> list:
         section.get("publication_overflow_min_multiple", 5.0) or 5.0
     )
     max_other = int(section.get("publication_max_non_solana", 4) or 4)
-    eligible = [candidate for candidate in candidates if _eligible_for_recap(candidate, settings)]
+    # The public recap is English-only. Keep non-Latin tickers available in the
+    # complete runner index, but do not let one leak foreign-script text into
+    # the editorial lead page; the next qualified runner fills the slot.
+    eligible = [
+        candidate
+        for candidate in candidates
+        if _eligible_for_recap(candidate, settings)
+        and str(candidate.token.symbol or "").isascii()
+    ]
     solana = sorted(
         (candidate for candidate in eligible if candidate.token.chain_id.lower() == "solana"),
         key=_recap_rank,

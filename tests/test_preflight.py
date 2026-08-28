@@ -5,7 +5,13 @@ from datetime import datetime, timezone
 import pytest
 
 from brief.models import Brief, Candidate, Enrichment, SafetyReport, Scorecard, Signals, TokenSnapshot
-from brief.preflight import DeliveryPreflightError, audit_brief, audit_candidates, delivery_candidates
+from brief.preflight import (
+    DeliveryPreflightError,
+    audit_brief,
+    audit_candidates,
+    delivery_candidates,
+    quarantine_unverified_highlights,
+)
 
 
 def candidate(symbol: str = "SAFE") -> Candidate:
@@ -101,6 +107,46 @@ def test_missing_security_measurement_fails_closed(settings, field, message):
         audit_candidates([item], settings)
 
 
+def test_clean_robinhood_current_state_does_not_fail_on_provider_gaps(settings):
+    item = candidate("MICRODUCK")
+    item.token.chain_id = "robinhood"
+    item.safety.source = "gmgn"
+    item.safety.mint_authority_renounced = None
+    item.safety.freeze_authority_disabled = None
+    item.safety.lp_locked_or_burned_pct = None
+    item.enrichment.mint_authority_renounced = None
+    item.enrichment.freeze_authority_disabled = None
+    item.provider_evidence["gmgn"].update({
+        "isHoneypot": "no",
+        "top10Pct": 15.0,
+        "insiderRate": 0.01,
+        "devTeamHoldRate": 0.01,
+        "bundlerRate": 0.20,
+        "washTrading": False,
+    })
+
+    assert audit_candidates([item], settings).candidate_count == 1
+
+
+def test_robinhood_provider_gap_never_overrides_confirmed_danger(settings):
+    item = candidate("SNOP")
+    item.token.chain_id = "robinhood"
+    item.safety.source = "gmgn"
+    item.safety.mint_authority_renounced = None
+    item.safety.freeze_authority_disabled = None
+    item.safety.lp_locked_or_burned_pct = None
+    item.enrichment.mint_authority_renounced = None
+    item.enrichment.freeze_authority_disabled = None
+    item.provider_evidence["gmgn"].update({
+        "isHoneypot": "yes",
+        "top10Pct": 15.0,
+        "washTrading": False,
+    })
+
+    with pytest.raises(DeliveryPreflightError, match="honeypot"):
+        audit_candidates([item], settings)
+
+
 def test_any_security_flag_blocks_delivery(settings):
     item = candidate()
     item.safety.risk_flags = ["contract source is not published"]
@@ -183,3 +229,40 @@ def test_filter_universe_rejects_low_runner_quality(settings):
 
     with pytest.raises(DeliveryPreflightError, match="runner quality score 39.9"):
         audit_brief(brief, settings)
+
+
+def test_unverified_highlight_is_quarantined_but_retained_in_universe(settings):
+    safe = candidate("SAFE")
+    unknown = candidate("UNKNOWN")
+    unknown.safety.mint_authority_renounced = None
+    unknown.safety.freeze_authority_disabled = None
+    unknown.enrichment.mint_authority_renounced = None
+    unknown.enrichment.freeze_authority_disabled = None
+    for item in (safe, unknown):
+        item.provider_evidence["gmgn"].update({
+            "renownedTrustedCount": 1,
+            "exactTraderHistoryChecked": True,
+        })
+    brief = Brief(
+        generated_at=datetime.now(timezone.utc),
+        scorecard=Scorecard(),
+        metas=[],
+        new_and_moving=[],
+        ctos=[],
+        follow_ups=[],
+        onchain=[],
+        excluded=[],
+        source_statuses=[],
+        runners=[safe, unknown],
+        runner_universe=[safe, unknown],
+        headline_tape=[unknown],
+    )
+
+    quarantined = quarantine_unverified_highlights(brief, settings)
+
+    assert [item.token.symbol for item in brief.runners] == ["SAFE"]
+    assert brief.headline_tape == []
+    assert [item.token.symbol for item in brief.blocked_runners] == ["UNKNOWN"]
+    assert [item.token.symbol for item in brief.runner_universe] == ["SAFE", "UNKNOWN"]
+    assert quarantined[0][0] is unknown
+    assert audit_brief(brief, settings).candidate_count == 2
