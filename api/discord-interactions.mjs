@@ -531,7 +531,42 @@ export function shortCause(row) {
   if (!stated) return "";
   // Filter pages are the detail view: allow substantially more context than
   // the compact lead recap while keeping eight rows inside one Discord embed.
-  return stated.length > 240 ? `${stated.slice(0, 237).trimEnd()}…` : stated;
+  if (stated.length <= 240) return stated;
+  const window = stated.slice(0, 240);
+  const sentenceEnd = Math.max(window.lastIndexOf(". "), window.lastIndexOf("! "), window.lastIndexOf("? "));
+  if (sentenceEnd >= 80) return window.slice(0, sentenceEnd + 1).trim();
+  const wordEnd = window.lastIndexOf(" ");
+  return `${window.slice(0, Math.max(1, wordEnd)).trimEnd()}…`;
+}
+
+export function polishedLeadPayload(snapshot, limit = 12) {
+  const all = filterRunnerRows(snapshot, "all", "all");
+  const rows = all.slice(0, Math.max(1, limit));
+  const sections = [
+    ["Market leaders", rows.slice(0, 4)],
+    ["More Solana runners", rows.slice(4).filter((row) => String(row.chain).toLowerCase() === "solana")],
+    ["Cross-chain moves", rows.slice(4).filter((row) => String(row.chain).toLowerCase() !== "solana")],
+  ].filter(([, members]) => members.length);
+  const description = sections.map(([title, members]) => {
+    const lines = members.map((row) => {
+      const holders = row?.holders == null ? "holders unknown" : `${count(row.holders)} holders`;
+      const lore = shortCause(row);
+      return `[**$${String(row.symbol || "?").toUpperCase()}**](${fomoUrl(row)}) - **now ${money(row.marketCap)}** - 24h high ${money(runnerPeak(row))} - ${holders}`
+        + (lore ? `\n${lore}` : "");
+    });
+    return `**${title}**\n\n${lines.join("\n\n")}`;
+  }).join("\n\n");
+  const generated = new Date(snapshot?.generatedAt || Date.now());
+  return {
+    embeds: [{
+      color: 0x516AF6,
+      title: `Daily Memecoin Recap - ${generated.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" })}`,
+      description,
+      footer: { text: `${rows.length} featured - ${all.length} total runners - rolling 24h window - verified at publication time` },
+    }],
+    components: publicComponents(0, snapshot?.generatedAt || "latest", snapshot),
+    allowed_mentions: { parse: [] },
+  };
 }
 
 export function narrativeSource(row) {

@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { baseSnapshot, mergedSnapshot, readEditorialState, runnerKey, writeEditorialState } from "./editorial-store.mjs";
-import { filterRunnerRows, fomoUrl, publicComponents, runnerPeak, shortCause } from "./discord-interactions.mjs";
+import { filterRunnerRows, polishedLeadPayload } from "./discord-interactions.mjs";
 import { telegramKeyboard, telegramText } from "./telegram-interactions.mjs";
 import { researchManualRunner } from "./manual-runner.mjs";
 
@@ -46,7 +46,6 @@ function cleanPatch(value = {}) {
 function reportState(base, state) {
   return state.reportId === base.generatedAt ? state : { reportId: base.generatedAt, overrides: {}, hidden: [], added: [], audit: [], publications: {} };
 }
-function money(value) { const n = Number(value) || 0; return Math.abs(n) >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : Math.abs(n) >= 1e3 ? `$${Math.round(n / 1e3)}K` : `$${Math.round(n)}`; }
 const BOARD_FIELDS = ["chain", "mint", "symbol", "name", "marketCap", "observedPeakMarketCap", "peakMarketCap", "athVerified", "liquidity", "volume24h", "change24h", "startMarketCap", "ageHours", "holders", "top10Pct", "lpLockedPct", "lore", "recapCategory", "manualImport", "riskLabels", "rugged", "freezeAuthorityDisabled", "mintAuthorityRenounced", "scores", "providerEvidence"];
 function boardSnapshot(snapshot) {
   const rows = snapshot.runnerUniverse || snapshot.runners || [];
@@ -56,9 +55,7 @@ function boardSnapshot(snapshot) {
 async function publishDiscord(snapshot, state) {
   const bot = String(process.env.DISCORD_BOT_TOKEN || ""), channel = String(process.env.DISCORD_CHANNEL_ID || "").split(",")[0].trim();
   if (!bot || !channel) return { skipped: "Discord credentials unavailable" };
-  const rows = filterRunnerRows(snapshot, "all", "all").slice(0, 12);
-  const description = rows.map((row) => `**[$${String(row.symbol || "?").toUpperCase()}](${fomoUrl(row)})** · now **${money(row.marketCap)}** · 24h high ${money(runnerPeak(row))}${shortCause(row) ? `\n${shortCause(row)}` : ""}`).join("\n\n");
-  const payload = { embeds: [{ color: 0x516AF6, title: `Daily runners · ${filterRunnerRows(snapshot).length} validated`, description, footer: { text: "Editorial corrections applied · use the buttons for the full board" } }], components: publicComponents(0, snapshot.generatedAt, snapshot), allowed_mentions: { parse: [] } };
+  const payload = polishedLeadPayload(snapshot, 12);
   const prior = state.publications?.discord;
   const url = prior ? `https://discord.com/api/v10/channels/${channel}/messages/${prior}` : `https://discord.com/api/v10/channels/${channel}/messages`;
   const res = await fetch(url, { method: prior ? "PATCH" : "POST", headers: { authorization: `Bot ${bot}`, "content-type": "application/json" }, body: JSON.stringify(payload) });

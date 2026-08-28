@@ -357,10 +357,13 @@ class TwitterApiIoSource:
             )
             if not isinstance(payload, dict):
                 break
+            page_times: list[datetime] = []
             for raw in payload.get("tweets") or []:
                 if not isinstance(raw, dict):
                     continue
                 created_at = _twitterapi_datetime(raw.get("createdAt") or raw.get("created_at"))
+                if created_at is not None:
+                    page_times.append(created_at)
                 if created_at is None or created_at < start:
                     continue
                 author = raw.get("author") or {}
@@ -392,6 +395,11 @@ class TwitterApiIoSource:
                     author_verified=bool(author.get("isBlueVerified") or author.get("isVerified")),
                     conversation_id=str(raw.get("conversationId") or ""),
                 )
+            # The provider query is bounded too, but fail locally at the exact
+            # reporting boundary instead of following an erroneous cursor into
+            # older history. Search results are returned newest-first.
+            if page_times and min(page_times) <= start:
+                break
             cursor = str(payload.get("next_cursor") or "")
             if not payload.get("has_next_page") or not cursor:
                 break

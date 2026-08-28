@@ -11,6 +11,7 @@ import {
   fetchRunnerSnapshot,
   filterRunnerRows,
   filterComponents,
+  polishedLeadPayload,
   publicComponents,
   renderFilterResponse,
   resetRefreshStateForTests,
@@ -206,6 +207,28 @@ test("public lore strips links and handles and rejects untranslated posts", () =
     "Frankie became the mascot",
   );
   assert.equal(shortCause(safeRunner({ lore: "这只猫成为了代币故事" })), "");
+});
+
+test("long lore is shortened at a complete sentence", () => {
+  const first = "The artist confirmed the character and explained how the community adopted it.";
+  const second = "A second paragraph contains enough additional context to push the complete story beyond the Discord detail limit without requiring a broken sentence fragment. ";
+  const lore = `${first} ${second.repeat(2)}`;
+  assert.equal(shortCause(safeRunner({ lore })), `${first} ${second.trim()}`);
+});
+
+test("admin lead publishing uses the polished daily recap layout", () => {
+  const payload = polishedLeadPayload({
+    generatedAt: "2026-08-28T06:00:00Z",
+    runnerUniverse: [
+      safeRunner({ symbol: "LEAD", mint: "lead", peakMarketCap: 2_000_000 }),
+      safeRunner({ symbol: "BASE", mint: "0xbase", chain: "base", peakMarketCap: 1_000_000 }),
+    ],
+  });
+  assert.match(payload.embeds[0].title, /Daily Memecoin Recap - August 28/);
+  assert.match(payload.embeds[0].description, /Market leaders/);
+  assert.match(payload.embeds[0].footer.text, /2 total runners/);
+  assert.equal(payload.components.length, 3);
+  assert.deepEqual(payload.allowed_mentions, { parse: [] });
 });
 
 

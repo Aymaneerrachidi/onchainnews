@@ -352,6 +352,24 @@ class TwitterApiIoHttp:
         }
 
 
+class PaginatedTwitterApiIoHttp:
+    def __init__(self):
+        self.calls = 0
+
+    async def get_json(self, *_args, **_kwargs):
+        self.calls += 1
+        return {
+            "tweets": [{
+                "id": str(self.calls),
+                "text": "$PLUMBER story",
+                "createdAt": "Mon Aug 11 05:00:00 +0000 2026",
+                "author": {"id": "42", "userName": "Desk", "name": "Desk"},
+            }],
+            "has_next_page": True,
+            "next_cursor": f"page-{self.calls + 1}",
+        }
+
+
 @pytest.mark.asyncio
 async def test_twitterapi_io_source_uses_api_key_and_parses_schema():
     http = TwitterApiIoHttp()
@@ -368,6 +386,18 @@ async def test_twitterapi_io_source_uses_api_key_and_parses_schema():
     assert http.kwargs["headers"] == {"X-API-Key": "secret"}
     assert "from:desk OR from:news" in http.kwargs["params"]["query"]
     assert http.kwargs["params"]["queryType"] == "Latest"
+
+
+@pytest.mark.asyncio
+async def test_twitterapi_io_stops_pagination_at_reporting_boundary():
+    http = PaginatedTwitterApiIoHttp()
+    source = TwitterApiIoSource(
+        http, "https://api.twitterapi.io/twitter/tweet/advanced_search",
+        "secret", ["desk"], max_pages_per_query=100,
+    )
+    posts = await source.posts(NOW - timedelta(hours=24), until=NOW)
+    assert posts == []
+    assert http.calls == 1
 
 
 @pytest.mark.asyncio

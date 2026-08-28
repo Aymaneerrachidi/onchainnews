@@ -231,7 +231,7 @@ function cookieValue(request) {
 }
 
 function sessionCookie(token) {
-  return `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_AGE_SECONDS}`;
+  return `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_AGE_SECONDS}`;
 }
 
 async function approvedSession(request) {
