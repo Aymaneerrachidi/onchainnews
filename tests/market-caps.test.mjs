@@ -115,6 +115,53 @@ test("distributed cold refreshes elect one global Dexscreener caller", async () 
   assert.equal(dexCalls, 1);
 });
 
+test("different market-cap batches are globally paced to two calls per second", async () => {
+  const values = new Map();
+  const expiries = new Map();
+  const distributed = { url: "https://redis.test", token: "redis-test-token" };
+  const redisFetch = async (_url, options) => {
+    const command = JSON.parse(options.body);
+    const [name, key, value, ...modifiers] = command;
+    let result = null;
+    if (name === "GET") result = values.get(key) ?? null;
+    if (name === "SET") {
+      if (Number(expiries.get(key) || 0) <= Date.now()) {
+        values.delete(key);
+        expiries.delete(key);
+      }
+      const nx = modifiers.includes("NX");
+      if (!nx || !values.has(key)) {
+        values.set(key, value);
+        const px = modifiers.indexOf("PX");
+        if (px >= 0) expiries.set(key, Date.now() + Number(modifiers[px + 1] || 0));
+        result = "OK";
+      }
+    }
+    return new Response(JSON.stringify({ result }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+  const calls = [];
+  const dexFetch = async () => {
+    calls.push(Date.now());
+    return new Response("[]", { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const mints = [MINT_A, MINT_B, "0x3333333333333333333333333333333333333333"];
+  const responses = await Promise.all(mints.map((mint) => handleMarketCaps(
+    new Request(buildMarketCapProxyUrl("https://app.test", "bsc", [mint], SECRET)),
+    dexFetch,
+    SECRET,
+    distributed,
+    redisFetch,
+  )));
+
+  assert.equal(responses.every((response) => response.status === 200), true);
+  assert.equal(calls.length, 3);
+  assert.equal(calls[1] - calls[0] >= 400, true);
+  assert.equal(calls[2] - calls[1] >= 400, true);
+});
+
 test("Discord rewrites Dexscreener refreshes through the signed project proxy", async () => {
   const previous = process.env.MARKET_CAP_PROXY_SECRET;
   process.env.MARKET_CAP_PROXY_SECRET = SECRET;

@@ -5,8 +5,11 @@ const DEX_TIMEOUT_MS = 1000;
 const REDIS_TIMEOUT_MS = 500;
 const FRESH_CAPS_MS = 30_000;
 const STALE_CAPS_SECONDS = 330;
-const LOCK_MS = 2_000;
+const LOCK_MS = 5_000;
+const DEX_RATE_INTERVAL_MS = 500;
+const DEX_RATE_WAIT_MS = 5_000;
 const SUPPORTED_CHAINS = new Set(["solana", "bsc", "base", "ethereum", "robinhood"]);
+let localNextDexAt = 0;
 
 function proxySecret() {
   return String(process.env.MARKET_CAP_PROXY_SECRET || process.env.DISCORD_BOT_TOKEN || "");
@@ -75,12 +78,44 @@ async function waitForDistributedCaps(config, key, fetchImpl) {
   // Cold followers wait briefly for the elected leader. Two bounded reads are
   // cheaper than allowing every Vercel instance to call Dexscreener, while
   // remaining comfortably inside Discord's three-second deadline.
-  for (const delay of [120, 240]) {
+  for (const delay of [150, 350, 700, 800]) {
     await new Promise((resolve) => setTimeout(resolve, delay));
     const cached = await readDistributedCaps(config, key, fetchImpl);
     if (cached) return cached;
   }
   return null;
+}
+
+async function localRateSlot() {
+  const now = Date.now();
+  const scheduled = Math.max(now, localNextDexAt);
+  localNextDexAt = scheduled + DEX_RATE_INTERVAL_MS;
+  if (scheduled > now) {
+    await new Promise((resolve) => setTimeout(resolve, scheduled - now));
+  }
+}
+
+async function waitForDexRateSlot(config, fetchImpl) {
+  if (!config) {
+    await localRateSlot();
+    return true;
+  }
+  const deadline = Date.now() + DEX_RATE_WAIT_MS;
+  try {
+    while (Date.now() < deadline) {
+      const acquired = await redisCommand(config, [
+        "SET", "onchain:mc:rate:v1", randomUUID(), "NX", "PX", DEX_RATE_INTERVAL_MS,
+      ], fetchImpl);
+      if (acquired === "OK") return true;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    return false;
+  } catch (_) {
+    // Redis failure must not create an unbounded Dexscreener burst. A local
+    // 500ms scheduler is the conservative fallback for this Vercel instance.
+    await localRateSlot();
+    return true;
+  }
 }
 
 function normalizeChain(value) {
@@ -198,6 +233,11 @@ export async function handleMarketCaps(
 
   const addresses = canonical.mints.map(encodeURIComponent).join(",");
   try {
+    const rateSlot = await waitForDexRateSlot(distributed, redisFetchImpl);
+    if (!rateSlot) {
+      if (cached) return responseJson(cached.pairs, 200, true, { "x-market-source": "redis-stale" });
+      return responseJson({ error: "market-cap refresh queued too long" }, 503, false, { "retry-after": "1" });
+    }
     const upstream = await fetchImpl(
       `https://api.dexscreener.com/tokens/v1/${encodeURIComponent(canonical.chain)}/${addresses}`,
       { headers: { accept: "application/json" }, signal: AbortSignal.timeout(DEX_TIMEOUT_MS) },
