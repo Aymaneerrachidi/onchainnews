@@ -28,6 +28,8 @@ function adminAccounts() {
 function validAdmin(username, password) {
   const entry = Object.entries(adminAccounts()).find(([name]) => String(name).trim().toLowerCase() === username);
   if (entry && typeof entry[1] === "string") return equalSecret(password, entry[1]);
+  const namedPassword = String(process.env[`ADMIN_${username.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_PASSWORD`] || "");
+  if (namedPassword) return equalSecret(password, namedPassword);
   const fallbackUsername = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
   return equalSecret(username, fallbackUsername) && equalSecret(password, String(process.env.ADMIN_PASSWORD || ""));
 }
