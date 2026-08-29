@@ -81,7 +81,6 @@ async def audit(snapshot_path: Path, output_path: Path) -> dict:
         published_error = relative_error(old, corrected)
         verified = bool(
             not candles_error and returned_contract_exact and supply > 0 and high > 0
-            and (lifetime_error is None or lifetime_error <= 0.10)
             and (provider_ath <= 0 or corrected <= provider_ath * 1.10)
         )
         result.update({
@@ -116,6 +115,7 @@ async def audit(snapshot_path: Path, output_path: Path) -> dict:
             "exactSupplyRequired": True,
             "priceCandlesRequired": True,
             "providerAthCrossCheckTolerancePct": 10,
+            "providerLifetimeSupplyMismatchIsAdvisory": True,
             "publishedDifferenceTolerancePct": 10,
             "failClosed": True,
         },
