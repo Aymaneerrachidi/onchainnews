@@ -314,7 +314,19 @@ async def run(
             chains=chains,
         )
         exact = [(str(row.get("chain") or ""), str(row.get("mint") or "")) for row in rows]
-        refreshed = merge_token_snapshots(await dex.token_pairs(exact))
+        try:
+            refreshed = merge_token_snapshots(await dex.token_pairs(exact))
+        except Exception as exc:
+            # Enrichment must remain usable during a transient Dexscreener
+            # batch outage. The saved runner snapshot has already passed the
+            # strict candle audit; use it as the market-data authority and
+            # continue the independent X/web evidence pass.
+            print(
+                f"warning: exact Dexscreener refresh unavailable; "
+                f"using audited snapshot values ({exc})",
+                file=sys.stderr,
+            )
+            refreshed = []
         by_mint = {token.mint.lower(): token for token in refreshed}
         candidates = [
             _candidate(row, by_mint.get(str(row.get("mint") or "").lower()))
